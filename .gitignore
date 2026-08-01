@@ -1,0 +1,52 @@
+# Secrets / local creds
+#
+# Anchored with a leading slash where the pattern names something at the root.
+# `secrets/` unanchored matched internal/cli/commands/secrets/ as well, so four
+# source files in it were silently never added — `git add -A` skips an ignored
+# path without a word, and the package went on compiling from the ones that had
+# been moved in with `git mv`.
+.env
+.env.*
+# The direnv file holds the live credentials; .envrc.example is the template and
+# is not matched by either pattern.
+/.envrc
+*.pem
+*.key
+/secrets/
+
+# Google OAuth client for the Gmail API, and the user credential it mints.
+# The client file is only needed for the one-time consent; the credential it
+# produces is a long-lived key to the mailbox.
+client_secret*.json
+*.apps.googleusercontent.com.json
+gmail-credentials.json
+
+# Session data / browser profile. All written at the root by the debug commands.
+/cookies.json
+/localStorage.json
+/chrome-data/
+/.chromedp-cache/
+
+# Page dumps written by the dev commands on failure. These are snapshots of
+# authenticated pages and contain personal data — never commit them.
+/.debug/
+
+# Build artifacts
+/bin/
+/dist/
+*.test
+coverage.out
+
+# Go
+/vendor/
+
+# macOS
+.DS_Store
+
+# Editors
+.idea/
+.vscode/
+*.swp
+
+# Claude Code のローカル状態
+/.claude/

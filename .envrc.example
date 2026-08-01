@@ -1,0 +1,33 @@
+# Local credentials for the debug commands, loaded by direnv.
+#
+#   cp .envrc.example .envrc
+#   $EDITOR .envrc
+#   direnv allow
+#
+# The program itself does not read any file: it reads the environment, the same
+# way it does on a runner where these arrive as repository secrets. Nothing in
+# it has to know direnv exists, and there is no local-development path that CI
+# never exercises.
+#
+# .envrc is gitignored. Keep it that way — every value below is a live
+# credential for a real brokerage or aggregator account.
+
+export PAYPAY_SEC_USERNAME=
+export PAYPAY_SEC_PASSWORD=
+export MF_EMAIL=
+export MF_PASSWORD=
+
+# The manual account the holdings are written into: the account_id_hash from
+# its MoneyForward URL.
+export MF_ASSET_ID=
+
+# Only needed to exercise the CI path locally. `mfpp debug gmail authorize`
+# writes gmail-credentials.json, and the commands read that file when this is
+# unset, so normally leave it commented out.
+# export GMAIL_CREDENTIALS_JSON="$(cat gmail-credentials.json)"
+
+# Already keeping credentials in a .env? Replace everything above with:
+#
+#   dotenv
+#
+# direnv reads it and the file stays gitignored, exactly as before.

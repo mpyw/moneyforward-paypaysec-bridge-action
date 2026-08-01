@@ -1,0 +1,96 @@
+name: 'PayPay 証券 → MoneyForward'
+description: >-
+  Read the holdings from a PayPay 証券 account and record them, one asset per
+  銘柄, in a MoneyForward manual account.
+author: mpyw
+
+branding:
+  icon: refresh-cw
+  color: blue
+
+# The inputs are internal/config, and nothing else is read from the
+# environment. Adding one here means adding it there; there is no third place
+# for a value to come from.
+inputs:
+  paypaysec-username:
+    description: 'PayPay 証券 login ID (an email address).'
+    required: true
+  paypaysec-password:
+    description: 'PayPay 証券 password.'
+    required: true
+  moneyforward-email:
+    description: 'MoneyForward login email address.'
+    required: true
+  moneyforward-password:
+    description: 'MoneyForward password.'
+    required: true
+  account-id-hash:
+    description: >-
+      The account_id_hash of the MoneyForward manual account to write into,
+      taken from its page URL. Everything in that account is managed by this
+      action: entries not matching a holding are deleted.
+    required: true
+  gmail-credentials:
+    description: >-
+      An authorized_user JSON credential scoped to gmail.readonly, for the
+      mailbox both services send their one-time codes to. Produced by
+      `mfpp debug gmail authorize`; a service account cannot read a consumer
+      mailbox, so this is a user refresh token and must be treated as one.
+    required: true
+  go-version-file:
+    description: 'Passed to actions/setup-go. Defaults to this action''s own go.mod.'
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v7
+      with:
+        go-version-file: ${{ inputs.go-version-file || format('{0}/go.mod', github.action_path) }}
+        cache-dependency-path: ${{ github.action_path }}/go.sum
+
+    - name: Download modules
+      # Its own step so the Sync step's log is the sync. `go run` downloads on
+      # demand otherwise, and a cold cache buries the first lines of the actual
+      # job — the ones naming which target is being read — under module fetches.
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: go mod download
+
+    - name: Build
+      # Also here rather than in Sync: compiler output is not sync output, and
+      # on a cold cache it is the slower half. Sync then runs a binary that is
+      # already built, so its first line is its first line.
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: go build -o "${{ runner.temp }}/mfpp" ./cmd/mfpp
+
+    - name: Check Chrome is available
+      # chromedp drives whatever Chrome the runner already has. Asserted here so
+      # a missing browser fails with this message rather than as a mid-scrape
+      # timeout.
+      shell: bash
+      run: google-chrome --version || chromium-browser --version
+
+    - name: Sync
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        PAYPAY_SEC_USERNAME: ${{ inputs.paypaysec-username }}
+        PAYPAY_SEC_PASSWORD: ${{ inputs.paypaysec-password }}
+        MF_EMAIL: ${{ inputs.moneyforward-email }}
+        MF_PASSWORD: ${{ inputs.moneyforward-password }}
+        MF_ASSET_ID: ${{ inputs.account-id-hash }}
+        GMAIL_CREDENTIALS_JSON: ${{ inputs.gmail-credentials }}
+      run: |
+        # Mask the values this program will see before it runs. Balances and
+        # one-time codes are masked by the program itself, as it reads them.
+        #
+        # A caller passing these from `secrets.*` gets GitHub's own masking too;
+        # a caller passing a literal does not, and this is what covers them.
+        echo "::add-mask::$PAYPAY_SEC_USERNAME"
+        echo "::add-mask::$MF_EMAIL"
+        echo "::add-mask::$MF_ASSET_ID"
+        "${{ runner.temp }}/mfpp" sync

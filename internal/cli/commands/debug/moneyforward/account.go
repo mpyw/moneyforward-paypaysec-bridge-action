@@ -1,0 +1,38 @@
+package moneyforward
+
+import (
+	"fmt"
+
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/secret"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands/debug/session"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/config"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/chrome/cookiestore"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/moneyforward/manualasset"
+)
+
+// account addresses the configured manual account over HTTP, using the session
+// saved by an earlier `mfpp debug mf login`.
+//
+// Shared by every subcommand that reads or writes entries, which is why it is
+// here rather than in any one of them.
+func account(opts *session.Options) (manualasset.Account, error) {
+	if missing := config.Missing(string(secret.AccountIDHash)); len(missing) > 0 {
+		return manualasset.Account{}, opts.Missing(missing)
+	}
+	client, err := cookiestore.Store{Path: opts.CookieFile()}.HTTPClient()
+	if err != nil {
+		return manualasset.Account{}, fmt.Errorf("%w\n(run `mfpp debug mf login` first)", err)
+	}
+	return manualasset.Account{HTTP: client, IDHash: accountIDHash()}, nil
+}
+
+// accountURL is the page a subcommand defaults to when given no --url.
+func accountURL(opts *session.Options) (string, error) {
+	if missing := config.Missing(string(secret.AccountIDHash)); len(missing) > 0 {
+		return "", opts.Missing(missing)
+	}
+	return manualasset.Account{IDHash: accountIDHash()}.URL(), nil
+}
+
+// accountIDHash is the manual account these commands address.
+func accountIDHash() string { return config.Value(secret.AccountIDHash) }

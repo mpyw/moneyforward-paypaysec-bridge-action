@@ -1,0 +1,26 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - unused
+    - ineffassign
+    - staticcheck
+    - govet
+    - errcheck
+    - misspell
+    - unconvert
+    - unparam
+  exclusions:
+    rules:
+      # The wire.NewSet vars live in providers.go so a provider and its
+      # registration stay in one file, but the only thing that reads them is
+      # wire.go, which the default build tags exclude. The wireinject pass sees
+      # both and is where a set that really has no reader would show up.
+      #
+      # Scoped to the set vars alone: the providers they name are reachable
+      # through them in this build, so a provider nobody registered is still
+      # reported here, and one registered but unreachable is reported by the
+      # other pass.
+      - linters: [unused]
+        path: internal/cli/commands/.*/providers\.go
+        text: 'var \w+Set is unused'
