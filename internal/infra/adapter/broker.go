@@ -39,14 +39,17 @@ func (b PayPaySecBroker) SignIn(context.Context) error {
 }
 
 // Holdings reads every target and returns one entry per 銘柄.
-func (b PayPaySecBroker) Holdings(context.Context) ([]asset.Asset, error) {
+func (b PayPaySecBroker) Holdings(context.Context) (asset.Holdings, error) {
 	balances, err := b.Client.GetBalances(b.Browser)
 	if err != nil {
-		return nil, fmt.Errorf("paypaysec: %w", err)
+		return asset.Holdings{}, fmt.Errorf("paypaysec: %w", err)
 	}
 	assets, err := balances.Assets()
 	if err != nil {
-		return nil, fmt.Errorf("paypaysec: %w", err)
+		return asset.Holdings{}, fmt.Errorf("paypaysec: %w", err)
 	}
-	return assets, nil
+	// Every target that produced a reading, not every target configured:
+	// GetBalances fails the whole read rather than skipping one, so these are
+	// exactly the pages that were verified.
+	return asset.Holdings{Assets: assets, Categories: balances.Categories()}, nil
 }

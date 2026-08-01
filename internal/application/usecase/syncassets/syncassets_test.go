@@ -8,20 +8,40 @@ import (
 	"testing"
 
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/asset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/assetname"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/portfolio"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/usecase/syncassets"
 )
 
 type stubBroker struct {
 	assets []asset.Asset
-	err    error
-	signIn error
-	signed int
+
+	// categories overrides what the broker says it covered. Nil means "derive
+	// it from the assets", which is the healthy case.
+	categories []string
+	err        error
+	signIn     error
+	signed     int
 }
 
 func (s *stubBroker) SignIn(context.Context) error { s.signed++; return s.signIn }
 
-func (s *stubBroker) Holdings(context.Context) ([]asset.Asset, error) { return s.assets, s.err }
+func (s *stubBroker) Holdings(context.Context) (asset.Holdings, error) {
+	if s.categories != nil {
+		return asset.Holdings{Assets: s.assets, Categories: s.categories}, s.err
+	}
+	// Default: every category the stub's own assets mention was covered, which
+	// is what a healthy read looks like.
+	seen := map[string]bool{}
+	var categories []string
+	for _, a := range s.assets {
+		if c, ok := assetname.CategoryOf(a.Name); ok && !seen[c] {
+			seen[c] = true
+			categories = append(categories, c)
+		}
+	}
+	return asset.Holdings{Assets: s.assets, Categories: categories}, s.err
+}
 
 // stubLedger is an in-memory account.
 //
@@ -325,55 +345,68 @@ func TestRunWithoutAReporterIsSilent(t *testing.T) {
 	}
 }
 
-// TestRunRefusesADisproportionateDeletion is the guard the first CI run needed.
+// TestRunRefusesDeletesFromAnUnreadCategory is the guard the first CI run
+// needed, stated as what it is actually guarding.
 //
 // One of eight pages came back with no holdings and a zero total — internally
 // consistent, so every cross-check passed, and three of five positions were
 // read. The empty-read abort does not fire on three, and the reconciliation
 // would have deleted the other two as no longer held.
-func TestRunRefusesADisproportionateDeletion(t *testing.T) {
+//
+// That page now fails the read outright, so it never reaches here. What does
+// reach here is the version that cannot be caught at the source: a category
+// that produced no reading at all, whose entries are unverified rather than
+// stale.
+func TestRunRefusesDeletesFromAnUnreadCategory(t *testing.T) {
 	ledger := &stubLedger{held: []asset.Asset{
-		{Name: "a", Yen: 1}, {Name: "b", Yen: 1}, {Name: "c", Yen: 1},
-		{Name: "d", Yen: 1}, {Name: "e", Yen: 1},
+		{Name: "[米国株] テスト電機", Yen: 1}, {Name: "[米国株] テスト商事", Yen: 1},
+		{Name: "[投信ミ] テストAIファンド", Yen: 1},
 	}}
 
-	// Two categories missing from the read, everything else unchanged.
 	_, err := syncassets.Sync{
-		Broker: &stubBroker{assets: []asset.Asset{
-			{Name: "a", Yen: 1}, {Name: "b", Yen: 1}, {Name: "c", Yen: 1},
-		}},
+		Broker: &stubBroker{
+			assets: []asset.Asset{{Name: "[米国株] テスト電機", Yen: 1}, {Name: "[米国株] テスト商事", Yen: 1}},
+			// 投信ミ produced nothing at all — not an empty reading, no reading.
+			categories: []string{"米国株"},
+		},
 		Ledger: ledger,
 	}.Run(t.Context())
 
 	if err == nil {
-		t.Fatal("Run() deleted two of five entries without a word")
+		t.Fatal("Run() deleted an entry from a category it never read")
 	}
-	if !errors.Is(err, portfolio.ErrTooDestructive) {
-		t.Errorf("error = %v, want ErrTooDestructive", err)
+	if !errors.Is(err, portfolio.ErrUnverifiedDeletes) {
+		t.Errorf("error = %v, want ErrUnverifiedDeletes", err)
 	}
 	if len(ledger.writes) != 0 {
 		t.Errorf("it deleted before refusing: %v", ledger.writes)
 	}
 }
 
-// TestRunAllowsAnOrdinaryDaysSales keeps the limit out of the way of the thing
-// it is not for.
-func TestRunAllowsAnOrdinaryDaysSales(t *testing.T) {
+// TestRunAllowsSellingOutOfACategory is the case the old share-based limit
+// refused and this one must not.
+//
+// Four of five positions sold. Every page was read; one of them is now empty.
+// Under the old limit that was 80% of the ledger and the run failed, every
+// weekday, with an error telling the reader to raise a limit no flag exposed.
+func TestRunAllowsSellingOutOfACategory(t *testing.T) {
 	ledger := &stubLedger{held: []asset.Asset{
-		{Name: "a", Yen: 1}, {Name: "b", Yen: 1}, {Name: "c", Yen: 1},
-		{Name: "d", Yen: 1}, {Name: "e", Yen: 1},
+		{Name: "[米国株] テスト電機", Yen: 1}, {Name: "[米国株] テスト商事", Yen: 1},
+		{Name: "[ミニ] テスト電機", Yen: 1}, {Name: "[投信ミ] テストAIファンド", Yen: 1},
+		{Name: "[投信ミ] テスト・ファンド", Yen: 1},
 	}}
 
 	_, err := syncassets.Sync{
-		Broker: &stubBroker{assets: []asset.Asset{
-			{Name: "a", Yen: 1}, {Name: "b", Yen: 1}, {Name: "c", Yen: 1}, {Name: "d", Yen: 1},
-		}},
+		Broker: &stubBroker{
+			assets:     []asset.Asset{{Name: "[米国株] テスト電機", Yen: 1}},
+			categories: []string{"米国株", "ミニ", "投信ミ"},
+		},
 		Ledger: ledger,
 	}.Run(t.Context())
 	if err != nil {
-		t.Fatalf("Run() refused one sale out of five: %v", err)
+		t.Fatalf("Run() refused a sale it had read every page for: %v", err)
 	}
-	if len(ledger.held) != 4 {
-		t.Errorf("the ledger holds %d entries", len(ledger.held))
+	if len(ledger.held) != 1 {
+		t.Errorf("the ledger holds %d entries, want the one still held", len(ledger.held))
 	}
 }

@@ -13,6 +13,7 @@ import (
 	"sort"
 
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/asset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/assetname"
 )
 
 // A position here is an [asset.Asset].
@@ -186,40 +187,52 @@ func (s Step) Confirm(want asset.Asset, found *asset.Asset) error {
 	return fmt.Errorf("unknown action %q for %q", s.Action, s.Name)
 }
 
-// ErrTooDestructive reports a plan that removes more than a caller is willing
-// to lose in one run.
-var ErrTooDestructive = errors.New("the plan deletes too much of the ledger")
+// ErrUnverifiedDeletes reports deletes the read cannot account for.
+var ErrUnverifiedDeletes = errors.New("the plan deletes entries from categories this run did not read")
 
-// CheckBlastRadius refuses a plan that would delete a large share of what is
-// recorded without putting anything back.
+// CheckCoverage refuses to delete an entry belonging to a category the run did
+// not actually read.
 //
-// The empty-read abort catches a source that returned nothing at all. This
-// catches the same failure at smaller scale, which is the shape it actually
-// took: one of eight pages came back with no holdings and a zero total —
-// internally consistent, so every cross-check passed — and the run was a
-// reconciliation away from deleting two real positions as no longer held.
+// This replaced a limit on the share of the ledger one run could delete. That
+// limit was a proxy for "the scrape went wrong", written when the scrape could
+// go wrong quietly: a page returning no holdings and a zero total agreed with
+// every cross-check there was, and a run once came within a reconciliation of
+// removing two real positions.
 //
-// Deliberately crude. It cannot tell a bad scrape from a real sale, so it is a
-// limit on how much can go wrong unattended rather than a judgement about
-// whether anything did: a genuine sale of that many positions wants a person to
-// confirm it once, and gets one.
-func (p Plan) CheckBlastRadius(recorded int, limit float64) error {
-	if recorded == 0 || limit <= 0 {
+// Those paths are closed now, at the source and with the specific complaint
+// each deserves — a page still showing its loading placeholder, a total with no
+// holdings under it, three routes that disagree, a tab that did not activate.
+// Any of them fails the whole read. So by the time there is a plan, every page
+// it rests on has been verified, and the proxy was measuring nothing while
+// refusing the one thing it could not distinguish from a bad scrape: somebody
+// actually selling.
+//
+// What is left worth checking is not how much is being deleted but whether the
+// run looked where it is deleting from. A category the ledger has entries under
+// and the read never covered is a target dropped from the list, or a bucket
+// that stopped being scraped — and its entries are unverified, not stale.
+//
+// Entries with no category prefix are left alone entirely. Somebody typed those
+// in by hand; they are not this program's to remove.
+func (p Plan) CheckCoverage(covered []string) error {
+	seen := make(map[string]bool, len(covered))
+	for _, c := range covered {
+		seen[c] = true
+	}
+
+	var unverified []string
+	for _, step := range p.Steps {
+		if step.Action != ActionDelete {
+			continue
+		}
+		category, ok := assetname.CategoryOf(step.Name)
+		if !ok || seen[category] {
+			continue
+		}
+		unverified = append(unverified, step.Name)
+	}
+	if len(unverified) == 0 {
 		return nil
 	}
-	counts := p.Counts()
-	deletes := counts[ActionDelete]
-	if deletes == 0 {
-		return nil
-	}
-	// Replacing a position is a rename, not a loss: something took its place.
-	if counts[ActionCreate] >= deletes {
-		return nil
-	}
-	if share := float64(deletes) / float64(recorded); share > limit {
-		return fmt.Errorf("%w: %d of %d entries, with %d created — rerun with the limit "+
-			"raised if that is really what happened", ErrTooDestructive, deletes, recorded,
-			counts[ActionCreate])
-	}
-	return nil
+	return fmt.Errorf("%w: %v — the read covered %v", ErrUnverifiedDeletes, unverified, covered)
 }

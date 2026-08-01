@@ -6,6 +6,7 @@
 // the wiring.
 //
 //	mfpp sync               the scheduled job
+//	mfpp gmail authorize    obtain the Gmail credential the job reads OTPs with
 //	mfpp debug …            step-by-step development harness
 //
 // Setting the repository secrets is not among them. It used to be, as
@@ -29,6 +30,7 @@ package commands
 
 import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands/debug"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands/gmail"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands/sync"
 	"github.com/urfave/cli/v3"
 )
@@ -40,6 +42,7 @@ func Root() *cli.Command {
 		Usage: "sync the PayPay 証券 balance into a MoneyForward manual asset",
 		Commands: []*cli.Command{
 			sync.Command(),
+			gmail.Command(),
 			debug.Command(),
 		},
 	}

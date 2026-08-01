@@ -358,3 +358,15 @@ func Read(ctx context.Context, t selector.Target) (Reading, error) {
 	}
 	return reading, nil
 }
+
+// Categories names every target this read covered, in Targets order.
+//
+// The category rather than the key: it is what [assetname.Scheme] puts in front
+// of a holding, so it is what a recorded entry can be traced back through.
+func (b Balances) Categories() []string {
+	out := make([]string, 0, len(b.Readings))
+	for _, r := range b.Readings {
+		out = append(out, r.Target.Name)
+	}
+	return out
+}

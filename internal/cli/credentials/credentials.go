@@ -20,7 +20,7 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/gmail"
 )
 
-// DefaultCredentialsFile is where `mfpp debug gmail authorize` writes the user
+// DefaultCredentialsFile is where `mfpp gmail authorize` writes the user
 // credential it obtains. Gitignored, and absent in CI, where the same JSON
 // arrives through GmailCredentialsEnv instead.
 const DefaultCredentialsFile = "gmail-credentials.json"
@@ -52,6 +52,6 @@ func OpenMailbox(ctx context.Context, credentialsFile string) (*gmail.Client, er
 	}
 	return nil, fmt.Errorf(
 		"no Gmail credential: neither $%s nor %s\n"+
-			"(run `mfpp debug gmail authorize` locally, or set the secret in CI)",
+			"(run `mfpp gmail authorize` locally, or set the secret in CI)",
 		config.GmailCredentials, credentialsFile)
 }

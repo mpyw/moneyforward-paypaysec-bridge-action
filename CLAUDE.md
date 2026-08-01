@@ -41,7 +41,7 @@ PayPay 証券・MoneyForward どちらも **ID/PW + メール OTP** でログイ
 - **サービスアカウント不可**: ドメイン全体の委任は Workspace 専用。個人 Gmail は
   ユーザーの refresh token でしか読めないので、Workload Identity Federation は使えない
 - **スコープは gmail.readonly のみ**: `gcloud auth application-default login` は
-  cloud-platform を強制するため使わず、同意フローを自前で持つ (`mfpp debug gmail authorize`)。
+  cloud-platform を強制するため使わず、同意フローを自前で持つ (`mfpp gmail authorize`)。
   CI に置く資格情報が漏れたとき、影響が「メール読み取り」に留まる
 - **artifact 不使用**: public repo では誰でも DL 可、private でも collaborator 全員可で
   90 日保持。短命データを永続化しない
@@ -121,7 +121,7 @@ internal/
     port/               # 副作用そのものの interface。1 メソッド 1 通信
     usecase/
       syncassets/       #   mfpp sync の段取り全部
-      authorizegmail/   #   mfpp debug gmail authorize
+      authorizegmail/   #   mfpp gmail authorize
   cli/                  # 配送手段。フラグと表示
     credentials/        #   Gmail 資格情報の解決順序 (secret → ファイル)
     commands/           #   ディレクトリ構成 = コマンドの木
@@ -173,7 +173,7 @@ internal/
 mfpp sync               # 本体ジョブ
 mfpp debug paypaysec …  # selectors / login / balance / probe
 mfpp debug mf …         # login / portfolio / list / add / sync / fetch / probe
-mfpp debug gmail …      # authorize / check / search
+mfpp gmail …            # authorize / check / search
 ```
 
 `mf add` と `mf sync` は実口座に書き込む。他の debug コマンドは読むだけ。
@@ -198,7 +198,7 @@ GitHub Variables は使わない。
 
 - `.envrc` — 上記と同じ値を direnv が環境に置く (`.envrc.example` が雛形)
 - `client_secret.json` — OAuth クライアント。同意フローの一度きりにしか使わない
-- `gmail-credentials.json` — `mfpp debug gmail authorize` が作る資格情報
+- `gmail-credentials.json` — `mfpp gmail authorize` が作る資格情報
 
 ## 開発
 
@@ -216,7 +216,7 @@ GitHub Variables は使わない。
 
 ```bash
 cp .envrc.example .envrc && $EDITOR .envrc && direnv allow
-go run ./cmd/mfpp debug gmail authorize   # gmail-credentials.json を作る
+go run ./cmd/mfpp gmail authorize   # gmail-credentials.json を作る
 ```
 
 `gh secret set` はこのリポジトリではなく、利用者自身の fork に対して行う。

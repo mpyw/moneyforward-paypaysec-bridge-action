@@ -17,6 +17,8 @@ type Broker interface {
 	// detail.
 	SignIn(ctx context.Context) error
 
-	// Holdings reads one entry per 銘柄.
-	Holdings(ctx context.Context) ([]asset.Asset, error)
+	// Holdings reads one entry per 銘柄, and reports which categories it
+	// covered — including the ones that turned out to hold nothing. Without
+	// that, an empty category and an unread one are the same answer.
+	Holdings(ctx context.Context) (asset.Holdings, error)
 }

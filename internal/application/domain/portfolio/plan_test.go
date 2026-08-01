@@ -244,62 +244,64 @@ func TestStepConfirm(t *testing.T) {
 	}
 }
 
-// TestCheckBlastRadius is a limit on how much one unattended run may remove.
+// TestCheckCoverage refuses to delete an entry from a category the run never
+// looked at.
 //
-// The empty-read abort catches a source that returned nothing. This catches the
-// shape the failure actually took: one of eight pages came back with no
-// holdings and a zero total — internally consistent, so every cross-check
-// passed — and the run was one reconciliation away from deleting two real
-// positions as no longer held.
-func TestCheckBlastRadius(t *testing.T) {
-	steps := func(creates, deletes int) Plan {
+// This replaced a limit on the share of the ledger one run could delete, which
+// could not tell a bad scrape from a sale and so refused both. Every failure it
+// stood in for now fails at the source with its own complaint, and the whole
+// read fails with it — so a plan that exists rests on verified pages, and the
+// question worth asking is not how many deletes there are but whether the run
+// covered where they come from.
+func TestCheckCoverage(t *testing.T) {
+	del := func(names ...string) Plan {
 		var p Plan
-		for i := 0; i < creates; i++ {
-			p.Steps = append(p.Steps, Step{Action: ActionCreate, Name: "new"})
-		}
-		for i := 0; i < deletes; i++ {
-			p.Steps = append(p.Steps, Step{Action: ActionDelete, Name: "gone"})
+		for _, n := range names {
+			p.Steps = append(p.Steps, Step{Action: ActionDelete, Name: n})
 		}
 		return p
 	}
 
 	tests := map[string]struct {
-		plan     Plan
-		recorded int
-		wantErr  bool
+		plan    Plan
+		covered []string
+		wantErr bool
 	}{
-		"nothing deleted":             {steps(2, 0), 5, false},
-		"one of five":                 {steps(0, 1), 5, false},
-		"two of five is over a third": {steps(0, 2), 5, true},
-		// A category that came back empty: the shape this exists for.
-		"two of five, none replaced": {steps(0, 2), 5, true},
-		// Renames and replacements are not losses.
-		"as many created as deleted": {steps(2, 2), 5, false},
-		"more created than deleted":  {steps(3, 2), 5, false},
-		// Nothing recorded yet: the first run has nothing to lose.
-		"an empty ledger": {steps(0, 0), 0, false},
+		"the category was read": {
+			del("[米国株] テスト電機"), []string{"米国株", "ミニ"}, false,
+		},
+		// The case the old limit refused: somebody sold out of a category. Every
+		// page was read and one of them is now empty. Nothing is wrong.
+		"everything in a covered category, sold": {
+			del("[米国株] テスト電機", "[米国株] テスト商事", "[ミニ] テスト電機"),
+			[]string{"米国株", "ミニ"}, false,
+		},
+		// The case worth catching: a target dropped out of the list, so its
+		// entries are unverified rather than stale.
+		"a category nobody read": {
+			del("[投信ミ] テストAIファンド"), []string{"米国株", "ミニ"}, true,
+		},
+		"one covered, one not": {
+			del("[米国株] テスト電機", "[投信ミ] テストAIファンド"),
+			[]string{"米国株"}, true,
+		},
+		// A row somebody typed in by hand. Not this program's to remove, and not
+		// this program's to complain about either — Reconcile does not plan it.
+		"no prefix at all": {
+			del("手で足した何か"), []string{"米国株"}, false,
+		},
+		"nothing deleted": {Plan{}, nil, false},
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			err := tt.plan.CheckBlastRadius(tt.recorded, 1.0/3.0)
+			err := tt.plan.CheckCoverage(tt.covered)
 			if tt.wantErr != (err != nil) {
-				t.Fatalf("CheckBlastRadius() = %v", err)
+				t.Fatalf("CheckCoverage() = %v, wantErr %v", err, tt.wantErr)
 			}
-			if err != nil && !errors.Is(err, ErrTooDestructive) {
-				t.Errorf("error = %v, want ErrTooDestructive", err)
+			if err != nil && !errors.Is(err, ErrUnverifiedDeletes) {
+				t.Errorf("error = %v, want ErrUnverifiedDeletes", err)
 			}
 		})
-	}
-}
-
-// TestCheckBlastRadiusCanBeLifted keeps the limit from standing between a person
-// and a change they meant.
-func TestCheckBlastRadiusCanBeLifted(t *testing.T) {
-	plan := Plan{Steps: []Step{
-		{Action: ActionDelete, Name: "a"}, {Action: ActionDelete, Name: "b"},
-	}}
-	if err := plan.CheckBlastRadius(2, 1.0); err != nil {
-		t.Errorf("CheckBlastRadius() with the limit at 1.0 = %v", err)
 	}
 }
 

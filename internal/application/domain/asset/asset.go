@@ -89,3 +89,19 @@ type Asset struct {
 func (a Asset) Amounts() []int64 {
 	return []int64{a.Yen, a.AcquisitionYen}
 }
+
+// Holdings is one pass over the source: what was found, and where it looked.
+//
+// Categories is the second half because a category that read as empty and one
+// that was never read produce the same thing — no assets — and the difference
+// decides whether the ledger's entries under it are stale or unverified. The
+// pass used to return only the assets, so that distinction was lost at this
+// boundary and the reconciliation downstream had to guess with a percentage.
+type Holdings struct {
+	// Assets is one entry per 銘柄 found.
+	Assets []Asset
+
+	// Categories is every category the pass covered, including the ones that
+	// turned out to hold nothing.
+	Categories []string
+}

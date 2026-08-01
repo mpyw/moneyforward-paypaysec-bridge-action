@@ -9,6 +9,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/asset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/assetname"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/portfolio"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/port"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/adapter"
@@ -40,7 +41,25 @@ type typedHoldings []asset.Asset
 
 func (t typedHoldings) SignIn(context.Context) error { return nil }
 
-func (t typedHoldings) Holdings(context.Context) ([]asset.Asset, error) { return t, nil }
+// Holdings reports every category the typed entries mention as covered.
+//
+// Which is the honest answer for this command: the operator typed the entries,
+// so the categories they named are exactly the ones this run "read". An entry
+// in the ledger under some other category is one this invocation knows nothing
+// about, and the coverage check will refuse to delete it — which is what should
+// happen when somebody tests the write path with two entries against a ledger
+// holding five.
+func (t typedHoldings) Holdings(context.Context) (asset.Holdings, error) {
+	seen := map[string]bool{}
+	var categories []string
+	for _, a := range t {
+		if c, ok := assetname.CategoryOf(a.Name); ok && !seen[c] {
+			seen[c] = true
+			categories = append(categories, c)
+		}
+	}
+	return asset.Holdings{Assets: t, Categories: categories}, nil
+}
 
 // ledgerOn is the MoneyForward ledger against an already-signed-in account,
 // which is what the saved session gives this command.

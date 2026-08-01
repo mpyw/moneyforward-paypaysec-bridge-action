@@ -26,14 +26,6 @@ type Sync struct {
 	Ledger   port.Ledger
 	Reporter port.Reporter
 
-	// DeleteLimit is the share of the ledger one run may delete without also
-	// creating as much, as a fraction. Zero means the default.
-	//
-	// A limit on how much can go wrong unattended, not a judgement about whether
-	// anything did — see [portfolio.Plan.CheckBlastRadius]. Raise it, once, for a
-	// run that really is meant to remove that much.
-	DeleteLimit float64
-
 	// AllowEmpty permits reconciling against no holdings at all, which deletes
 	// everything the ledger holds.
 	//
@@ -72,13 +64,13 @@ func (s Sync) Run(ctx context.Context) (Result, error) {
 	// what is no longer held, so a scrape that silently returned nothing would
 	// empty the account — a failure that looks like a successful run with no
 	// holdings.
-	if len(held) == 0 && !s.AllowEmpty {
+	if len(held.Assets) == 0 && !s.AllowEmpty {
 		return result, errors.New("syncassets: the broker reported no holdings at all; " +
 			"refusing to reconcile, which would empty the ledger")
 	}
-	result.Assets = held
+	result.Assets = held.Assets
 	if s.Reporter != nil {
-		s.Reporter.ReadResult(held)
+		s.Reporter.ReadResult(held.Assets)
 	}
 
 	s.phase("record holdings")
@@ -94,7 +86,7 @@ func (s Sync) Run(ctx context.Context) (Result, error) {
 // The plan is returned even on failure, by the caller: these are writes to a
 // financial record, and "what did it manage before it stopped?" is the first
 // question worth answering.
-func (s Sync) reconcile(ctx context.Context, held []asset.Asset) (portfolio.Plan, error) {
+func (s Sync) reconcile(ctx context.Context, held asset.Holdings) (portfolio.Plan, error) {
 	recorded, err := s.Ledger.Recorded(ctx)
 	if err != nil {
 		return portfolio.Plan{}, err
@@ -105,22 +97,22 @@ func (s Sync) reconcile(ctx context.Context, held []asset.Asset) (portfolio.Plan
 				"apart, so remove the extra by hand before syncing", dup)
 	}
 
-	plan := portfolio.Reconcile(recorded, held)
+	plan := portfolio.Reconcile(recorded, held.Assets)
 	if s.Reporter != nil {
 		s.Reporter.Planned(plan)
 	}
 	// Skipped when the caller asked for an empty read and got one: that is a
-	// request to remove everything, and the limit is for a run nobody is
-	// watching. An AllowEmpty run that read something still has to pass it.
-	askedToEmpty := s.AllowEmpty && len(held) == 0
+	// request to remove everything, and there are no categories to check it
+	// against. An AllowEmpty run that read something still has to pass.
+	askedToEmpty := s.AllowEmpty && len(held.Assets) == 0
 	if !askedToEmpty {
-		if err := plan.CheckBlastRadius(len(recorded), s.deleteLimit()); err != nil {
+		if err := plan.CheckCoverage(held.Categories); err != nil {
 			return plan, err
 		}
 	}
 
-	wanted := make(map[string]asset.Asset, len(held))
-	for _, a := range held {
+	wanted := make(map[string]asset.Asset, len(held.Assets))
+	for _, a := range held.Assets {
 		wanted[a.Name] = a
 	}
 	for _, step := range plan.Steps {
@@ -183,19 +175,6 @@ func (s Sync) confirm(ctx context.Context, step portfolio.Step, want asset.Asset
 		}
 	}
 	return verr
-}
-
-// defaultDeleteLimit is how much of the ledger one unattended run may remove.
-//
-// A third: enough for an ordinary day's sales, not enough to lose a whole
-// category to a page that came back empty.
-const defaultDeleteLimit = 1.0 / 3.0
-
-func (s Sync) deleteLimit() float64 {
-	if s.DeleteLimit > 0 {
-		return s.DeleteLimit
-	}
-	return defaultDeleteLimit
 }
 
 // phase announces a stage when there is anyone listening.

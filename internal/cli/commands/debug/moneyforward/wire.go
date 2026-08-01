@@ -30,7 +30,7 @@ import (
 func newSyncFromEntries(desired []asset.Asset, acct manualasset.Account) syncassets.Sync {
 	wire.Build(
 		providerSet,
-		// Named fields, so DeleteLimit stays at its default. This command
+		// Named fields rather than "*": AllowEmpty is the one field this command
 		// writes to the real account, and the limit on how much one run may
 		// remove is not something a debug helper should quietly widen.
 		wire.Struct(new(syncassets.Sync), "Broker", "Ledger", "Reporter", "AllowEmpty"),

@@ -45,7 +45,7 @@
   プログラム側が読み取り時点で mask する
 - **Gmail スコープ最小化**: `gmail.readonly` のみ。`gcloud auth application-default login`
   は `cloud-platform` を強制するので使わず、同意フローを自前で持つ
-  (`mfpp debug gmail authorize`)。漏洩時の影響を「メール読み取り」に留めるため。
+  (`mfpp gmail authorize`)。漏洩時の影響を「メール読み取り」に留めるため。
   資格情報の解決は secret → ローカルファイルの 2 段だけで、**ADC へのフォールバックは
   持たない**。持つと、ADC が転がっているマシンで黙って cloud-platform 資格情報を
   使ってしまい、この判断そのものが無効になる
@@ -133,9 +133,9 @@ Workspace ドメイン専用で、個人アカウントには適用できない�
 
 1. https://myaccount.google.com/permissions で該当アプリの連携を取り消す
    (これで refresh token が即座に無効化される)
-2. `go run ./cmd/mfpp debug gmail authorize` で再発行
+2. `go run ./cmd/mfpp gmail authorize` で再発行
 3. `gh secret set GMAIL_CREDENTIALS_JSON < gmail-credentials.json`
-4. `go run ./cmd/mfpp debug gmail check` で疎通確認
+4. `go run ./cmd/mfpp gmail check` で疎通確認
 
 取り消し中は OTP が読めないので、その日の workflow は失敗して構わない。
 

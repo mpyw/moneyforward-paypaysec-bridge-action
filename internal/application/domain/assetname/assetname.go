@@ -91,3 +91,25 @@ func (s Scheme) Validate() error {
 	}
 	return nil
 }
+
+// CategoryOf reads back the category [Scheme.For] wrote, and says whether the
+// name has one at all.
+//
+// The inverse exists because a ledger entry is only a string by the time it
+// comes back: the service stores the rendered name and nothing else. Deciding
+// whether an entry is stale means knowing which category it belongs to, and the
+// prefix is the only place that survives the round trip.
+//
+// Deliberately strict about the shape. A name a person typed into the account
+// by hand has no prefix, and reporting one for it would file a stranger's row
+// under a category this program manages — and then delete it as stale.
+func CategoryOf(name string) (string, bool) {
+	if !strings.HasPrefix(name, "[") {
+		return "", false
+	}
+	end := strings.Index(name, "] ")
+	if end < 2 {
+		return "", false
+	}
+	return name[1:end], true
+}

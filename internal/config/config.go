@@ -24,7 +24,7 @@ import (
 // Variables not already named by [secret], because they are not credentials.
 const (
 	// GmailCredentials holds an authorized_user JSON blob. In CI it comes from a
-	// secret; locally the file written by `mfpp debug gmail authorize` is used
+	// secret; locally the file written by `mfpp gmail authorize` is used
 	// instead.
 	GmailCredentials = "GMAIL_CREDENTIALS_JSON"
 

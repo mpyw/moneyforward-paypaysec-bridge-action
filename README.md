@@ -29,7 +29,7 @@ MoneyForward の手入力口座に反映する GitHub Action。
 ```bash
 # client_secret.json を置いたディレクトリで
 go run github.com/mpyw/moneyforward-paypaysec-bridge-action/cmd/mfpp@v1 \
-  debug gmail authorize
+  gmail authorize
 ```
 
 ---
@@ -75,12 +75,18 @@ OTP を Gmail API で読むため。転送でも受信はできるが、OTP メ�
 
 安全側の制限が 2 つある:
 
-- 1 回の実行で台帳の 1/3 を超える削除は拒否する (`portfolio.CheckBlastRadius`)。
-  スクレイプが部分的に失敗して「保有ゼロ」と読めたときに、実在する銘柄を
-  消させないため
+- **読まなかったカテゴリからは削除しない** (`portfolio.CheckCoverage`)。
+  8 ページのどれか 1 つでも読めなければ実行全体が失敗するので、計画が存在する
+  時点で全ページが検証済み。それでも台帳にあってこの実行が一度も見なかった
+  カテゴリの行は「古い」ではなく「未検証」なので、消さずに落とす
 - ページが読み込み中のプレースホルダを返している間は値を採用しない。
   投資信託ページは非同期ロード中に全項目 0 円を表示し、それは 3 ルート照合を
   すべて通ってしまう
+
+以前は「1 回の実行で台帳の 1/3 を超える削除を拒否」する割合制限だった。読み取りの
+失敗を割合で代理していたが、その失敗経路は今それぞれ固有のエラーで塞がっている。
+残ったのは**本当に売却したときに毎営業日落ち続ける**という副作用だけで、しかも
+エラーは「limit を上げて再実行しろ」と言うのに、上げる手段が実装されていなかった。
 
 ---
 
@@ -104,7 +110,7 @@ go run ./cmd/mfpp debug paypaysec login         # ログイン。セッション
 go run ./cmd/mfpp debug paypaysec balance       # 保存したセッションで銘柄を読む
 go run ./cmd/mfpp debug paypaysec probe --url URL
 go run ./cmd/mfpp debug mf login | list | sync  # MoneyForward 側
-go run ./cmd/mfpp debug gmail check | search    # メールボックス
+go run ./cmd/mfpp gmail check | search          # メールボックス
 
 go test -tags=live ./internal/...               # 実サイトに対するセレクタ回帰確認
 ```

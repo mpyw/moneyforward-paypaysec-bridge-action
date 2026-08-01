@@ -14,10 +14,13 @@
 //	mfpp debug mf list              list the entries currently recorded
 //	mfpp debug mf add               create one entry
 //	mfpp debug mf sync              reconcile the entries against name=yen pairs
-//	mfpp debug gmail authorize      obtain a Gmail credential through OAuth consent
-//	mfpp debug gmail search         list recent messages matching a query
 //
 // One directory per group, under this one, matching the command tree.
+//
+// `gmail` is not here. Obtaining a credential is the one thing every user has
+// to do — step C of the setup — and burying the only command a non-developer
+// runs under a harness called `debug` said the wrong thing about it. What is
+// left here is the pipeline taken apart, which is what the name means.
 //
 // Two things make step-by-step work possible:
 //
@@ -31,7 +34,6 @@
 package debug
 
 import (
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands/debug/gmail"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands/debug/moneyforward"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands/debug/paypaysec"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands/debug/session"
@@ -49,7 +51,6 @@ func Command() *cli.Command {
 		Commands: []*cli.Command{
 			paypaysec.Command(),
 			moneyforward.Command(),
-			gmail.Command(),
 		},
 	}
 }
