@@ -4,8 +4,8 @@ go 1.26
 
 require (
 	cloud.google.com/go/auth v0.22.0
-	github.com/chromedp/cdproto v0.0.0-20260427013145-5737772c319b
-	github.com/chromedp/chromedp v0.15.1
+	github.com/chromedp/cdproto v0.0.0-20260714215040-dc233986426f
+	github.com/chromedp/chromedp v0.16.0
 	github.com/google/wire v0.7.0
 	github.com/urfave/cli/v3 v3.10.1
 	golang.org/x/oauth2 v0.36.0
@@ -18,7 +18,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chromedp/sysutil v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/go-json-experiment/json v0.0.0-20260214004413-d219187c3433 // indirect
+	github.com/go-json-experiment/json v0.0.0-20260623181947-01eb4420fa68 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect
