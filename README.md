@@ -50,6 +50,21 @@ go run github.com/mpyw/moneyforward-paypaysec-bridge-action/cmd/mfpp@v1 \
 `actions/checkout` は要らない。composite action で、全ステップが自分の
 `github.action_path` に閉じている。runner に Chrome が要る (`ubuntu-latest` にはある)。
 
+**`@v1` は動くポインタ。** このアクションは呼び出し側のジョブの中で、証券口座と
+MoneyForward の資格情報を環境に持って動く。タグ参照のままだと、そのコードは
+利用者の関与なしに差し替わり得る。気になるなら SHA-1 で固定する:
+
+```yaml
+- uses: mpyw/moneyforward-paypaysec-bridge-action@<commit sha>  # v1.0.1
+```
+
+代償はスクレイパ特有のもので、PayPay 証券や MoneyForward が DOM を変えた日に
+セレクタの修正が届かず毎営業日失敗する。固定するなら Dependabot も入れておく。
+
+`action.yml` の中で使う `actions/setup-go` は**こちら側で SHA 固定してある**。
+利用者がこのアクションを SHA 固定しても、その先のタグ参照までは止められない
+——止められない側が負う risk なので、止められる側で止めてある。
+
 | input | 中身 |
 |---|---|
 | `paypaysec-username` / `paypaysec-password` | PayPay 証券のログイン ID (メールアドレス) とパスワード |

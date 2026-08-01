@@ -1,0 +1,16 @@
+# Pinning the actions to SHAs is what keeps a consumer's supply chain visible;
+# this is what keeps the pins from rotting into a security hole of their own.
+#
+# github-actions covers both .github/workflows and action.yml — the composite
+# action's own steps are the ones a consumer cannot pin themselves.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly

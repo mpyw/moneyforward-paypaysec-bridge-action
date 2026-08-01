@@ -46,7 +46,14 @@ runs:
   using: composite
   steps:
     - name: Set up Go
-      uses: actions/setup-go@v7
+      # Pinned to a SHA rather than a tag, because a consumer cannot reach it.
+      # This action runs inside their job with their brokerage credentials in
+      # the environment; pinning `uses: mpyw/…-action@<sha>` on their side
+      # freezes this file but not what this line resolves to. A tag here would
+      # leave a hop in the chain that the person taking the risk cannot see.
+      #
+      # Dependabot keeps it current — see .github/dependabot.yml.
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
       with:
         go-version-file: ${{ inputs.go-version-file || format('{0}/go.mod', github.action_path) }}
         cache-dependency-path: ${{ github.action_path }}/go.sum
