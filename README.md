@@ -32,6 +32,10 @@ go run github.com/mpyw/moneyforward-paypaysec-bridge-action/cmd/mfpp@v2 \
   gmail authorize
 ```
 
+これに [Go](https://go.dev/dl/) が要る（1.21 以降なら必要なものを自動で取ってくる）。
+使うのはこの 1 回だけで、以降の同期はランナー側で動くので手元には残らない。
+同意フローはループバックで完結するため、**ブラウザを手元で開ける環境**が要る。
+
 ---
 
 ## Action として
