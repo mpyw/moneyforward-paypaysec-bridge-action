@@ -147,32 +147,42 @@ Workspace ドメイン専用で、個人アカウントには適用できない�
 3. `rm -rf .debug .envrc .env client_secret.json gmail-credentials.json`
 
 
-## Public 化前チェックリスト
+## 監査チェックリスト
 
-このリポジトリは 2026-08-02 に履歴を捨てて作り直した。実ポートフォリオと OTP
-受信アドレスを含んでいた旧リポジトリ (`moneyforward-paypaysec-bridge`) は削除済み。
+このリポジトリは 2026-08-02 に履歴を捨てて作り直し、public にした。実ポートフォリオと
+OTP 受信アドレスを含んでいた旧リポジトリ (`moneyforward-paypaysec-bridge`) は削除済み。
 force push や `git filter-repo` では到達不能コミットが API から読めるままなので、
 リポジトリごと消すのが唯一の確実な方法だった。
 
-- [ ] `.gitignore` に `.envrc`, `.env`, `*.pem`, `*.key`, `cookies.json`, `localStorage.json`, `chrome-data/` が入っているか
-- [ ] リポジトリ全文 grep で個人メールアドレスがコードに残っていないか (`grep -rn '@gmail\.com\|@[a-z-]*\.co\.jp'`)
-- [ ] secret を含む log 行が CLAUDE.md / README / コメントに残っていないか
-- [ ] workflow が `::add-mask::` を全 secret + OTP に適用しているか
-- [ ] artifact ステップが追加されていないか (`actions/upload-artifact` 等が無いことを確認)
-- [ ] `permissions:` ブロックが `actions: read` / `contents: read` 最小限になっているか
-- [ ] private 状態で 1 週間以上 cron が安定稼働した実績があるか
-- [ ] action を `go run` からリリース資産に切り替えたか
-      (public にすると `uses: …@v1` はタグを信じるだけになる。チェックサムで
-      固定できるバイナリ配布に替える。private のうちは資産ダウンロードのほうが
-      手数が多く、起動時間も 1 日 1 回のジョブでは効かないので入れていない)
-- [ ] 実残高・銘柄名・OTP コードが現ツリーに再混入していないか。
+**public なので、以下は「公開前に一度」ではなく変更のたびに見る。**
+
+- [ ] 実残高・銘柄名・OTP コードが現ツリーに混入していないか。
       **ファイル一覧ではなく中身を見ること。** `git status` は何が入るかしか
       見ないので、2026-08-02 にはテストのコメントに残った実銘柄名を通していた
       ```bash
       git grep -nE '<実銘柄名>|<実金額>'
       git grep -nE '[0-9]{6,7}' -- '*.md' '*.go' | grep -v _test.go
-      gitleaks detect --no-git -v
+      gitleaks protect --staged -v
       ```
-- [ ] 実行ログに銘柄名が出ることを利用者に伝えてあるか
-      (金額と secret はマスクされるが、**銘柄名はマスクされない**。public fork で
-      動かすと保有銘柄が公開される)
+- [ ] 個人メールアドレスが残っていないか
+      (`git grep -nE '@gmail\.com|@[a-z-]*\.co\.jp'`)
+- [ ] secret を含む log 行が CLAUDE.md / README / コメントに残っていないか
+- [ ] `.gitignore` に `.envrc`, `.env`, `*.pem`, `*.key`, `cookies.json`,
+      `localStorage.json`, `chrome-data/`, `/.debug/`, `/.claude/` が入っているか
+- [ ] マスク登録がログ出力と**同じストリーム**に出ているか
+      (別ストリームだと順序が保証されず、登録が間に合わない。`actionslog` の
+      `defaultOut` と `log.Writer()` が一致していることをテストが見ている)
+- [ ] `action.yml` が `::add-mask::` を、渡された値のうち**リテラルで渡され得るもの**
+      に適用しているか (secrets 経由なら GitHub 側でもマスクされるが、リテラルを
+      渡す呼び出し側はそうならない)
+- [ ] artifact ステップが追加されていないか (`actions/upload-artifact` 等)
+- [ ] third-party action が SHA 固定のままか。特に `action.yml` の中のものは、
+      **利用者がこのアクションを SHA 固定しても止められない**ホップになる
+- [ ] `permissions:` が最小限か
+
+### 利用者側に伝わっているべきこと
+
+- [ ] **実行ログに銘柄名が出る。** 金額と secret はマスクされるが銘柄名はされない。
+      public fork で動かすと保有銘柄が公開される（template の README に記載）
+- [ ] `@v1` は動くタグで、固定したいなら SHA-1（同上）
+- [ ] `MF_ASSET_ID` の口座の中身はジョブが管理し、対応しない行は削除される（同上）

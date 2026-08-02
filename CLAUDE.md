@@ -115,7 +115,7 @@ internal/
     domain/
       money/            #   ParseYen
       valuation/        #   3 ルート照合。信じてよい合計か
-      portfolio/        #   Reconcile / Plan / 書き込みの成否 / 削除の上限
+      portfolio/        #   Reconcile / Plan / 書き込みの成否 / 削除の妥当性
       assetname/        #   資産名の生成と一意性
       asset/            #   サイト間を渡る単位と Kind
       secret/           #   ジョブが必要とする資格情報の集合
@@ -129,9 +129,10 @@ internal/
     commands/           #   ディレクトリ構成 = コマンドの木
       root.go           #     mfpp 直下に何がぶら下がるか
       sync/             #     wire の injector と provider
+      gmail/            #     authorize / check / search。debug ではない
       debug/            #     開発用ハーネス
         session/        #       共有フラグ / 永続プロファイル付き Chrome
-        paypaysec/ moneyforward/ gmail/
+        paypaysec/ moneyforward/
   infra/                # 副作用の実装
     adapter/            #   port の実装。サイトパッケージと繋ぐ
     actionslog/         #   Actions ログのマスキング
@@ -184,17 +185,20 @@ mfpp gmail …            # authorize / check / search
 
 ## 認証情報
 
-### GitHub Secrets
+### アクションの入力
 
-| Secret | 用途 |
+**このリポジトリは secrets を持たない。** public で、cron も無い。下記は
+`action.yml` の入力で、値は利用者側の fork の Secrets から渡る。
+
+| 入力 / 環境変数 | 用途 |
 |---|---|
 | `PAYPAY_SEC_USERNAME` / `PAYPAY_SEC_PASSWORD` | PayPay 証券ログイン |
 | `MF_EMAIL` / `MF_PASSWORD` | MoneyForward ログイン (ID/PW) |
 | `MF_ASSET_ID` | MF 手入力口座の account_id_hash。この中に銘柄が並ぶ |
-
 | `GMAIL_CREDENTIALS_JSON` | Gmail API のユーザー資格情報 (authorized_user JSON) |
 
-GitHub Variables は使わない。
+必須名の一覧は `domain/secret` にあり、`config_test.go` が「domain が必須と言う
+名前」と「`Load` が実際に読む名前」を突き合わせる。GitHub Variables は使わない。
 
 ### ローカルにのみ置くもの (リポジトリには書かない)
 
@@ -207,14 +211,16 @@ GitHub Variables は使わない。
 - Go 1.22+
 - chromedp 用に Chromium / Google Chrome をローカルにインストール
 - `.envrc` 等の機密ファイルはリポジトリにコミットしない (`.gitignore` 必須)
-- **ローカル開発のための経路をアプリケーションに持たせない**。godotenv を消して
-  direnv にしたのはこれ。プログラムは環境変数しか読まないので、CI で通る経路と
-  手元で通る経路が同じものになる
+- **ローカル開発のための経路をアプリケーションに持たせない**。プログラムは環境変数
+  しか読まず、ファイルを探さない。値を環境に置くのは direnv の仕事 (`.envrc.example`)。
+  CI で通る経路と手元で通る経路が同じものになる
 - CI は `ubuntu-latest` runner (Chromium プリインストール) で headless 実行
 
 ## セットアップ
 
-利用者向けの手順はテンプレート側の SETUP.md にある。ここは開発用:
+利用者向けの手順は
+[template の SETUP.md](https://github.com/mpyw/moneyforward-paypaysec-bridge-template/blob/main/SETUP.md)
+にある。ここは開発用:
 
 ```bash
 cp .envrc.example .envrc && $EDITOR .envrc && direnv allow
@@ -223,6 +229,34 @@ go run ./cmd/mfpp gmail authorize   # gmail-credentials.json を作る
 
 `gh secret set` はこのリポジトリではなく、利用者自身の fork に対して行う。
 このリポジトリは public で、secrets を持たない。
+
+## リリース手順
+
+利用者は `@v1` を参照する。`v1` は**可動タグ**で、置き忘れると修正が誰にも届かない
+——スクレイパなので、セレクタの修正が届かないことは毎営業日の失敗を意味する。
+
+```bash
+# ゲートを通してから
+gofmt -l . ; go vet ./... && go vet -tags live ./... && go vet -tags wireinject ./...
+go run github.com/google/wire/cmd/wire ./internal/cli/commands/...   # 差分が出ないこと
+golangci-lint run ./... && golangci-lint run --build-tags wireinject ./...
+TZ=UTC go test -race ./...
+go run github.com/rhysd/actionlint/cmd/actionlint@latest
+
+git tag vX.Y.Z && git push origin vX.Y.Z
+git tag -f v1  && git push -f origin v1      # ★ これを忘れない
+```
+
+そのうえで template の SHA 固定の例（`sync.yml` のコメントと README）を新しい
+コミットに向け直し、private fork に merge する。
+
+```bash
+git rev-parse --verify vX.Y.Z^{commit}
+```
+
+`git rev-parse` は**解決できない ref でエラー終了せず引数をそのまま返す**ので、
+`^{commit}` を付けたうえで 40 桁 hex かを確かめてから使うこと。一度これで、
+SHA 固定の例にタグ名を書いて push している。
 
 ## 注意点
 

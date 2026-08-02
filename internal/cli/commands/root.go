@@ -9,12 +9,9 @@
 //	mfpp gmail authorize    obtain the Gmail credential the job reads OTPs with
 //	mfpp debug …            step-by-step development harness
 //
-// Setting the repository secrets is not among them. It used to be, as
-// `mfpp secrets setup` and `mfpp secrets set`, which shelled out to gh and then
-// encrypted the value into a libsodium sealed box by hand — the one thing
-// `gh secret set` already does, from a tool it required anyway. SETUP.md gives
-// the gh commands; anyone reusing this as an action sets them in their own
-// repository's settings.
+// Setting the repository secrets is not among them, deliberately: `gh secret
+// set` already does it, encrypting locally before upload. Anyone using this as
+// an action sets them in their own repository.
 //
 // Each group lives in its own package under this one, so a subcommand's
 // helpers cannot reach another's, and the directories are the tree: sync,

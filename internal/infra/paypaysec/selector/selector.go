@@ -40,9 +40,8 @@ var OTPMail = otp.MailSpec{
 //
 // The same address also sends 【PayPay証券】ログイン通知 moments later, inside the
 // same freshness window — but that message carries no labelled code, so
-// otpCodePattern refuses it and the subject filter that used to do this job is
-// not needed. Dropping it removes one localized string from the path; the
-// pattern below is the one that is left.
+// otpCodePattern refuses it. A subject filter would do the same job and add a
+// localized string to the path, which is what broke the MoneyForward side.
 //
 // in:anywhere is there because transactional mail can land in Spam, and a code
 // that arrived but was filtered is indistinguishable from one that never came.

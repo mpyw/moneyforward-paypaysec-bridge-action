@@ -193,24 +193,20 @@ var ErrUnverifiedDeletes = errors.New("the plan deletes entries from categories 
 // CheckCoverage refuses to delete an entry belonging to a category the run did
 // not actually read.
 //
-// This replaced a limit on the share of the ledger one run could delete. That
-// limit was a proxy for "the scrape went wrong", written when the scrape could
-// go wrong quietly: a page returning no holdings and a zero total agreed with
-// every cross-check there was, and a run once came within a reconciliation of
-// removing two real positions.
+// Not a limit on how much may be deleted. A share of the ledger is a proxy for
+// "the scrape went wrong", and it cannot tell that from somebody selling — so it
+// refuses both, and a real sale fails the job every weekday.
 //
-// Those paths are closed now, at the source and with the specific complaint
-// each deserves — a page still showing its loading placeholder, a total with no
-// holdings under it, three routes that disagree, a tab that did not activate.
-// Any of them fails the whole read. So by the time there is a plan, every page
-// it rests on has been verified, and the proxy was measuring nothing while
-// refusing the one thing it could not distinguish from a bad scrape: somebody
-// actually selling.
+// It is also unnecessary. Every way a read can go wrong quietly is closed at the
+// source with the complaint it deserves: a page still showing its loading
+// placeholder, a total with no holdings under it, three routes that disagree, a
+// tab that did not activate. Any of them fails the whole read. By the time there
+// is a plan, every page it rests on has been verified.
 //
-// What is left worth checking is not how much is being deleted but whether the
-// run looked where it is deleting from. A category the ledger has entries under
-// and the read never covered is a target dropped from the list, or a bucket
-// that stopped being scraped — and its entries are unverified, not stale.
+// What is worth checking is not how much is being deleted but whether the run
+// looked where it is deleting from. A category the ledger has entries under and
+// the read never covered is a target dropped from the list, or a bucket that
+// stopped being scraped — and its entries are unverified, not stale.
 //
 // Entries with no category prefix are left alone entirely. Somebody typed those
 // in by hand; they are not this program's to remove.

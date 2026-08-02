@@ -25,11 +25,12 @@ import (
 // in:anywhere is there because transactional mail can land in Spam, where a code
 // that arrived is indistinguishable from one that never came.
 //
-// No subject filter. It used to read `subject:追加認証`, and the subject is
-// localized: a login from a GitHub runner gets "Money Forward ID Additional
-// Authentication via Email" and one from a laptop in Tokyo gets the Japanese.
-// Every message a developer tested against matched and every message CI
-// received did not.
+// No subject filter, and do not add one. The subject is localized by where the
+// login came from: a GitHub runner gets "Money Forward ID Additional
+// Authentication via Email", a laptop in Tokyo gets the Japanese. A filter on
+// either matches every message tested by hand and none of the ones the
+// scheduled job receives, which shows up as a poll running its whole window
+// with the mail sitting unmatched in every result set.
 //
 // What is left is the sender, which is not localized, and otpCodePattern, which
 // keys on a line holding nothing but the code. The service's other mail from

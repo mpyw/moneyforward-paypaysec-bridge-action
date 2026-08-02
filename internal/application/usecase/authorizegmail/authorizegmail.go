@@ -1,9 +1,9 @@
 // Package authorizegmail obtains the credential the scheduled job reads mail
 // with.
 //
-// Short, because most of what the command used to do was mechanism: parsing an
-// OAuth client, binding a loopback port, waiting for a redirect, exchanging a
-// code. What is left is the part worth stating — a credential that cannot be
+// Short, because the mechanism is not the decision: parsing an OAuth client,
+// binding a loopback port, waiting for a redirect, exchanging a code. What is
+// left is the part worth stating — a credential that cannot be
 // used unattended is not one this program can accept, however successful the
 // flow looked.
 package authorizegmail
