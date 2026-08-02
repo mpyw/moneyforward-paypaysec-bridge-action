@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/assetname"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec/pagescan"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec/selector"
 )
@@ -271,5 +272,41 @@ func TestReadingAmountRefusesAPartiallyCostedPage(t *testing.T) {
 	// Naming the holding, because the next question is which page to go and look at.
 	if !strings.Contains(err.Error(), "テスト商事") {
 		t.Errorf("Amount() error = %v, want it to name the holding with no cost", err)
+	}
+}
+
+// TestCategoriesMatchTheNamesTheyLabel ties the two ends of the coverage check
+// together.
+//
+// A run reports which categories it covered; the ledger's entries carry the
+// same category as a prefix. If the two are taken from different fields they
+// agree for whichever targets happen to have one field equal to the other — and
+// silently disagree for the rest, which shows up only when a deletion is
+// planned and then refuses a deletion from a category that was read.
+//
+// So this reads the category back out of a name the target itself produced,
+// rather than restating it.
+func TestCategoriesMatchTheNamesTheyLabel(t *testing.T) {
+	var readings []Reading
+	for _, target := range selector.Targets {
+		readings = append(readings, Reading{Target: target})
+	}
+	covered := Balances{Readings: readings}.Categories()
+
+	if len(covered) != len(selector.Targets) {
+		t.Fatalf("Categories() returned %d for %d targets", len(covered), len(selector.Targets))
+	}
+	for i, target := range selector.Targets {
+		name := target.AssetName("テスト電機")
+		want, ok := assetname.CategoryOf(name)
+		if !ok {
+			t.Errorf("%s: AssetName() = %q, which carries no category", target.Key, name)
+			continue
+		}
+		if covered[i] != want {
+			t.Errorf("%s: Categories() says %q but its names are written %q — "+
+				"a delete from this category would be refused as unread",
+				target.Key, covered[i], want)
+		}
 	}
 }

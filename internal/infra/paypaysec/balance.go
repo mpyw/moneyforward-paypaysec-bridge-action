@@ -361,12 +361,13 @@ func Read(ctx context.Context, t selector.Target) (Reading, error) {
 
 // Categories names every target this read covered, in Targets order.
 //
-// The category rather than the key: it is what [assetname.Scheme] puts in front
-// of a holding, so it is what a recorded entry can be traced back through.
+// [selector.Target.Category], not Name: the category is what goes in front of a
+// holding's name, and the name is what a recorded entry is matched back
+// through. Name is the human label and differs for any target with a ShortName.
 func (b Balances) Categories() []string {
 	out := make([]string, 0, len(b.Readings))
 	for _, r := range b.Readings {
-		out = append(out, r.Target.Name)
+		out = append(out, r.Target.Category())
 	}
 	return out
 }

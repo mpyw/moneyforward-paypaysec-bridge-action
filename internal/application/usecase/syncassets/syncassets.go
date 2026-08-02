@@ -123,6 +123,9 @@ func (s Sync) reconcile(ctx context.Context, held asset.Holdings) (portfolio.Pla
 			return plan, err
 		}
 	}
+	if s.Reporter != nil {
+		s.Reporter.Applied(plan)
+	}
 	return plan, nil
 }
 

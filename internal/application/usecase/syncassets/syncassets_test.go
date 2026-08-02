@@ -128,11 +128,17 @@ type recordingReporter struct {
 	phases []string
 	read   int
 	plans  int
+
+	// applied counts the calls that mean the writes went through. Separate from
+	// plans, because a run refused between the two reports one and not the
+	// other — which is the whole point of there being two.
+	applied int
 }
 
 func (r *recordingReporter) Phase(name string)        { r.phases = append(r.phases, name) }
 func (r *recordingReporter) ReadResult([]asset.Asset) { r.read++ }
 func (r *recordingReporter) Planned(portfolio.Plan)   { r.plans++ }
+func (r *recordingReporter) Applied(portfolio.Plan)   { r.applied++ }
 
 func oneAsset() []asset.Asset {
 	return []asset.Asset{{Name: "[米国株] テスト電機", Yen: 456789}}
@@ -442,5 +448,39 @@ func TestRunDeletesRowsItDidNotWrite(t *testing.T) {
 	}
 	if ledger.held[0].Name != "[米国株] テスト電機" {
 		t.Errorf("the surviving row is %q", ledger.held[0].Name)
+	}
+}
+
+// TestRunReportsAPlanItRefusesAsAPlanOnly is why there are two reports.
+//
+// A refused run had printed a tick and a delete count, because the only report
+// happened at plan time and the checks that can refuse run after it. The log
+// then read as though the deletes had gone through, and a reader — this one
+// included — concluded that entries had been removed when nothing had been
+// written at all.
+func TestRunReportsAPlanItRefusesAsAPlanOnly(t *testing.T) {
+	reporter := &recordingReporter{}
+	ledger := &stubLedger{held: []asset.Asset{{Name: "[投信ミ] テスト・ファンド", Yen: 1}}}
+
+	_, err := syncassets.Sync{
+		Broker: &stubBroker{
+			assets:     []asset.Asset{{Name: "[米国株] テスト電機", Yen: 1}},
+			categories: []string{"米国株"},
+		},
+		Ledger:   ledger,
+		Reporter: reporter,
+	}.Run(t.Context())
+
+	if err == nil {
+		t.Fatal("Run() accepted a delete from a category it did not read")
+	}
+	if reporter.plans != 1 {
+		t.Errorf("plans = %d, want the plan reported", reporter.plans)
+	}
+	if reporter.applied != 0 {
+		t.Errorf("applied = %d — a refused run reported that it had applied something", reporter.applied)
+	}
+	if len(ledger.writes) != 0 {
+		t.Errorf("it wrote before refusing: %v", ledger.writes)
 	}
 }

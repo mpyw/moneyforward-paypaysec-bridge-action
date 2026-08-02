@@ -14,5 +14,11 @@ import (
 type Reporter interface {
 	Phase(name string)
 	ReadResult(assets []asset.Asset)
+
+	// Planned is called before anything is written, Applied after everything
+	// was. Two calls rather than one, because the checks that can refuse the
+	// whole plan run between them: a single report at plan time reads as a
+	// result, and a run that was refused looks like a run that succeeded.
 	Planned(plan portfolio.Plan)
+	Applied(plan portfolio.Plan)
 }

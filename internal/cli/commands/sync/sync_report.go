@@ -31,11 +31,26 @@ func (r reporter) ReadResult(assets []asset.Asset) {
 	log.Printf("→ %d holdings, %d yen in total", len(assets), total)
 }
 
+// Planned reports what the run intends to do, before it does any of it.
+//
+// Worded as a plan, because it is one. It used to end with a ✓ and a tally,
+// which is what a finished run looks like — and the checks that can still
+// refuse the whole thing run after this line. A refusal therefore printed a
+// tick and a delete count and then failed, and the log read as though the
+// deletes had happened. They had not.
 func (r reporter) Planned(plan portfolio.Plan) {
 	for _, step := range plan.Steps {
 		// Names are 銘柄, not balances, so they are not masked.
 		log.Printf("   %-9s %s", step.Action, step.Name)
 	}
+	counts := plan.Counts()
+	log.Printf("→ planned: create=%d update=%d unchanged=%d delete=%d (nothing written yet)",
+		counts[portfolio.ActionCreate], counts[portfolio.ActionUpdate],
+		counts[portfolio.ActionUnchanged], counts[portfolio.ActionDelete])
+}
+
+// Applied reports what actually happened, once it has.
+func (r reporter) Applied(plan portfolio.Plan) {
 	counts := plan.Counts()
 	log.Printf("✓ created=%d updated=%d unchanged=%d deleted=%d",
 		counts[portfolio.ActionCreate], counts[portfolio.ActionUpdate],

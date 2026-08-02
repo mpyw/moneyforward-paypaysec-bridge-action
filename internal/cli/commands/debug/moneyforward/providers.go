@@ -79,6 +79,11 @@ type planPrinter struct{}
 func (planPrinter) Phase(string)             {}
 func (planPrinter) ReadResult([]asset.Asset) {}
 
+// Applied says nothing: this command already prints the whole plan, and the
+// table is the useful output. What it must not do is print a second summary
+// that looks like the first.
+func (planPrinter) Applied(portfolio.Plan) {}
+
 func (planPrinter) Planned(plan portfolio.Plan) {
 	w := tabwriter.NewWriter(os.Stderr, 0, 0, 2, ' ', 0)
 	_, _ = fmt.Fprintln(w, "\nACTION\tNAME\tWAS\tNOW")

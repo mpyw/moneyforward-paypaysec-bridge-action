@@ -155,11 +155,19 @@ func (t Target) AssetName(holding string) string {
 
 // scheme is how this target labels its holdings.
 func (t Target) scheme() assetname.Scheme {
-	return assetname.Scheme{Category: t.prefix()}
+	return assetname.Scheme{Category: t.Category()}
 }
 
-// prefix is the category label used in asset names.
-func (t Target) prefix() string {
+// Category is the label this target's holdings are recorded under, and the
+// string a recorded name can be traced back through.
+//
+// Exported because two places need the same answer: the name written into the
+// ledger, and the list of categories a run says it covered. They were taking it
+// from different fields — this one and Name — which agree for five of the eight
+// targets and not for the three with a ShortName. The disagreement is invisible
+// until a run tries to delete something, and then it refuses a deletion from a
+// category it did read.
+func (t Target) Category() string {
 	if t.ShortName != "" {
 		return t.ShortName
 	}
