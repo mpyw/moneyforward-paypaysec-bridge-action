@@ -12,11 +12,11 @@ type Name string
 
 // The credentials the sync needs.
 const (
-	PayPaySecUsername Name = "PAYPAY_SEC_USERNAME"
-	PayPaySecPassword Name = "PAYPAY_SEC_PASSWORD"
-	MoneyForwardEmail Name = "MF_EMAIL"
-	MoneyForwardPass  Name = "MF_PASSWORD"
-	AccountIDHash     Name = "MF_ASSET_ID"
+	PayPaySecUsername Name = "PAYPAYSEC_USERNAME"
+	PayPaySecPassword Name = "PAYPAYSEC_PASSWORD"
+	MoneyForwardEmail Name = "MONEYFORWARD_EMAIL"
+	MoneyForwardPass  Name = "MONEYFORWARD_PASSWORD"
+	AccountIDHash     Name = "MONEYFORWARD_ACCOUNT_ID_HASH"
 )
 
 // Required is every credential the sync needs.

@@ -39,12 +39,12 @@ go run github.com/mpyw/moneyforward-paypaysec-bridge-action/cmd/mfpp@v1 \
 ```yaml
 - uses: mpyw/moneyforward-paypaysec-bridge-action@v1
   with:
-    paypaysec-username: ${{ secrets.PAYPAY_SEC_USERNAME }}
-    paypaysec-password: ${{ secrets.PAYPAY_SEC_PASSWORD }}
-    moneyforward-email: ${{ secrets.MF_EMAIL }}
-    moneyforward-password: ${{ secrets.MF_PASSWORD }}
-    account-id-hash: ${{ secrets.MF_ASSET_ID }}
-    gmail-credentials: ${{ secrets.GMAIL_CREDENTIALS_JSON }}
+    paypaysec-username: ${{ secrets.PAYPAYSEC_USERNAME }}
+    paypaysec-password: ${{ secrets.PAYPAYSEC_PASSWORD }}
+    moneyforward-email: ${{ secrets.MONEYFORWARD_EMAIL }}
+    moneyforward-password: ${{ secrets.MONEYFORWARD_PASSWORD }}
+    moneyforward-account-id-hash: ${{ secrets.MONEYFORWARD_ACCOUNT_ID_HASH }}
+    gmail-credentials: ${{ secrets.GMAIL_CREDENTIALS }}
 ```
 
 `actions/checkout` は要らない。composite action で、全ステップが自分の
@@ -68,17 +68,22 @@ go run github.com/mpyw/moneyforward-paypaysec-bridge-action/cmd/mfpp@v1 \
 利用者がこのアクションを SHA 固定しても、その先のタグ参照までは止められない
 ——止められない側が負う risk なので、止められる側で止めてある。
 
-| input | 中身 |
-|---|---|
-| `paypaysec-username` / `paypaysec-password` | PayPay 証券のログイン ID (メールアドレス) とパスワード |
-| `moneyforward-email` / `moneyforward-password` | MoneyForward のログイン情報 |
-| `account-id-hash` | 書き込み先の手入力口座。MoneyForward の URL に出る `account_id_hash` |
-| `gmail-credentials` | `gmail.readonly` の authorized_user JSON。上の `go run` で作る |
-| `go-version-file` | 任意。既定はこのアクション自身の `go.mod` |
+| input | 環境変数 | 中身 |
+|---|---|---|
+| `paypaysec-username` | `PAYPAYSEC_USERNAME` | PayPay 証券のログイン ID (メールアドレス) |
+| `paypaysec-password` | `PAYPAYSEC_PASSWORD` | 同パスワード |
+| `moneyforward-email` | `MONEYFORWARD_EMAIL` | MoneyForward のログインメール |
+| `moneyforward-password` | `MONEYFORWARD_PASSWORD` | 同パスワード |
+| `moneyforward-account-id-hash` | `MONEYFORWARD_ACCOUNT_ID_HASH` | 書き込み先の手入力口座。URL に出る `account_id_hash` |
+| `gmail-credentials` | `GMAIL_CREDENTIALS` | `gmail.readonly` の authorized_user JSON。上の `go run` で作る |
+| `go-version-file` | — | 任意。既定はこのアクション自身の `go.mod` |
 
-入力の集合は `internal/config` がそのまま契約になっている。
-`config_test.go` が「domain が必須と言う名前」と「`Load` が実際に読む名前」を
-突き合わせるので、片方だけ増えることがない。
+**環境変数名は input 名を大文字にしてハイフンを `_` にしたもの**、という 1 本の規則に
+揃えてある。対応表を覚える必要はない。
+
+規則も対応関係もテストが縛っている (`internal/config/actionyml_test.go`)。
+`action.yml` が宣言していて誰も読まない入力、逆に読まれるのに宣言されていない変数、
+規則を外れた名前、`required: true` の付け忘れ——どれもテストが落ちる。
 
 ### 前提
 

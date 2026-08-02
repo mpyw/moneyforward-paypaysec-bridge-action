@@ -26,18 +26,13 @@ const (
 	// GmailCredentials holds an authorized_user JSON blob. In CI it comes from a
 	// secret; locally the file written by `mfpp gmail authorize` is used
 	// instead.
-	GmailCredentials = "GMAIL_CREDENTIALS_JSON"
+	GmailCredentials = "GMAIL_CREDENTIALS"
 
 	// CI is set by every hosted runner, and decides whether Chrome runs headless
 	// and unsandboxed. Read rather than guessed: dropping the sandbox is a real
 	// reduction in isolation for a browser pointed at brokerage sites, and a
 	// local run should not do it.
 	CI = "CI"
-
-	// Owner and Repo address the repository `secrets` uploads to. Not part of
-	// the sync, and not part of the action.
-	Owner = "GH_OWNER"
-	Repo  = "GH_REPO_NAME"
 )
 
 // Config is everything one run was given.

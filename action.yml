@@ -24,7 +24,7 @@ inputs:
   moneyforward-password:
     description: 'MoneyForward password.'
     required: true
-  account-id-hash:
+  moneyforward-account-id-hash:
     description: >-
       The account_id_hash of the MoneyForward manual account to write into,
       taken from its page URL. Everything in that account is managed by this
@@ -85,19 +85,19 @@ runs:
       shell: bash
       working-directory: ${{ github.action_path }}
       env:
-        PAYPAY_SEC_USERNAME: ${{ inputs.paypaysec-username }}
-        PAYPAY_SEC_PASSWORD: ${{ inputs.paypaysec-password }}
-        MF_EMAIL: ${{ inputs.moneyforward-email }}
-        MF_PASSWORD: ${{ inputs.moneyforward-password }}
-        MF_ASSET_ID: ${{ inputs.account-id-hash }}
-        GMAIL_CREDENTIALS_JSON: ${{ inputs.gmail-credentials }}
+        PAYPAYSEC_USERNAME: ${{ inputs.paypaysec-username }}
+        PAYPAYSEC_PASSWORD: ${{ inputs.paypaysec-password }}
+        MONEYFORWARD_EMAIL: ${{ inputs.moneyforward-email }}
+        MONEYFORWARD_PASSWORD: ${{ inputs.moneyforward-password }}
+        MONEYFORWARD_ACCOUNT_ID_HASH: ${{ inputs.moneyforward-account-id-hash }}
+        GMAIL_CREDENTIALS: ${{ inputs.gmail-credentials }}
       run: |
         # Mask the values this program will see before it runs. Balances and
         # one-time codes are masked by the program itself, as it reads them.
         #
         # A caller passing these from `secrets.*` gets GitHub's own masking too;
         # a caller passing a literal does not, and this is what covers them.
-        echo "::add-mask::$PAYPAY_SEC_USERNAME"
-        echo "::add-mask::$MF_EMAIL"
-        echo "::add-mask::$MF_ASSET_ID"
+        echo "::add-mask::$PAYPAYSEC_USERNAME"
+        echo "::add-mask::$MONEYFORWARD_EMAIL"
+        echo "::add-mask::$MONEYFORWARD_ACCOUNT_ID_HASH"
         "${{ runner.temp }}/mfpp" sync

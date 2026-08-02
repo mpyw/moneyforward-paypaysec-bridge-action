@@ -16,7 +16,7 @@ func probeCommand() *cli.Command {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "url",
-				Usage:       "page to inspect; defaults to the manual account from MF_ASSET_ID",
+				Usage:       "page to inspect; defaults to the manual account from MONEYFORWARD_ACCOUNT_ID_HASH",
 				Destination: &url,
 			},
 		},

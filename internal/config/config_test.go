@@ -25,15 +25,15 @@ func TestLoad(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	if c.PayPaySec.Username != "value-of-PAYPAY_SEC_USERNAME" ||
-		c.PayPaySec.Password != "value-of-PAYPAY_SEC_PASSWORD" {
+	if c.PayPaySec.Username != "value-of-PAYPAYSEC_USERNAME" ||
+		c.PayPaySec.Password != "value-of-PAYPAYSEC_PASSWORD" {
 		t.Errorf("PayPaySec = %+v", c.PayPaySec)
 	}
-	if c.MoneyForward.Username != "value-of-MF_EMAIL" ||
-		c.MoneyForward.Password != "value-of-MF_PASSWORD" {
+	if c.MoneyForward.Username != "value-of-MONEYFORWARD_EMAIL" ||
+		c.MoneyForward.Password != "value-of-MONEYFORWARD_PASSWORD" {
 		t.Errorf("MoneyForward = %+v", c.MoneyForward)
 	}
-	if c.AccountIDHash != "value-of-MF_ASSET_ID" {
+	if c.AccountIDHash != "value-of-MONEYFORWARD_ACCOUNT_ID_HASH" {
 		t.Errorf("AccountIDHash = %q", c.AccountIDHash)
 	}
 	if !c.CI {
@@ -52,12 +52,12 @@ func TestLoadNamesEveryMissingVariable(t *testing.T) {
 	if err == nil {
 		t.Fatal("Load() accepted an environment with two credentials missing")
 	}
-	for _, want := range []string{"MF_EMAIL", "MF_ASSET_ID"} {
+	for _, want := range []string{"MONEYFORWARD_EMAIL", "MONEYFORWARD_ACCOUNT_ID_HASH"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("error = %v, want it to name %s", err, want)
 		}
 	}
-	if strings.Contains(err.Error(), "PAYPAY_SEC_USERNAME") {
+	if strings.Contains(err.Error(), "PAYPAYSEC_USERNAME") {
 		t.Errorf("error = %v names a variable that was set", err)
 	}
 }

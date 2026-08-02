@@ -30,7 +30,7 @@ PayPay 証券・MoneyForward どちらも **ID/PW + メール OTP** でログイ
 
        Phase 2: MoneyForward
          5. chromedp でログイン → 同様に Gmail API から OTP 取得
-         6. 手入力口座 (MF_ASSET_ID) の中身を銘柄単位で突合
+         6. 手入力口座 (MONEYFORWARD_ACCOUNT_ID_HASH) の中身を銘柄単位で突合
             insert or update / delete。書き込みごとに読み戻して検証
 ```
 
@@ -190,15 +190,20 @@ mfpp gmail …            # authorize / check / search
 **このリポジトリは secrets を持たない。** public で、cron も無い。下記は
 `action.yml` の入力で、値は利用者側の fork の Secrets から渡る。
 
-| 入力 / 環境変数 | 用途 |
-|---|---|
-| `PAYPAY_SEC_USERNAME` / `PAYPAY_SEC_PASSWORD` | PayPay 証券ログイン |
-| `MF_EMAIL` / `MF_PASSWORD` | MoneyForward ログイン (ID/PW) |
-| `MF_ASSET_ID` | MF 手入力口座の account_id_hash。この中に銘柄が並ぶ |
-| `GMAIL_CREDENTIALS_JSON` | Gmail API のユーザー資格情報 (authorized_user JSON) |
+| 環境変数 | action.yml の input | 用途 |
+|---|---|---|
+| `PAYPAYSEC_USERNAME` / `PAYPAYSEC_PASSWORD` | `paypaysec-username` / `-password` | PayPay 証券ログイン |
+| `MONEYFORWARD_EMAIL` / `MONEYFORWARD_PASSWORD` | `moneyforward-email` / `-password` | MoneyForward ログイン (ID/PW) |
+| `MONEYFORWARD_ACCOUNT_ID_HASH` | `moneyforward-account-id-hash` | MF 手入力口座の account_id_hash |
+| `GMAIL_CREDENTIALS` | `gmail-credentials` | Gmail API のユーザー資格情報 |
 
-必須名の一覧は `domain/secret` にあり、`config_test.go` が「domain が必須と言う
-名前」と「`Load` が実際に読む名前」を突き合わせる。GitHub Variables は使わない。
+**名前の規則は 1 本だけ: 環境変数 = input を大文字にしてハイフンを `_` に。**
+以前は 4 つの input が 4 通りの流儀で環境変数に対応していて (`PAYPAY_SEC_*` /
+`MF_*` / `MF_ASSET_ID` / `_JSON` 付き)、読む側が対応表を覚える必要があった。
+
+必須名の一覧は `domain/secret`。`config_test.go` が domain と `Load` を突き合わせ、
+`actionyml_test.go` が `action.yml` と突き合わせる。**3 者のどれかがずれたら落ちる。**
+GitHub Variables は使わない。
 
 ### ローカルにのみ置くもの (リポジトリには書かない)
 

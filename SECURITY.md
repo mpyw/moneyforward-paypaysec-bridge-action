@@ -21,7 +21,7 @@
 |---|---|
 | PayPay 証券ログイン認証情報 | 他人が口座に直接アクセスし得る。最重要 |
 | MoneyForward ログイン認証情報 | 全資産情報、生活パターンが見える。極めて重要 |
-| `GMAIL_CREDENTIALS_JSON` | 受信箱を読める。OTP を含むため各サービスのパスワードリセットに連鎖し得る |
+| `GMAIL_CREDENTIALS` | 受信箱を読める。OTP を含むため各サービスのパスワードリセットに連鎖し得る |
 | OTP メール本文 | 単独では失効するが、複数集まると挙動分析に使われる |
 | `.debug/cookies.json` | 生きたセッションそのもの。単体でログイン可能 |
 
@@ -86,10 +86,10 @@
 
 | Secret | ローテ頻度 | 手順 |
 |---|---|---|
-| `PAYPAY_SEC_PASSWORD` | 半年 / 漏洩疑い時即 | PayPay 証券の Web でパスワード変更 → `gh secret set PAYPAY_SEC_PASSWORD` |
-| `MF_PASSWORD` | 半年 / 漏洩疑い時即 | MF でパスワード変更 → `gh secret set MF_PASSWORD` |
-| `MF_ASSET_ID` | 資産削除/再作成時のみ | 新 ID をメモして `gh secret set MF_ASSET_ID` |
-| `PAYPAY_SEC_USERNAME` / `MF_EMAIL` | アドレス変更時のみ | `gh secret set <name>` |
+| `PAYPAYSEC_PASSWORD` | 半年 / 漏洩疑い時即 | PayPay 証券の Web でパスワード変更 → `gh secret set PAYPAYSEC_PASSWORD` |
+| `MONEYFORWARD_PASSWORD` | 半年 / 漏洩疑い時即 | MF でパスワード変更 → `gh secret set MONEYFORWARD_PASSWORD` |
+| `MONEYFORWARD_ACCOUNT_ID_HASH` | 資産削除/再作成時のみ | 新 ID をメモして `gh secret set MONEYFORWARD_ACCOUNT_ID_HASH` |
+| `PAYPAYSEC_USERNAME` / `MONEYFORWARD_EMAIL` | アドレス変更時のみ | `gh secret set <name>` |
 
 ## OTP の取り扱い
 
@@ -97,7 +97,7 @@ GitHub Variables は使わない。OTP は Gmail API から直接読み、メー
 ログイン送信時刻より後であることを確認してから採用する。前回実行時のメールが受信箱に
 残っていても拾わない。
 
-`GMAIL_CREDENTIALS_JSON` は `gmail.readonly` のみのユーザー資格情報で、失効しない
+`GMAIL_CREDENTIALS` は `gmail.readonly` のみのユーザー資格情報で、失効しない
 refresh token を含む。実質的に受信箱への恒久的な読み取り鍵なので、パスワードと同じ
 扱いをする。
 
@@ -134,7 +134,7 @@ Workspace ドメイン専用で、個人アカウントには適用できない�
 1. https://myaccount.google.com/permissions で該当アプリの連携を取り消す
    (これで refresh token が即座に無効化される)
 2. `go run ./cmd/mfpp gmail authorize` で再発行
-3. `gh secret set GMAIL_CREDENTIALS_JSON < gmail-credentials.json`
+3. `gh secret set GMAIL_CREDENTIALS < gmail-credentials.json`
 4. `go run ./cmd/mfpp gmail check` で疎通確認
 
 取り消し中は OTP が読めないので、その日の workflow は失敗して構わない。
@@ -195,4 +195,4 @@ force push や `git filter-repo` では到達不能コミットが API から読
 - [ ] **実行ログに銘柄名が出る。** 金額と secret はマスクされるが銘柄名はされない。
       public fork で動かすと保有銘柄が公開される（template の README に記載）
 - [ ] `@v1` は動くタグで、固定したいなら SHA-1（同上）
-- [ ] `MF_ASSET_ID` の口座の中身はジョブが管理し、対応しない行は削除される（同上）
+- [ ] `MONEYFORWARD_ACCOUNT_ID_HASH` の口座の中身はジョブが管理し、対応しない行は削除される（同上）
