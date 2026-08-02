@@ -3,6 +3,7 @@ package pagescan
 import (
 	"context"
 	"fmt"
+	neturl "net/url"
 	"strings"
 	"time"
 
@@ -26,6 +27,32 @@ type Detail struct {
 	AcquisitionPresent bool   `json:"acquisitionPresent"`
 	AcquisitionRaw     string `json:"acquisitionRaw"`
 	GainRaw            string `json:"gainRaw"`
+
+	// LandedURL is where the browser ended up, which is not always where it was
+	// sent. Filled by [LoadHolding]; not part of the page script's output.
+	LandedURL string `json:"-"`
+
+	// RequestedURL is where it was sent.
+	RequestedURL string `json:"-"`
+}
+
+// OnRequestedPage says whether the browser is on the page it was asked for.
+//
+// Compared by path, because a redirect to a different 銘柄 is the failure this
+// exists for and a query string is not part of that. A mismatch means the
+// figures below describe something other than the holding they were fetched
+// for — most importantly the acquisition cost, which is the only thing the
+// detail page is actually consulted for.
+func (d Detail) OnRequestedPage() bool {
+	landed, err := neturl.Parse(d.LandedURL)
+	if err != nil {
+		return false
+	}
+	requested, err := neturl.Parse(d.RequestedURL)
+	if err != nil {
+		return false
+	}
+	return landed.Path == requested.Path
 }
 
 // LoadHolding loads one 銘柄's page, by the ref its row linked to.
@@ -51,8 +78,13 @@ func LoadHolding(ctx context.Context, ref string) (Detail, error) {
 	if err := settle(tctx, selector.HoldingValue); err != nil {
 		return detail, err
 	}
-	if err := chromedp.Run(tctx, chromedp.Evaluate(expr, &detail)); err != nil {
+	var landed string
+	if err := chromedp.Run(tctx,
+		chromedp.Evaluate(expr, &detail),
+		chromedp.Location(&landed),
+	); err != nil {
 		return detail, fmt.Errorf("extract from %s: %w", url, err)
 	}
+	detail.RequestedURL, detail.LandedURL = url, landed
 	return detail, nil
 }

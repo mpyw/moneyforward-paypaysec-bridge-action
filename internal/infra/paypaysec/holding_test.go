@@ -50,18 +50,47 @@ func TestApplyDetailSubtractsWhenNoCostIsStated(t *testing.T) {
 
 // TestApplyDetailCatchesTheWrongPage is the one check that can notice the scrape
 // followed a link to something else.
+//
+// By where it landed, not by what the figures say. A redirect is the way this
+// goes wrong; two pages disagreeing about a valuation is the way a price moves.
 func TestApplyDetailCatchesTheWrongPage(t *testing.T) {
 	h := Holding{Name: "テスト電機", Yen: 456789, HasYen: true}
 	err := h.applyDetail(pagescan.Detail{
-		ValuePresent: true, ValueRaw: "234567円", // a different holding's figure
+		RequestedURL: "https://example.test/trade/brand/35/0",
+		LandedURL:    "https://example.test/trade/brand/99/0", // somewhere else
+		ValuePresent: true, ValueRaw: "456789円",
 		GainRaw: "+1000円",
 	})
 	if err == nil {
-		t.Fatal("applyDetail() accepted a page describing a different holding")
+		t.Fatal("applyDetail() accepted a page it was redirected to")
 	}
-	// Recorded even so, so the masker sees it before the message is printed.
-	if h.DetailYen != 234567 {
-		t.Errorf("DetailYen = %d; the figure in the message was not recorded", h.DetailYen)
+}
+
+// TestApplyDetailToleratesAMovedPrice is the failure of 2026-08-04, twice in
+// one day.
+//
+// The list figure and the detail figure are fetched seconds apart. When a price
+// moves in between they differ by a few yen, and requiring them to be equal
+// failed the entire run over it — a scheduled job refusing to record anything
+// because a stock ticked.
+//
+// The difference is still recorded, and the routes are still compared where
+// that comparison is between figures read at one moment. It is no longer a
+// reason to fail on its own.
+func TestApplyDetailToleratesAMovedPrice(t *testing.T) {
+	h := Holding{Name: "テスト電機", Yen: 456789, HasYen: true}
+	err := h.applyDetail(pagescan.Detail{
+		RequestedURL: "https://example.test/trade/brand/35/0",
+		LandedURL:    "https://example.test/trade/brand/35/0",
+		ValuePresent: true, ValueRaw: "456787円", // two yen, a few seconds later
+		GainRaw: "+1000円",
+	})
+	if err != nil {
+		t.Fatalf("applyDetail() failed the run over a moved price: %v", err)
+	}
+	// Recorded even so, so the masker sees it and the routes can be compared.
+	if h.DetailYen != 456787 {
+		t.Errorf("DetailYen = %d; the figure was not recorded", h.DetailYen)
 	}
 }
 

@@ -59,23 +59,33 @@ func (r *Reading) fillHolding(ctx context.Context, h *Holding) error {
 // where every silent skip in the acquisition path lived, and none of it was
 // reachable by a test while it sat behind a browser.
 func (h *Holding) applyDetail(detail pagescan.Detail) error {
-	// The detail page states this holding's own valuation; if it disagrees with
-	// the list, one of the two is describing something else.
+	// Am I on the page I asked for? That is what this check is for, and until
+	// 2026-08-04 it asked instead whether the two pages agreed on the valuation.
 	//
-	// A parse failure used to disable this comparison rather than report it —
-	// `verr == nil && ok` quietly skipped the whole check — so the one place the
-	// scrape can catch itself reading the wrong page went silent exactly when
-	// the page had changed. Recorded on the holding before comparing, so the
-	// figure reaches the caller even on the error path. See [Reading.Amounts].
+	// They cannot be relied on to. The list figure and the detail figure are
+	// fetched seconds apart, and a price that moves in between makes them differ
+	// by a few yen — which failed the whole run, twice in one day, for a reason
+	// that is not a fault. A moving quantity cannot answer a question about
+	// identity.
+	//
+	// The URL can. A redirect to a different 銘柄 is the failure worth catching,
+	// because the acquisition cost below is the only thing this page is
+	// consulted for and attributing another holding's cost is silent and wrong.
+	if !detail.OnRequestedPage() {
+		return fmt.Errorf("asked for %s and landed on %s, so these figures are "+
+			"some other 銘柄's", detail.RequestedURL, detail.LandedURL)
+	}
+
+	// Still recorded, and still reported when the routes are compared, but no
+	// longer a reason to fail on its own. Recorded before anything can return,
+	// so the figure reaches the caller on the error path too. See
+	// [Reading.Amounts].
 	value, ok, verr := parseAmountCell(detail.ValueRaw)
 	if verr != nil {
 		return fmt.Errorf("its own page's valuation %q: %w", detail.ValueRaw, verr)
 	}
 	if ok {
 		h.DetailYen, h.HasDetailYen = value, true
-		if value != h.Yen {
-			return fmt.Errorf("the list says %d but its own page says %d", h.Yen, value)
-		}
 	}
 
 	// Prefer a stated acquisition amount, but the site only renders that element
