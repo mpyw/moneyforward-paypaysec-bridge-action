@@ -251,16 +251,15 @@ git tag vX.Y.Z && git push origin vX.Y.Z
 git tag -f v2  && git push -f origin v2      # ★ これを忘れない
 ```
 
-そのうえで template の SHA 固定の例（`sync.yml` のコメントと README）を新しい
-コミットに向け直し、private fork に merge する。
+そのうえで template の変更があれば push し、private fork に merge する。
 
-```bash
-git rev-parse --verify vX.Y.Z^{commit}
-```
+**template の SHA 固定の例にリテラルを書かないこと。** 以前は書いてあって、
+リリースのたびに書き換える手順になっていた。2 回連続で忘れ、例が「タブ競合で
+実在する銘柄を消すバージョン」を指したまま残った。いまは引くコマンドを載せてある。
 
-`git rev-parse` は**解決できない ref でエラー終了せず引数をそのまま返す**ので、
-`^{commit}` を付けたうえで 40 桁 hex かを確かめてから使うこと。一度これで、
-SHA 固定の例にタグ名を書いて push している。
+SHA が要るときは `git rev-parse --verify vX.Y.Z^{commit}` を使い、40 桁 hex かを
+確かめてから使う。`git rev-parse` は**解決できない ref でエラー終了せず引数を
+そのまま返す**ので、確かめないと SHA のつもりでタグ名を書く。一度やっている。
 
 ## 注意点
 
