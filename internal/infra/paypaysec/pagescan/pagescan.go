@@ -37,8 +37,20 @@ const (
 
 	// settlePoll is the cadence of that wait, and stableReads is how many
 	// consecutive identical readings count as settled.
-	settlePoll  = 400 * time.Millisecond
-	stableReads = 3
+	settlePoll = 400 * time.Millisecond
+
+	// repaintTimeout bounds the wait for a tab swap to rewrite the figures, and
+	// repaintQuiet is how still the document has to be before the rewrite counts
+	// as finished. Measured: the swap lands about a second after the click.
+	repaintTimeout = 15 * time.Second
+	repaintQuiet   = 600 * time.Millisecond
+
+	// repaintFloor is the shortest this waits after a tab click, whatever the
+	// page appears to say. The measured swap lands around a second; this is
+	// several times that, because the cost of waiting is a few seconds a day and
+	// the cost of not waiting is deleting holdings that exist.
+	repaintFloor = 5 * time.Second
+	stableReads  = 3
 )
 
 // Row is one 銘柄 as the page listed it, in the page's own words.
@@ -105,8 +117,21 @@ func Load(ctx context.Context, t selector.Target) (Figures, error) {
 	}
 
 	if t.TabLabel != "" {
+		// Armed before the click, because the repaint it waits for is the
+		// consequence of the click.
+		before, err := page.figureText()
+		if err != nil {
+			return figures, fmt.Errorf("%s: %w", t.Key, err)
+		}
+		watching, err := page.watchRepaint()
+		if err != nil {
+			return figures, fmt.Errorf("%s: %w", t.Key, err)
+		}
 		if err := page.selectTab(); err != nil {
 			return figures, err
+		}
+		if err := page.awaitRepaint(watching, before); err != nil {
+			return figures, fmt.Errorf("%s: after tab %q: %w", t.Key, t.TabLabel, err)
 		}
 		// The tab swap triggers another fetch.
 		if err := page.settle(); err != nil {
@@ -148,6 +173,111 @@ type pageState struct {
 // cleanly, so an early read produces a confident zero for an account that holds
 // real money — the worst kind of failure this program can have.
 func (p targetPage) settle() error { return settle(p.ctx, selector.ValueTotal) }
+
+// figureText is the total as it reads right now, for comparing against after a
+// tab switch.
+func (p targetPage) figureText() (string, error) {
+	expr, err := selector.PageState(selector.ValueTotal)
+	if err != nil {
+		return "", fmt.Errorf("build page-state script: %w", err)
+	}
+	var st pageState
+	if err := chromedp.Run(p.ctx, chromedp.Evaluate(expr, &st)); err != nil {
+		return "", fmt.Errorf("read the figure before the tab switch: %w", err)
+	}
+	return st.Text, nil
+}
+
+// watchRepaint arms a MutationObserver over the figures, and says whether it
+// found anything to watch.
+func (p targetPage) watchRepaint() (bool, error) {
+	expr, err := selector.WatchRepaintInstall()
+	if err != nil {
+		return false, fmt.Errorf("build repaint watcher: %w", err)
+	}
+	var res struct {
+		Installed bool `json:"installed"`
+	}
+	if err := chromedp.Run(p.ctx, chromedp.Evaluate(expr, &res)); err != nil {
+		return false, fmt.Errorf("install repaint watcher: %w", err)
+	}
+	return res.Installed, nil
+}
+
+// awaitRepaint waits for the tab's data to arrive and the rewrite to finish.
+//
+// settle alone cannot do this. It asks whether the figure has stopped changing,
+// and between the click and the fetch the previous tab's figure is not changing
+// — so it returns immediately, having read the bucket that was already there.
+// That is how a category holding two 銘柄 was read as empty, and with the
+// coverage check satisfied the next step was deleting them.
+//
+// Nothing in the DOM can be asked instead. Measured against the live page, the
+// tab's own actived class and the nav's bucket markers both flip 8ms after the
+// click while the figures change at ~1000ms: every state derived from the click
+// is already correct while the data is still wrong.
+//
+// So this waits on the rewrite — but not on the rewrite alone. Watching for
+// "something changed, then went quiet" is not enough by itself: a mutation left
+// over from the page's own load satisfies it, and 600ms of quiet can elapse
+// before the tab's fetch has even started. That was observed against the live
+// page after the observer was already in place, so this is measured rather than
+// argued.
+//
+// The early exit therefore needs positive evidence — the figure is not the one
+// that was on screen before the click — and below that there is a floor. The
+// floor is what actually carries the guarantee; the observer only lets a page
+// that repainted quickly stop waiting sooner.
+//
+// Not an error when nothing changes. Two tabs can hold identical figures, and
+// then no evidence exists to wait for; the floor has passed by then, and settle
+// still has to pass afterwards.
+func (p targetPage) awaitRepaint(watching bool, before string) error {
+	poll, err := selector.WatchRepaintPoll()
+	if err != nil {
+		return fmt.Errorf("build repaint poll: %w", err)
+	}
+	state, err := selector.PageState(selector.ValueTotal)
+	if err != nil {
+		return fmt.Errorf("build page-state script: %w", err)
+	}
+
+	start := time.Now()
+	deadline := start.Add(repaintTimeout)
+	for {
+		if time.Now().After(deadline) {
+			return nil
+		}
+		select {
+		case <-p.ctx.Done():
+			return p.ctx.Err()
+		case <-time.After(settlePoll):
+		}
+		if time.Since(start) < repaintFloor {
+			continue
+		}
+		if !watching {
+			continue
+		}
+
+		var st struct {
+			Mutations int `json:"mutations"`
+			QuietMs   int `json:"quietMs"`
+		}
+		var page pageState
+		if err := chromedp.Run(p.ctx,
+			chromedp.Evaluate(poll, &st),
+			chromedp.Evaluate(state, &page),
+		); err != nil {
+			return fmt.Errorf("poll repaint: %w", err)
+		}
+		if st.Mutations > 0 &&
+			time.Duration(st.QuietMs)*time.Millisecond >= repaintQuiet &&
+			page.Present && page.Text != before {
+			return nil
+		}
+	}
+}
 
 // settle is the wait itself, told which element carries the figure to wait for.
 func settle(ctx context.Context, value string) error {

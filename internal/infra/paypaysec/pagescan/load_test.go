@@ -187,3 +187,80 @@ func serving(t *testing.T, html string) (string, context.Context) {
 	t.Cleanup(closeBrowser)
 	return srv.URL, bctx
 }
+
+// slowSwapHTML is the 投資信託 page as it actually behaves: the tab click is
+// client-side and instant, and the figures for the new bucket arrive later.
+//
+// The delay is what the live page does — measured at roughly a second, with the
+// tab's own classes flipping 8ms after the click. Longer here than the settle
+// window, so the race is deterministic instead of occasional.
+const slowSwapHTML = `<!doctype html><meta charset="utf-8"><title>fixture</title><body>
+<ul class="tab_menu">
+  <li class="actived"><a href="#">PayPay証券アプリ</a></li>
+  <li><a href="#">ミニアプリ</a></li>
+</ul>
+
+<div class="summary">
+  <span id="SECURITIES_VALUE_TOTAL">0円</span>
+  <span id="TOTAL_ACQUISITION_FEE_TAX_TOTAL">0円</span>
+  <span id="gross_profit_total">0円</span>
+</div>
+
+<h3>保有銘柄</h3>
+<div class="icon_lv1" id="rows"></div>
+
+<script>
+  const app = {total: "0円", cost: "0円", gain: "0円", rows: ""};
+  const mini = {
+    total: "34万5678円", cost: "30万0000円", gain: "+4万5678円",
+    rows: '<div class="mypage_brand_icon">' +
+          '<a href="/investment_trust/detail/7" title="テスト・グローバル・ファンド"></a>' +
+          '<div class="brand_invest">34万5678円</div>' +
+          '<div class="brand_gain">+4万5678円</div></div>',
+  };
+  const show = (d) => {
+    document.getElementById("SECURITIES_VALUE_TOTAL").textContent = d.total;
+    document.getElementById("TOTAL_ACQUISITION_FEE_TAX_TOTAL").textContent = d.cost;
+    document.getElementById("gross_profit_total").textContent = d.gain;
+    document.getElementById("rows").innerHTML = d.rows;
+  };
+  document.querySelectorAll(".tab_menu li").forEach((li, i) => {
+    li.querySelector("a").addEventListener("click", (e) => {
+      e.preventDefault();
+      document.querySelectorAll(".tab_menu li").forEach((o) => o.classList.remove("actived"));
+      li.classList.add("actived");
+      // The class is already right. The data is not, for another 2.5 seconds —
+      // and nothing on the page says so.
+      setTimeout(() => show(i === 0 ? app : mini), 2500);
+    });
+  });
+</script>
+</body>`
+
+// TestLoadWaitsForTheTabToRepaint is the failure of 2026-08-03.
+//
+// A category holding two 銘柄 was read as empty. The tab had been clicked and
+// was active, no loading overlay was up, and the figure on screen — the other
+// bucket's — had not changed in a while, so the settle wait was satisfied and
+// the read returned zero. Every cross-check agreed, because all three routes
+// were reading the same stale DOM.
+//
+// Downstream that is not a harmless zero: the reconciliation plans a delete for
+// each holding, and the coverage check passes because the category was read.
+func TestLoadWaitsForTheTabToRepaint(t *testing.T) {
+	url, bctx := serving(t, slowSwapHTML)
+
+	figures, err := Load(bctx, selector.Target{
+		Key: "toushin-miniapp", URL: url, TabLabel: selector.TabLabelMiniApp,
+	})
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if figures.TotalRaw != "34万5678円" {
+		t.Errorf("total = %q — the read landed before the tab's data did, which is "+
+			"how two real holdings became a delete plan", figures.TotalRaw)
+	}
+	if len(figures.Holdings) != 1 {
+		t.Errorf("holdings = %d, want the one under this tab", len(figures.Holdings))
+	}
+}
