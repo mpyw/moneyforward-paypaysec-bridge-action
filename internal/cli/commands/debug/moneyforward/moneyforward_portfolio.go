@@ -29,7 +29,7 @@ func runPortfolio(ctx context.Context, opts *session.Options) error {
 	if err != nil {
 		return err
 	}
-	_, _ = fmt.Fprintf(os.Stderr, "sub-account: %s (%q)\n", w.SubAccountIDHash, w.SubAccountLabel)
+	_, _ = fmt.Fprintf(os.Stderr, "sub-account: %s (%q)\n", w.SubAssetID, w.SubAccountLabel)
 	_, _ = fmt.Fprintf(os.Stderr, "csrf token:  %d chars\n", len(w.Token))
 	return nil
 }

@@ -88,7 +88,7 @@
 |---|---|---|
 | `PAYPAYSEC_PASSWORD` | 半年 / 漏洩疑い時即 | PayPay 証券の Web でパスワード変更 → `gh secret set PAYPAYSEC_PASSWORD` |
 | `MONEYFORWARD_PASSWORD` | 半年 / 漏洩疑い時即 | MF でパスワード変更 → `gh secret set MONEYFORWARD_PASSWORD` |
-| `MONEYFORWARD_ACCOUNT_ID_HASH` | 資産削除/再作成時のみ | 新 ID をメモして `gh secret set MONEYFORWARD_ACCOUNT_ID_HASH` |
+| `MONEYFORWARD_ASSET_ID` | 資産削除/再作成時のみ | 新 ID をメモして `gh secret set MONEYFORWARD_ASSET_ID` |
 | `PAYPAYSEC_USERNAME` / `MONEYFORWARD_EMAIL` | アドレス変更時のみ | `gh secret set <name>` |
 
 ## OTP の取り扱い
@@ -195,4 +195,4 @@ force push や `git filter-repo` では到達不能コミットが API から読
 - [ ] **実行ログに銘柄名が出る。** 金額と secret はマスクされるが銘柄名はされない。
       public fork で動かすと保有銘柄が公開される（template の README に記載）
 - [ ] `@v2` は動くタグで、固定したいなら SHA-1（同上）
-- [ ] `MONEYFORWARD_ACCOUNT_ID_HASH` の口座の中身はジョブが管理し、対応しない行は削除される（同上）
+- [ ] `MONEYFORWARD_ASSET_ID` の口座の中身はジョブが管理し、対応しない行は削除される（同上）

@@ -33,8 +33,8 @@ func TestLoad(t *testing.T) {
 		c.MoneyForward.Password != "value-of-MONEYFORWARD_PASSWORD" {
 		t.Errorf("MoneyForward = %+v", c.MoneyForward)
 	}
-	if c.AccountIDHash != "value-of-MONEYFORWARD_ACCOUNT_ID_HASH" {
-		t.Errorf("AccountIDHash = %q", c.AccountIDHash)
+	if c.AssetID != "value-of-MONEYFORWARD_ASSET_ID" {
+		t.Errorf("AssetID = %q", c.AssetID)
 	}
 	if !c.CI {
 		t.Error("CI was set and not seen")
@@ -46,13 +46,13 @@ func TestLoad(t *testing.T) {
 func TestLoadNamesEveryMissingVariable(t *testing.T) {
 	setAll(t)
 	t.Setenv(string(secret.MoneyForwardEmail), "")
-	t.Setenv(string(secret.AccountIDHash), "")
+	t.Setenv(string(secret.AssetID), "")
 
 	_, err := config.Load()
 	if err == nil {
 		t.Fatal("Load() accepted an environment with two credentials missing")
 	}
-	for _, want := range []string{"MONEYFORWARD_EMAIL", "MONEYFORWARD_ACCOUNT_ID_HASH"} {
+	for _, want := range []string{"MONEYFORWARD_EMAIL", "MONEYFORWARD_ASSET_ID"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("error = %v, want it to name %s", err, want)
 		}

@@ -410,3 +410,37 @@ func TestRunAllowsSellingOutOfACategory(t *testing.T) {
 		t.Errorf("the ledger holds %d entries, want the one still held", len(ledger.held))
 	}
 }
+
+// TestRunDeletesRowsItDidNotWrite states the contract the setup instructions
+// warn about, so that it is a decision rather than a surprise.
+//
+// The account named by MONEYFORWARD_ASSET_ID is managed wholesale. A row
+// somebody added by hand has no category prefix, so the coverage check has
+// nothing to say about it — there is no category to have failed to read — and
+// the delete goes ahead.
+//
+// This is why setup says to create a new account rather than point at one
+// already holding something.
+func TestRunDeletesRowsItDidNotWrite(t *testing.T) {
+	ledger := &stubLedger{held: []asset.Asset{
+		{Name: "[米国株] テスト電機", Yen: 1},
+		{Name: "手で足した何か", Yen: 1},
+	}}
+
+	_, err := syncassets.Sync{
+		Broker: &stubBroker{
+			assets:     []asset.Asset{{Name: "[米国株] テスト電機", Yen: 1}},
+			categories: []string{"米国株"},
+		},
+		Ledger: ledger,
+	}.Run(t.Context())
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if len(ledger.held) != 1 {
+		t.Fatalf("the ledger holds %+v", ledger.held)
+	}
+	if ledger.held[0].Name != "[米国株] テスト電機" {
+		t.Errorf("the surviving row is %q", ledger.held[0].Name)
+	}
+}

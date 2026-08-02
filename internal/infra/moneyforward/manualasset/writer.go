@@ -61,10 +61,13 @@ type Writer struct {
 	// request.
 	MetaToken string
 
-	// SubAccountIDHash is the sub-account new entries join. Not the same value
-	// as [Account.IDHash], despite both being 43-character hashes.
-	SubAccountIDHash string
-	SubAccountLabel  string
+	// SubAssetID is the sub-account new entries join. MoneyForward's own
+	// field name, scraped from the create form.
+	//
+	// Not the same value as [Account.AssetID], despite both being 43-character
+	// hashes on the same page. This one is never supplied by a user.
+	SubAssetID      string
+	SubAccountLabel string
 }
 
 // Response is what the server said to a write.
@@ -116,7 +119,7 @@ func (w Writer) Create(ctx context.Context, e Entry) (Response, error) {
 	return w.post(ctx, w.Token, origin+createPath, url.Values{
 		fieldToken:        {w.Token},
 		fieldID:           {e.ID},
-		fieldSubAccount:   {w.SubAccountIDHash},
+		fieldSubAccount:   {w.SubAssetID},
 		fieldSubclass:     {strconv.Itoa(int(e.Subclass))},
 		fieldName:         {e.Name},
 		fieldValue:        {strconv.FormatInt(e.Yen, 10)},
@@ -141,7 +144,7 @@ func (w Writer) Update(ctx context.Context, e Entry) (Response, error) {
 		fieldToken:        {token},
 		fieldMethod:       {"put"},
 		fieldID:           {e.ID},
-		fieldSubAccount:   {w.SubAccountIDHash},
+		fieldSubAccount:   {w.SubAssetID},
 		fieldSubclass:     {strconv.Itoa(int(e.Subclass))},
 		fieldName:         {e.Name},
 		fieldValue:        {strconv.FormatInt(e.Yen, 10)},
@@ -160,7 +163,7 @@ func (w Writer) Delete(ctx context.Context, e Entry) (Response, error) {
 	if token == "" {
 		token = w.Token
 	}
-	target := origin + entryPath + e.Hash + "?sub_account_id_hash=" + url.QueryEscape(w.SubAccountIDHash)
+	target := origin + entryPath + e.Hash + "?sub_account_id_hash=" + url.QueryEscape(w.SubAssetID)
 	return w.post(ctx, token, target, url.Values{
 		fieldToken:  {token},
 		fieldMethod: {"delete"},

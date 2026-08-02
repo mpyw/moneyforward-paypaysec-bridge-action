@@ -285,9 +285,13 @@ func TestCheckCoverage(t *testing.T) {
 			del("[米国株] テスト電機", "[投信ミ] テストAIファンド"),
 			[]string{"米国株"}, true,
 		},
-		// A row somebody typed in by hand. Not this program's to remove, and not
-		// this program's to complain about either — Reconcile does not plan it.
-		"no prefix at all": {
+		// A row somebody typed in by hand. Reconcile does plan its deletion —
+		// the account is managed wholesale — and coverage has nothing to say
+		// about it, because there is no category to have failed to read.
+		//
+		// This asserts no error, which means the delete goes ahead. That is the
+		// contract the setup instructions warn about.
+		"no prefix at all, deleted without complaint": {
 			del("手で足した何か"), []string{"米国株"}, false,
 		},
 		"nothing deleted": {Plan{}, nil, false},

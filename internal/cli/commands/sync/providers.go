@@ -77,7 +77,7 @@ func provideConfig(masker actionslog.Masker) (config.Config, error) {
 	// The passwords are not registered: GitHub masks the secrets it injected
 	// itself, and registering one here would print its length to anyone reading
 	// the directive stream. The rest are values this program derives or echoes.
-	masker.MaskAll(c.PayPaySec.Username, c.MoneyForward.Username, c.AccountIDHash)
+	masker.MaskAll(c.PayPaySec.Username, c.MoneyForward.Username, c.AssetID)
 	return c, nil
 }
 
@@ -138,13 +138,13 @@ func provideLedger(c config.Config, bctx browserContext, codes moneyForwardCodes
 		Client: &moneyforward.Client{
 			Email:    c.MoneyForward.Username,
 			Password: c.MoneyForward.Password,
-			AssetID:  c.AccountIDHash,
+			AssetID:  c.AssetID,
 		},
-		Browser:       bctx,
-		AccountIDHash: c.AccountIDHash,
-		Codes:         codes,
-		OnLogin:       logChallenge("MoneyForward"),
-		OnRead:        maskEntries(masker),
+		Browser: bctx,
+		AssetID: c.AssetID,
+		Codes:   codes,
+		OnLogin: logChallenge("MoneyForward"),
+		OnRead:  maskEntries(masker),
 	}
 }
 

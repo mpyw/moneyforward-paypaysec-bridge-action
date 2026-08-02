@@ -208,8 +208,15 @@ var ErrUnverifiedDeletes = errors.New("the plan deletes entries from categories 
 // the read never covered is a target dropped from the list, or a bucket that
 // stopped being scraped — and its entries are unverified, not stale.
 //
-// Entries with no category prefix are left alone entirely. Somebody typed those
-// in by hand; they are not this program's to remove.
+// Entries with no category prefix are deleted, not spared. The account named by
+// MONEYFORWARD_ASSET_ID is managed wholesale — anything in it that does not
+// correspond to a holding goes — and a row somebody typed by hand is
+// indistinguishable from a row this program wrote before a rename.
+//
+// That is the documented contract, and the reason the setup instructions say to
+// create a new account rather than point at an existing one. Sparing unprefixed
+// rows would be the friendlier rule right up to the first run after a category
+// is renamed, when the old rows would stay forever.
 func (p Plan) CheckCoverage(covered []string) error {
 	seen := make(map[string]bool, len(covered))
 	for _, c := range covered {

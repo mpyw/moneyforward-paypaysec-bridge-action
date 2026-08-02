@@ -85,14 +85,14 @@ func TestWriterPicksTheCreateForm(t *testing.T) {
 	if w.MetaToken != "PAGE-TOKEN" {
 		t.Errorf("MetaToken = %q, want the page-level token deletes need", w.MetaToken)
 	}
-	if w.SubAccountIDHash != "SUBACC-HASH" {
-		t.Errorf("SubAccountIDHash = %q", w.SubAccountIDHash)
+	if w.SubAssetID != "SUBACC-HASH" {
+		t.Errorf("SubAssetID = %q", w.SubAssetID)
 	}
 	if w.SubAccountLabel != "PayPay証券" {
 		t.Errorf("SubAccountLabel = %q", w.SubAccountLabel)
 	}
-	if w.Account.IDHash != "ACCOUNT-HASH" {
-		t.Errorf("the writer is not bound to the account it was read from: %q", w.Account.IDHash)
+	if w.Account.AssetID != "ASSET-HASH" {
+		t.Errorf("the writer is not bound to the account it was read from: %q", w.Account.AssetID)
 	}
 }
 
@@ -109,7 +109,7 @@ func accountServing(t *testing.T, body string) Account {
 	t.Cleanup(srv.Close)
 	client := srv.Client()
 	client.Transport = redirectTo(srv.URL)
-	return Account{HTTP: client, IDHash: "ACCOUNT-HASH"}
+	return Account{HTTP: client, AssetID: "ASSET-HASH"}
 }
 
 // redirectTo sends every request to the test server, whatever host it names.
@@ -226,7 +226,7 @@ func TestRejectionReason(t *testing.T) {
 }
 
 func TestAccountURL(t *testing.T) {
-	got := Account{IDHash: "ABC"}.URL()
+	got := Account{AssetID: "ABC"}.URL()
 	if !strings.HasSuffix(got, "/accounts/show_manual/ABC") {
 		t.Errorf("URL() = %q", got)
 	}

@@ -15,16 +15,22 @@ const origin = "https://moneyforward.com"
 // Account is one MoneyForward manual account — the container the individual
 // 資産 entries live in.
 //
-// A type rather than threading (ctx, client, accountIDHash) through every read
+// A type rather than threading (ctx, client, assetID) through every read
 // and write: those two values have to agree for any of it to mean anything, and
 // separately they are just an HTTP client and a 43-character string.
 type Account struct {
 	// HTTP carries the signed-in session.
 	HTTP *http.Client
 
-	// IDHash identifies the account, and is the value in its page URL. Not the
-	// same as [Writer.SubAccountIDHash], despite both being 43-character hashes.
-	IDHash string
+	// AssetID identifies the manual asset, and is the value in its page URL —
+	// the one thing a user has to copy out of MoneyForward by hand.
+	//
+	// Named for what the UI calls it (手入力資産) rather than for the URL path it
+	// sits under (/accounts/). The page also carries
+	// [Writer.SubAssetID], a different 43-character hash that this
+	// program scrapes rather than being given, and two values one word apart is
+	// how the wrong one gets pasted in.
+	AssetID string
 
 	// OnRead, if set, is handed every set of entries as they are read.
 	//
@@ -39,17 +45,17 @@ type Account struct {
 
 // FromBrowser builds an account addressed over plain HTTP, borrowing the
 // cookies of a browser that has already signed in.
-func FromBrowser(ctx context.Context, idHash string) (Account, error) {
+func FromBrowser(ctx context.Context, assetID string) (Account, error) {
 	client, err := cookiestore.HTTPClientFor(ctx)
 	if err != nil {
 		return Account{}, fmt.Errorf("borrow session: %w", err)
 	}
-	return Account{HTTP: client, IDHash: idHash}, nil
+	return Account{HTTP: client, AssetID: assetID}, nil
 }
 
 // URL is the account's page.
 func (a Account) URL() string {
-	return origin + "/accounts/show_manual/" + a.IDHash
+	return origin + "/accounts/show_manual/" + a.AssetID
 }
 
 // Entries returns the rows currently recorded in the account.

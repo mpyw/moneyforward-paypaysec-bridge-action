@@ -16,7 +16,7 @@ const (
 	PayPaySecPassword Name = "PAYPAYSEC_PASSWORD"
 	MoneyForwardEmail Name = "MONEYFORWARD_EMAIL"
 	MoneyForwardPass  Name = "MONEYFORWARD_PASSWORD"
-	AccountIDHash     Name = "MONEYFORWARD_ACCOUNT_ID_HASH"
+	AssetID           Name = "MONEYFORWARD_ASSET_ID"
 )
 
 // Required is every credential the sync needs.
@@ -29,7 +29,7 @@ var Required = []Name{
 	PayPaySecPassword,
 	MoneyForwardEmail,
 	MoneyForwardPass,
-	AccountIDHash,
+	AssetID,
 }
 
 // RequiredNames is [Required] as plain names, for checking an environment.

@@ -20,8 +20,8 @@ type MoneyForwardLedger struct {
 	// Browser is the chromedp context the sign-in is driven through.
 	Browser context.Context
 
-	// AccountIDHash identifies the manual account the entries live in.
-	AccountIDHash string
+	// AssetID identifies the manual account the entries live in.
+	AssetID string
 
 	// Codes supplies the one-time code the login needs.
 	Codes otp.Source
@@ -55,7 +55,7 @@ func (l *MoneyForwardLedger) SignIn(context.Context) error {
 		l.OnLogin(result.OTPRequired)
 	}
 
-	account, err := manualasset.FromBrowser(l.Browser, l.AccountIDHash)
+	account, err := manualasset.FromBrowser(l.Browser, l.AssetID)
 	if err != nil {
 		return fmt.Errorf("moneyforward: %w", err)
 	}

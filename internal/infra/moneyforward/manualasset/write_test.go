@@ -217,7 +217,7 @@ func accountBackedBy(t *testing.T, f *fakeAccount) Account {
 	t.Cleanup(srv.Close)
 	client := srv.Client()
 	client.Transport = redirectTo(srv.URL)
-	return Account{HTTP: client, IDHash: "ACCOUNT-HASH"}
+	return Account{HTTP: client, AssetID: "ASSET-HASH"}
 }
 
 // TestWriterPostReportsAnErrorStatus covers a guard the stateful fake never
@@ -233,7 +233,7 @@ func TestWriterPostReportsAnErrorStatus(t *testing.T) {
 	t.Cleanup(srv.Close)
 	client := srv.Client()
 	client.Transport = redirectTo(srv.URL)
-	account := Account{HTTP: client, IDHash: "ACCOUNT-HASH"}
+	account := Account{HTTP: client, AssetID: "ASSET-HASH"}
 
 	writer, err := account.Writer(t.Context())
 	if err != nil {
@@ -270,8 +270,8 @@ func TestWriterPostNoticesTheSignInBounce(t *testing.T) {
 	t.Cleanup(app.Close)
 
 	account := Account{
-		HTTP:   &http.Client{Transport: dialInstead(t, app.Listener.Addr().String(), idPortal.Listener.Addr().String())},
-		IDHash: "ACCOUNT-HASH",
+		HTTP:    &http.Client{Transport: dialInstead(t, app.Listener.Addr().String(), idPortal.Listener.Addr().String())},
+		AssetID: "ASSET-HASH",
 	}
 
 	writer, err := account.Writer(t.Context())

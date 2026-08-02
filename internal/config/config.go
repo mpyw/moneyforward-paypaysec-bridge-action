@@ -41,8 +41,8 @@ type Config struct {
 	PayPaySec    Login
 	MoneyForward Login
 
-	// AccountIDHash identifies the manual account the entries live in.
-	AccountIDHash string
+	// AssetID identifies the manual account the entries live in.
+	AssetID string
 
 	// GmailCredentialsJSON is the authorized_user blob, empty when the run is
 	// expected to fall back to the local file.
@@ -76,7 +76,7 @@ func Load() (Config, error) {
 			Username: get(secret.MoneyForwardEmail),
 			Password: get(secret.MoneyForwardPass),
 		},
-		AccountIDHash:        get(secret.AccountIDHash),
+		AssetID:              get(secret.AssetID),
 		GmailCredentialsJSON: os.Getenv(GmailCredentials),
 		CI:                   os.Getenv(CI) != "",
 	}

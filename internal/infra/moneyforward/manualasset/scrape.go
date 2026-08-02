@@ -75,10 +75,10 @@ func (p accountPage) writerFor(account Account) (Writer, error) {
 	w.Token = m[1]
 
 	if sm := subAccountPattern.FindStringSubmatch(form); sm != nil {
-		w.SubAccountIDHash = sm[1]
+		w.SubAssetID = sm[1]
 		w.SubAccountLabel = html.UnescapeString(strings.TrimSpace(sm[2]))
 	}
-	if w.SubAccountIDHash == "" {
+	if w.SubAssetID == "" {
 		return w, fmt.Errorf("no sub-account option on %s", account.URL())
 	}
 	return w, nil

@@ -30,7 +30,7 @@ PayPay 証券・MoneyForward どちらも **ID/PW + メール OTP** でログイ
 
        Phase 2: MoneyForward
          5. chromedp でログイン → 同様に Gmail API から OTP 取得
-         6. 手入力口座 (MONEYFORWARD_ACCOUNT_ID_HASH) の中身を銘柄単位で突合
+         6. 手入力口座 (MONEYFORWARD_ASSET_ID) の中身を銘柄単位で突合
             insert or update / delete。書き込みごとに読み戻して検証
 ```
 
@@ -194,7 +194,7 @@ mfpp gmail …            # authorize / check / search
 |---|---|---|
 | `PAYPAYSEC_USERNAME` / `PAYPAYSEC_PASSWORD` | `paypaysec-username` / `-password` | PayPay 証券ログイン |
 | `MONEYFORWARD_EMAIL` / `MONEYFORWARD_PASSWORD` | `moneyforward-email` / `-password` | MoneyForward ログイン (ID/PW) |
-| `MONEYFORWARD_ACCOUNT_ID_HASH` | `moneyforward-account-id-hash` | MF 手入力口座の account_id_hash |
+| `MONEYFORWARD_ASSET_ID` | `moneyforward-asset-id` | MF 手入力口座の account_id_hash |
 | `GMAIL_CREDENTIALS` | `gmail-credentials` | Gmail API のユーザー資格情報 |
 
 **名前の規則は 1 本だけ: 環境変数 = input を大文字にしてハイフンを `_` に。**

@@ -24,7 +24,7 @@ inputs:
   moneyforward-password:
     description: 'MoneyForward password.'
     required: true
-  moneyforward-account-id-hash:
+  moneyforward-asset-id:
     description: >-
       The account_id_hash of the MoneyForward manual account to write into,
       taken from its page URL. Everything in that account is managed by this
@@ -89,7 +89,7 @@ runs:
         PAYPAYSEC_PASSWORD: ${{ inputs.paypaysec-password }}
         MONEYFORWARD_EMAIL: ${{ inputs.moneyforward-email }}
         MONEYFORWARD_PASSWORD: ${{ inputs.moneyforward-password }}
-        MONEYFORWARD_ACCOUNT_ID_HASH: ${{ inputs.moneyforward-account-id-hash }}
+        MONEYFORWARD_ASSET_ID: ${{ inputs.moneyforward-asset-id }}
         GMAIL_CREDENTIALS: ${{ inputs.gmail-credentials }}
       run: |
         # Mask the values this program will see before it runs. Balances and
@@ -99,5 +99,5 @@ runs:
         # a caller passing a literal does not, and this is what covers them.
         echo "::add-mask::$PAYPAYSEC_USERNAME"
         echo "::add-mask::$MONEYFORWARD_EMAIL"
-        echo "::add-mask::$MONEYFORWARD_ACCOUNT_ID_HASH"
+        echo "::add-mask::$MONEYFORWARD_ASSET_ID"
         "${{ runner.temp }}/mfpp" sync

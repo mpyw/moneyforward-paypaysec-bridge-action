@@ -19,7 +19,7 @@ export MONEYFORWARD_PASSWORD=
 
 # The manual account the holdings are written into: the account_id_hash from
 # its MoneyForward URL.
-export MONEYFORWARD_ACCOUNT_ID_HASH=
+export MONEYFORWARD_ASSET_ID=
 
 # Only needed to exercise the CI path locally. `mfpp debug gmail authorize`
 # writes gmail-credentials.json, and the commands read that file when this is

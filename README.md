@@ -47,7 +47,7 @@ go run github.com/mpyw/moneyforward-paypaysec-bridge-action/cmd/mfpp@v2 \
     paypaysec-password: ${{ secrets.PAYPAYSEC_PASSWORD }}
     moneyforward-email: ${{ secrets.MONEYFORWARD_EMAIL }}
     moneyforward-password: ${{ secrets.MONEYFORWARD_PASSWORD }}
-    moneyforward-account-id-hash: ${{ secrets.MONEYFORWARD_ACCOUNT_ID_HASH }}
+    moneyforward-asset-id: ${{ secrets.MONEYFORWARD_ASSET_ID }}
     gmail-credentials: ${{ secrets.GMAIL_CREDENTIALS }}
 ```
 
@@ -78,7 +78,7 @@ go run github.com/mpyw/moneyforward-paypaysec-bridge-action/cmd/mfpp@v2 \
 | `paypaysec-password` | `PAYPAYSEC_PASSWORD` | 同パスワード |
 | `moneyforward-email` | `MONEYFORWARD_EMAIL` | MoneyForward のログインメール |
 | `moneyforward-password` | `MONEYFORWARD_PASSWORD` | 同パスワード |
-| `moneyforward-account-id-hash` | `MONEYFORWARD_ACCOUNT_ID_HASH` | 書き込み先の手入力口座。URL に出る `account_id_hash` |
+| `moneyforward-asset-id` | `MONEYFORWARD_ASSET_ID` | 書き込み先の手入力口座。URL に出る `account_id_hash` |
 | `gmail-credentials` | `GMAIL_CREDENTIALS` | `gmail.readonly` の authorized_user JSON。上の `go run` で作る |
 | `go-version-file` | — | 任意。既定はこのアクション自身の `go.mod` |
 
