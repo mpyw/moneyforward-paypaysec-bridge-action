@@ -12,10 +12,11 @@ import (
 
 // Gmail waits for the OTP mail to arrive and reads the code out of it.
 //
-// This replaced a make.com scenario that watched the same mailbox and PATCHed
-// the code into a GitHub variable. Reading the mailbox directly removes a
-// third-party service, a personal access token, and the whole question of
-// whether the variable currently holds this run's code or the last one's.
+// Read here rather than relayed. A watcher that PATCHes the code into a GitHub
+// variable needs a third-party service, a personal access token and write
+// permission, and leaves the job asking whether the variable holds this run's
+// code or the last one's. Reading the mailbox in-process turns that into one
+// timestamp comparison — see [Gmail.Fetch].
 type Gmail struct {
 	// Mail is the mailbox to search, normally a *gmail.Client.
 	Mail MailSearcher

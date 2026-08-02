@@ -36,8 +36,10 @@ PayPay 証券・MoneyForward どちらも **ID/PW + メール OTP** でログイ
 
 ### 設計判断と理由
 
-- **make.com 不採用 (2026-08-01 に撤去)**: Gmail API を直接読めば、外部サービス・
-  PAT・GitHub Variables・「変数にあるのは今回のコードか前回のか」問題がまとめて消える
+- **OTP は Gmail API から直接読む**: 外部サービスに中継させて GitHub Variables に
+  書かせる形も採れるが、そうすると third-party・PAT・書き込み権限が要り、
+  「変数にあるのは今回のコードか前回のか」を毎回判断させられる。直接読めば
+  受信時刻とログイン送信時刻を比較するだけで済む
 - **サービスアカウント不可**: ドメイン全体の委任は Workspace 専用。個人 Gmail は
   ユーザーの refresh token でしか読めないので、Workload Identity Federation は使えない
 - **スコープは gmail.readonly のみ**: `gcloud auth application-default login` は
