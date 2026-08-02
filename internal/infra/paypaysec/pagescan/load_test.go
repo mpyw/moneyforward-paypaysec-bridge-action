@@ -42,11 +42,11 @@ const investmentTrustHTML = `<!doctype html><meta charset="utf-8"><title>fixture
 <script>
   const app = {total: "0円", cost: "0円", gain: "0円", rows: ""};
   const mini = {
-    total: "21万0987円", cost: "19万0000円", gain: "+2万0987円",
+    total: "25万1234円", cost: "22万0000円", gain: "+3万1234円",
     rows: '<div class="mypage_brand_icon">' +
           '<a href="/investment_trust/detail/7" title="テスト・グローバル・ファンド"></a>' +
-          '<div class="brand_invest">21万0987円</div>' +
-          '<div class="brand_gain">+2万0987円</div></div>',
+          '<div class="brand_invest">25万1234円</div>' +
+          '<div class="brand_gain">+3万1234円</div></div>',
   };
   const show = (d) => {
     document.getElementById("SECURITIES_VALUE_TOTAL").textContent = d.total;
@@ -77,7 +77,7 @@ func TestLoadReadsATargetWithATab(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	if figures.TotalRaw != "21万0987円" {
+	if figures.TotalRaw != "25万1234円" {
 		t.Errorf("total = %q — the ミニアプリ tab's figures should be the ones read", figures.TotalRaw)
 	}
 	if len(figures.Holdings) != 1 {

@@ -119,8 +119,8 @@ func TestMaskTextSkipsPlaceholders(t *testing.T) {
 		}
 	}
 	var out strings.Builder
-	Masker{Out: &out}.MaskText("69万1356円")
-	if !strings.Contains(out.String(), "69万1356円") {
+	Masker{Out: &out}.MaskText("78万9012円")
+	if !strings.Contains(out.String(), "78万9012円") {
 		t.Errorf("MaskText() = %q, want the amount registered", out.String())
 	}
 }

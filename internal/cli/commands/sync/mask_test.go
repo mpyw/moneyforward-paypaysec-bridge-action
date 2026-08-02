@@ -22,11 +22,11 @@ func TestMaskFiguresCoversAReconciliationError(t *testing.T) {
 	reading := paypaysec.Reading{
 		Target: selector.Target{Key: "usa", Name: "米国株"},
 		Figures: pagescan.Figures{
-			TotalPresent: true, TotalRaw: "69万1356円",
+			TotalPresent: true, TotalRaw: "78万9012円",
 			AcquisitionPresent: true, AcquisitionRaw: "60万0000円",
 			GainPresent: true, GainRaw: "+1万0000円",
 		},
-		TotalYen: 691356, HasTotal: true,
+		TotalYen: 789012, HasTotal: true,
 		AcquisitionYen: 600000, HasAcquisition: true,
 		GainYen: 10000, HasGain: true,
 	}
@@ -41,7 +41,7 @@ func TestMaskFiguresCoversAReconciliationError(t *testing.T) {
 	masked := registered.String()
 
 	// Every figure the message names, and the page's own wording alongside it.
-	for _, want := range []string{"691356", "600000", "610000", "69万1356円", "60万0000円"} {
+	for _, want := range []string{"789012", "600000", "610000", "78万9012円", "60万0000円"} {
 		if !strings.Contains(masked, "::add-mask::"+want) {
 			t.Errorf("%q was never registered, so it would reach the log", want)
 		}
@@ -49,7 +49,7 @@ func TestMaskFiguresCoversAReconciliationError(t *testing.T) {
 
 	// And the message really does contain them, so this test fails if the
 	// wording ever stops naming the amounts.
-	if !strings.Contains(err.Error(), "691356") {
+	if !strings.Contains(err.Error(), "789012") {
 		t.Errorf("Amount() error = %v; expected it to name the figures", err)
 	}
 }

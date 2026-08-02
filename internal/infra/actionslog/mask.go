@@ -82,7 +82,7 @@ func (m Masker) MaskAmount(yen int64) {
 	m.Mask(text)
 }
 
-// MaskText hides a value read off a page, such as "69万1356円".
+// MaskText hides a value read off a page, such as "78万9012円".
 //
 // The raw text matters as well as the parsed number: a figure that fails to
 // parse reaches the log inside the parse error, still in the page's own words.

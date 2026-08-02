@@ -1,6 +1,6 @@
 // Package pagescan drives PayPay 証券's pages and reports what they said.
 //
-// It returns text, never numbers. Turning "69万1356円" into 691356 and
+// It returns text, never numbers. Turning "78万9012円" into 789012 and
 // checking that figure against the page's other two routes happens in the
 // parent package. Keeping the two apart also keeps chromedp, the settle timings
 // and the JS mirror structs out of a namespace where a reconciliation function

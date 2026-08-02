@@ -19,16 +19,16 @@ func position(name string, value, cost int64) Position {
 }
 
 func TestReconciled(t *testing.T) {
-	f := figures(Yen(691356), Yen(600000), Yen(91356),
+	f := figures(Yen(789012), Yen(600000), Yen(189012),
 		position("テスト電機", 456789, 400000),
-		position("テスト商事", 234567, 200000),
+		position("テスト商事", 332223, 200000),
 	)
 	got, err := f.Reconciled()
 	if err != nil {
 		t.Fatalf("Reconciled() error = %v", err)
 	}
-	if got != 691356 {
-		t.Errorf("Reconciled() = %d, want 691356", got)
+	if got != 789012 {
+		t.Errorf("Reconciled() = %d, want 789012", got)
 	}
 }
 
@@ -40,31 +40,31 @@ func TestReconciledRefusesOnDisagreement(t *testing.T) {
 		mention string
 	}{
 		"cost plus gain does not reach the total": {
-			figures: figures(Yen(691356), Yen(600000), Yen(10000),
-				position("テスト電機", 691356, 600000)),
+			figures: figures(Yen(789012), Yen(600000), Yen(10000),
+				position("テスト電機", 789012, 600000)),
 			mention: "one of the three is misread",
 		},
 		"the holdings do not add up": {
-			figures: figures(Yen(691356), Absent(), Absent(),
+			figures: figures(Yen(789012), Absent(), Absent(),
 				position("テスト電機", 456789, 400000)),
 			mention: "holdings sum to",
 		},
 		"the costs do not add up": {
-			figures: figures(Yen(691356), Yen(600000), Yen(91356),
+			figures: figures(Yen(789012), Yen(600000), Yen(189012),
 				position("テスト電機", 456789, 400000),
-				position("テスト商事", 234567, 100000),
+				position("テスト商事", 332223, 100000),
 			),
 			mention: "costs sum to",
 		},
 		"one holding has no cost to check": {
-			figures: figures(Yen(691356), Yen(600000), Yen(91356),
+			figures: figures(Yen(789012), Yen(600000), Yen(189012),
 				position("テスト電機", 456789, 400000),
-				Position{Name: "テスト商事", Value: Yen(234567), Cost: Placeholder()},
+				Position{Name: "テスト商事", Value: Yen(332223), Cost: Placeholder()},
 			),
 			mention: "テスト商事",
 		},
 		"money with nothing listed under it": {
-			figures: figures(Yen(691356), Absent(), Absent()),
+			figures: figures(Yen(789012), Absent(), Absent()),
 			mention: "positions are missing",
 		},
 		"a placeholder is not a total": {
@@ -119,8 +119,8 @@ func TestReconciledSkipsPlaceholderPositions(t *testing.T) {
 // TestLabelsReachTheMessage covers what the labels are for: a refusal an
 // operator can read against the page in front of them.
 func TestLabelsReachTheMessage(t *testing.T) {
-	f := figures(Yen(691356), Yen(600000), Yen(10000),
-		position("テスト電機", 691356, 600000))
+	f := figures(Yen(789012), Yen(600000), Yen(10000),
+		position("テスト電機", 789012, 600000))
 	f.Labels = Labels{Total: "評価額合計", Acquisition: "投資元本", Gain: "含み益"}
 
 	_, err := f.Reconciled()
@@ -139,9 +139,9 @@ func TestLabelsReachTheMessage(t *testing.T) {
 // anything can print them, and a sum computed only inside a refusal exists
 // nowhere else.
 func TestAmountsCoverEveryFigureAMessageNames(t *testing.T) {
-	f := figures(Yen(691356), Yen(600000), Yen(10000),
+	f := figures(Yen(789012), Yen(600000), Yen(10000),
 		position("テスト電機", 456789, 400000),
-		position("テスト商事", 234567, 200000),
+		position("テスト商事", 332223, 200000),
 	)
 	_, err := f.Reconciled()
 	if err == nil {
@@ -153,7 +153,7 @@ func TestAmountsCoverEveryFigureAMessageNames(t *testing.T) {
 		known[itoa(yen)] = true
 	}
 	// 610000 is cost + gain, computed in the message and stored nowhere.
-	for _, want := range []string{"691356", "600000", "610000"} {
+	for _, want := range []string{"789012", "600000", "610000"} {
 		if !known[want] {
 			t.Errorf("Amounts() does not include %s, which the refusal names", want)
 		}

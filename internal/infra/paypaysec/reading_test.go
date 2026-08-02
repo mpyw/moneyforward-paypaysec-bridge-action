@@ -44,21 +44,21 @@ func withCosts(r *Reading, costs ...int64) {
 var usa = selector.Target{Key: "usa", Name: "米国株", URL: "https://example.test/usa", Bucket: selector.BucketApp}
 
 func TestReadingParse(t *testing.T) {
-	r := newReading(usa, "69万1356円", "60万0000円", "+9万1356円",
+	r := newReading(usa, "78万9012円", "60万0000円", "+18万9012円",
 		holdingText{"テスト電機", "45万6789円"},
-		holdingText{"テスト商事", "23万4567円"},
+		holdingText{"テスト商事", "33万2223円"},
 	)
 	if err := r.parse(); err != nil {
 		t.Fatalf("parse() error = %v", err)
 	}
 
-	if r.TotalYen != 691356 || !r.HasTotal {
+	if r.TotalYen != 789012 || !r.HasTotal {
 		t.Errorf("TotalYen = %d (known=%v)", r.TotalYen, r.HasTotal)
 	}
-	if r.AcquisitionYen != 600000 || r.GainYen != 91356 {
+	if r.AcquisitionYen != 600000 || r.GainYen != 189012 {
 		t.Errorf("acquisition/gain = %d / %d", r.AcquisitionYen, r.GainYen)
 	}
-	if r.HoldingsSumYen != 691356 || r.HoldingsParsed != 2 {
+	if r.HoldingsSumYen != 789012 || r.HoldingsParsed != 2 {
 		t.Errorf("holdings summed to %d over %d rows", r.HoldingsSumYen, r.HoldingsParsed)
 	}
 	if r.HoldingCount() != 2 {
@@ -102,9 +102,9 @@ func TestReadingParseRejectsUnreadableAmounts(t *testing.T) {
 }
 
 func TestReadingAmount(t *testing.T) {
-	r := newReading(usa, "69万1356円", "60万0000円", "+9万1356円",
+	r := newReading(usa, "78万9012円", "60万0000円", "+18万9012円",
 		holdingText{"テスト電機", "45万6789円"},
-		holdingText{"テスト商事", "23万4567円"},
+		holdingText{"テスト商事", "33万2223円"},
 	)
 	if err := r.parse(); err != nil {
 		t.Fatalf("parse() error = %v", err)
@@ -117,8 +117,8 @@ func TestReadingAmount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Amount() error = %v", err)
 	}
-	if yen != 691356 {
-		t.Errorf("Amount() = %d, want 691356", yen)
+	if yen != 789012 {
+		t.Errorf("Amount() = %d, want 789012", yen)
 	}
 }
 
@@ -133,13 +133,13 @@ func TestReadingAmountRefusesOnDisagreement(t *testing.T) {
 	}{
 		{
 			name: "投資元本 + 含み益 does not reach 評価額合計",
-			newReading: newReading(usa, "69万1356円", "60万0000円", "+1万0000円",
-				holdingText{"テスト電機", "69万1356円"}),
+			newReading: newReading(usa, "78万9012円", "60万0000円", "+1万0000円",
+				holdingText{"テスト電機", "78万9012円"}),
 			wantMessage: "投資元本",
 		},
 		{
 			name: "the holdings do not add up to the total",
-			newReading: newReading(usa, "69万1356円", "", "",
+			newReading: newReading(usa, "78万9012円", "", "",
 				holdingText{"テスト電機", "45万6789円"}),
 			wantMessage: "holdings sum to",
 		},
@@ -165,9 +165,9 @@ func TestReadingAmountRefusesOnDisagreement(t *testing.T) {
 // page at a time. A single page read wrongly would otherwise land in
 // MoneyForward as a wrong 評価損益 with nothing to catch it.
 func TestReadingAmountChecksAcquisitionSum(t *testing.T) {
-	r := newReading(usa, "69万1356円", "60万0000円", "+9万1356円",
+	r := newReading(usa, "78万9012円", "60万0000円", "+18万9012円",
 		holdingText{"テスト電機", "45万6789円"},
-		holdingText{"テスト商事", "23万4567円"},
+		holdingText{"テスト商事", "33万2223円"},
 	)
 	if err := r.parse(); err != nil {
 		t.Fatalf("parse() error = %v", err)
@@ -214,9 +214,9 @@ func TestReadingAmountRejectsAPlaceholderTotal(t *testing.T) {
 }
 
 func TestBalancesTotal(t *testing.T) {
-	b := Balances{App: 691356, MiniApp: 250000}
-	if got := b.Total(); got != 941356 {
-		t.Errorf("Total() = %d, want 941356", got)
+	b := Balances{App: 789012, MiniApp: 250000}
+	if got := b.Total(); got != 1039012 {
+		t.Errorf("Total() = %d, want 1039012", got)
 	}
 }
 
@@ -229,7 +229,7 @@ func TestBalancesTotal(t *testing.T) {
 // the run from looking empty, and the reconciliation deletes this bucket's
 // entries as no longer held.
 func TestReadingAmountRejectsATotalWithNoHoldings(t *testing.T) {
-	r := newReading(usa, "21万0987円", "", "")
+	r := newReading(usa, "25万1234円", "", "")
 	if err := r.parse(); err != nil {
 		t.Fatalf("parse() error = %v", err)
 	}
@@ -255,9 +255,9 @@ func TestReadingAmountRejectsATotalWithNoHoldings(t *testing.T) {
 // others that were fine — and no one downstream can catch it: MoneyForward's
 // read-back confirms the cost that was sent, not the cost that was right.
 func TestReadingAmountRefusesAPartiallyCostedPage(t *testing.T) {
-	r := newReading(usa, "69万1356円", "60万0000円", "+9万1356円",
+	r := newReading(usa, "78万9012円", "60万0000円", "+18万9012円",
 		holdingText{"テスト電機", "45万6789円"},
-		holdingText{"テスト商事", "23万4567円"},
+		holdingText{"テスト商事", "33万2223円"},
 	)
 	if err := r.parse(); err != nil {
 		t.Fatalf("parse() error = %v", err)

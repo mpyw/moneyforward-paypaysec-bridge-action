@@ -23,7 +23,7 @@ var ErrNoValue = errors.New("no value")
 // Amount patterns as the sites render them.
 //
 // The 万 remainder is required to be exactly four digits because that is what
-// every observed figure uses — 69万1356, 21万0987, 60万0000 (note the padding
+// every observed figure uses — 78万9012, 25万1234, 60万0000 (note the padding
 // on a round million). Accepting a shorter remainder would mean guessing whether
 // "1万23" is 10,023 or 12,300, and guessing about money is how a wrong balance
 // gets recorded as if it were right. A rendering change should fail loudly here
@@ -56,7 +56,7 @@ var placeholders = map[string]bool{
 // ParseYen converts a rendered amount to whole yen.
 //
 // It handles the site's 万 notation and the signed form used for profit and
-// loss: "21万0987円" is 210987, "+2万0987円" is 20987, "-237円" is -237.
+// loss: "25万1234円" is 251234, "+3万1234円" is 31234, "-237円" is -237.
 //
 // It is deliberately strict. Anything it does not recognise is an error rather
 // than a best effort, because the caller writes this number into a financial
@@ -72,7 +72,7 @@ func ParseYen(s string) (int64, error) {
 	// away the only thing separating one figure from the next: "100円200円" became
 	// "100200" and parsed cleanly. A selector that starts matching a container
 	// rather than a cell is the same drift that once read an unrelated "0円" as the
-	// balance of an account holding 21万0987円, so two amounts have to be refused
+	// balance of an account holding 25万1234円, so two amounts have to be refused
 	// rather than concatenated into a third.
 	if digitsAcrossASpace.MatchString(cleaned) {
 		return 0, fmt.Errorf("parse yen %q: two runs of digits with only space between "+

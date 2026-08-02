@@ -18,22 +18,22 @@ import (
 // TestFiguresDecodesWhatTheScriptReturns pins the shape extract_balance.js
 // produces.
 func TestFiguresDecodesWhatTheScriptReturns(t *testing.T) {
-	const sample = `{"totalPresent":true,"totalRaw":"69万1356円",
+	const sample = `{"totalPresent":true,"totalRaw":"78万9012円",
 "acquisitionPresent":true,"acquisitionRaw":"60万0000円",
-"gainPresent":true,"gainRaw":"+9万1356円",
+"gainPresent":true,"gainRaw":"+18万9012円",
 "holdings":[{"name":"テスト電機","ref":"/trade/brand/35/0","investText":"45万6789円","gainText":"+3.7万"}]}`
 
 	var f Figures
 	if err := json.Unmarshal([]byte(sample), &f); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
-	if !f.TotalPresent || f.TotalRaw != "69万1356円" {
+	if !f.TotalPresent || f.TotalRaw != "78万9012円" {
 		t.Errorf("total = %v %q", f.TotalPresent, f.TotalRaw)
 	}
 	if !f.AcquisitionPresent || f.AcquisitionRaw != "60万0000円" {
 		t.Errorf("acquisition = %v %q", f.AcquisitionPresent, f.AcquisitionRaw)
 	}
-	if !f.GainPresent || f.GainRaw != "+9万1356円" {
+	if !f.GainPresent || f.GainRaw != "+18万9012円" {
 		t.Errorf("gain = %v %q", f.GainPresent, f.GainRaw)
 	}
 	if len(f.Holdings) != 1 {
@@ -135,7 +135,7 @@ func TestSettleTimedOut(t *testing.T) {
 		},
 		{
 			name:    "value never stopped moving",
-			state:   pageState{Present: true, Text: "21万0987円"},
+			state:   pageState{Present: true, Text: "25万1234円"},
 			wantErr: true,
 			mention: "still changing",
 		},
