@@ -198,8 +198,7 @@ mfpp gmail …            # authorize / check / search
 | `GMAIL_CREDENTIALS` | `gmail-credentials` | Gmail API のユーザー資格情報 |
 
 **名前の規則は 1 本だけ: 環境変数 = input を大文字にしてハイフンを `_` に。**
-以前は 4 つの input が 4 通りの流儀で環境変数に対応していて (`PAYPAY_SEC_*` /
-`MF_*` / `MF_ASSET_ID` / `_JSON` 付き)、読む側が対応表を覚える必要があった。
+対応表を覚える必要はない。規則を外れた名前はテストが落とす。
 
 必須名の一覧は `domain/secret`。`config_test.go` が domain と `Load` を突き合わせ、
 `actionyml_test.go` が `action.yml` と突き合わせる。**3 者のどれかがずれたら落ちる。**
@@ -237,7 +236,7 @@ go run ./cmd/mfpp gmail authorize   # gmail-credentials.json を作る
 
 ## リリース手順
 
-利用者は `@v1` を参照する。`v1` は**可動タグ**で、置き忘れると修正が誰にも届かない
+利用者は `@v2` を参照する。`v2` は**可動タグ**で、置き忘れると修正が誰にも届かない
 ——スクレイパなので、セレクタの修正が届かないことは毎営業日の失敗を意味する。
 
 ```bash
@@ -249,7 +248,7 @@ TZ=UTC go test -race ./...
 go run github.com/rhysd/actionlint/cmd/actionlint@latest
 
 git tag vX.Y.Z && git push origin vX.Y.Z
-git tag -f v1  && git push -f origin v1      # ★ これを忘れない
+git tag -f v2  && git push -f origin v2      # ★ これを忘れない
 ```
 
 そのうえで template の SHA 固定の例（`sync.yml` のコメントと README）を新しい

@@ -11,21 +11,15 @@ import (
 )
 
 // action.yml and this package are two statements of the same contract: the set
-// of values a run is given, and what each is called. Nothing but care kept them
-// in step, and care did not — the input names and the variable names drifted
-// into four different conventions.
+// of values a run is given, and what each is called.
 //
-//	paypaysec-username   ->  PAYPAY_SEC_USERNAME     (different separator)
-//	moneyforward-email   ->  MF_EMAIL                (different abbreviation)
-//	account-id-hash      ->  MF_ASSET_ID             (different word entirely)
-//	gmail-credentials    ->  GMAIL_CREDENTIALS_JSON  (extra suffix)
+// The naming rule is one line — the variable is the input, upper-cased, with
+// hyphens as underscores — and a rule that lives only in a doc comment is one
+// each new value gets to reinterpret. Left to care, a set of names drifts into
+// a set of conventions, and then a reader needs a translation table to follow
+// a value from the workflow to the code.
 //
-// Each was defensible where it was written. Together they meant a reader had to
-// hold a translation table, and adding a value meant inventing two names and
-// hoping.
-//
-// The rule now is one line: the variable is the input, upper-cased, with
-// hyphens as underscores. These tests are what keeps it true.
+// These tests are the rule, so it cannot drift.
 
 var (
 	inputHeadPattern = regexp.MustCompile(`(?m)^  ([a-z0-9-]+):$`)

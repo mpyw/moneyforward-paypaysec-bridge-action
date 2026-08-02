@@ -28,7 +28,7 @@ MoneyForward の手入力口座に反映する GitHub Action。
 
 ```bash
 # client_secret.json を置いたディレクトリで
-go run github.com/mpyw/moneyforward-paypaysec-bridge-action/cmd/mfpp@v1 \
+go run github.com/mpyw/moneyforward-paypaysec-bridge-action/cmd/mfpp@v2 \
   gmail authorize
 ```
 
@@ -37,7 +37,7 @@ go run github.com/mpyw/moneyforward-paypaysec-bridge-action/cmd/mfpp@v1 \
 ## Action として
 
 ```yaml
-- uses: mpyw/moneyforward-paypaysec-bridge-action@v1
+- uses: mpyw/moneyforward-paypaysec-bridge-action@v2
   with:
     paypaysec-username: ${{ secrets.PAYPAYSEC_USERNAME }}
     paypaysec-password: ${{ secrets.PAYPAYSEC_PASSWORD }}
@@ -51,14 +51,14 @@ go run github.com/mpyw/moneyforward-paypaysec-bridge-action/cmd/mfpp@v1 \
 `github.action_path` に閉じている。runner に Chrome が要る (`ubuntu-latest` にはある)。
 
 > [!IMPORTANT]
-> **`@v1` は動くポインタ。** このアクションは呼び出し側のジョブの中で、証券口座と
+> **`@v2` は動くポインタ。** このアクションは呼び出し側のジョブの中で、証券口座と
 > MoneyForward の資格情報を環境に持って動く。タグ参照のままだと、そのコードは
 > 利用者の関与なしに差し替わり得る。
 
 気になるなら SHA-1 で固定する:
 
 ```yaml
-- uses: mpyw/moneyforward-paypaysec-bridge-action@<commit sha>  # v1.0.1
+- uses: mpyw/moneyforward-paypaysec-bridge-action@<commit sha>  # v2.0.0
 ```
 
 代償はスクレイパ特有のもので、PayPay 証券や MoneyForward が DOM を変えた日に

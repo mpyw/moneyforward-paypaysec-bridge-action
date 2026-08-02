@@ -194,5 +194,5 @@ force push や `git filter-repo` では到達不能コミットが API から読
 
 - [ ] **実行ログに銘柄名が出る。** 金額と secret はマスクされるが銘柄名はされない。
       public fork で動かすと保有銘柄が公開される（template の README に記載）
-- [ ] `@v1` は動くタグで、固定したいなら SHA-1（同上）
+- [ ] `@v2` は動くタグで、固定したいなら SHA-1（同上）
 - [ ] `MONEYFORWARD_ACCOUNT_ID_HASH` の口座の中身はジョブが管理し、対応しない行は削除される（同上）
