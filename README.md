@@ -50,9 +50,12 @@ go run github.com/mpyw/moneyforward-paypaysec-bridge-action/cmd/mfpp@v1 \
 `actions/checkout` は要らない。composite action で、全ステップが自分の
 `github.action_path` に閉じている。runner に Chrome が要る (`ubuntu-latest` にはある)。
 
-**`@v1` は動くポインタ。** このアクションは呼び出し側のジョブの中で、証券口座と
-MoneyForward の資格情報を環境に持って動く。タグ参照のままだと、そのコードは
-利用者の関与なしに差し替わり得る。気になるなら SHA-1 で固定する:
+> [!IMPORTANT]
+> **`@v1` は動くポインタ。** このアクションは呼び出し側のジョブの中で、証券口座と
+> MoneyForward の資格情報を環境に持って動く。タグ参照のままだと、そのコードは
+> 利用者の関与なしに差し替わり得る。
+
+気になるなら SHA-1 で固定する:
 
 ```yaml
 - uses: mpyw/moneyforward-paypaysec-bridge-action@<commit sha>  # v1.0.1
@@ -129,10 +132,13 @@ go test -tags=live ./internal/...               # 実サイトに対するセレ
 
 `--otp file` を付けるとメール経路が外れ、失敗の原因をブラウザ側に限定できる。
 
-> ⚠ `mf add` と `mf sync` は実口座に書き込む。他の debug コマンドは読むだけ。
->
-> ⚠ `.debug/` には生きたセッション cookie と認証済みページの生 HTML が入る。
-> gitignore 済みだが、作業が終わったら `rm -rf .debug` すること。
+> [!WARNING]
+> `mf add` と `mf sync` は**実口座に書き込む**。他の debug コマンドは読むだけ。
+
+> [!CAUTION]
+> `.debug/` には生きたセッション cookie と認証済みページの生 HTML が入る。
+> cookie は単体でログインできる。gitignore 済みだが、作業が終わったら
+> `rm -rf .debug` すること。
 
 設計と、その理由になった実地の落とし穴は [CLAUDE.md](./CLAUDE.md) に。
 脅威モデルと secret の扱いは [SECURITY.md](./SECURITY.md) に。
