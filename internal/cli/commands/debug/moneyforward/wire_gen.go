@@ -17,9 +17,8 @@ import (
 // newSyncFromEntries assembles the real sync use case against a broker that
 // reports what was typed and a ledger already holding a session.
 //
-// The same use case the scheduled job runs — deliberately, because this command
-// used to reconcile on its own, which meant the thing it was for testing was
-// not the thing being tested.
+// The same use case the scheduled job runs, deliberately: a command that
+// reconciled on its own would be testing something other than what runs.
 //
 // Not the same graph, though, and not shareable with the job's: the broker, the
 // ledger and the reporter are all different implementations, so an injector
