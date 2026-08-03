@@ -25,8 +25,18 @@ import (
 )
 
 const (
-	// targetTimeout bounds loading and reading one target.
-	targetTimeout = 30 * time.Second
+	// targetTimeout bounds loading and reading one target, and has to be larger
+	// than everything it contains or it becomes the thing that fires.
+	//
+	//	settle           20s   the figures on arrival
+	//	repaint          25s   the tab swap, floor 10s (tab targets only)
+	//	settle           20s   the figures after the swap
+	//	navigate/extract  —    seconds
+	//
+	// An outer deadline firing first replaces a specific complaint — "the page
+	// was still loading", "the tab did not repaint" — with a context deadline,
+	// which says nothing about which wait was the problem.
+	targetTimeout = 75 * time.Second
 
 	// tabSettleDelay gives a tab's panel a moment to swap in. The tabs are
 	// client-side, so there is no navigation to wait on.
@@ -42,14 +52,17 @@ const (
 	// repaintTimeout bounds the wait for a tab swap to rewrite the figures, and
 	// repaintQuiet is how still the document has to be before the rewrite counts
 	// as finished. Measured: the swap lands about a second after the click.
-	repaintTimeout = 15 * time.Second
+	repaintTimeout = 25 * time.Second
 	repaintQuiet   = 600 * time.Millisecond
 
 	// repaintFloor is the shortest this waits after a tab click, whatever the
-	// page appears to say. The measured swap lands around a second; this is
-	// several times that, because the cost of waiting is a few seconds a day and
-	// the cost of not waiting is deleting holdings that exist.
-	repaintFloor = 5 * time.Second
+	// page appears to say. The measured swap lands around a second, and five
+	// seconds was still not enough on a hosted runner: the category came back
+	// empty again, and an empty category is a delete plan for everything in it.
+	//
+	// Ten, then. The cost of waiting is ten seconds a day. The cost of not
+	// waiting is removing holdings that exist.
+	repaintFloor = 10 * time.Second
 	stableReads  = 3
 )
 
