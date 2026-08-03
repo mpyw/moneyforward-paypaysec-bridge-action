@@ -8,9 +8,9 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands/debug/session"
-	ppsite "github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec"
-	ppsel "github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec/selector"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug/session"
+	ppsite "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec"
+	ppsel "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
 )
 
 func balanceCommand() *cli.Command {

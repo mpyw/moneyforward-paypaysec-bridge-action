@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/chrome/browser"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec/selector"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/chrome/browser"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
 )
 
 // Load navigates, waits for the figures to settle, clicks a tab if the target

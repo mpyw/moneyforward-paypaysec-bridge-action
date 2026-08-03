@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/assetname"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/assetname"
 )
 
 // accountPageHTML builds a stand-in for the manual account page.

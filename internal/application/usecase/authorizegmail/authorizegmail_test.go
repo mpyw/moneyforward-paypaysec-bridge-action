@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/credential"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/usecase/authorizegmail"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/credential"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/usecase/authorizegmail"
 )
 
 type grants struct {

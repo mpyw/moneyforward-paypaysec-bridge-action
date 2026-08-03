@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/secret"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/config"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/secret"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/config"
 )
 
 // action.yml and this package are two statements of the same contract: the set

@@ -12,7 +12,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/secret"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/secret"
 )
 
 const (

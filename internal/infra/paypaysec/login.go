@@ -3,13 +3,13 @@ package paypaysec
 import (
 	"context"
 	"fmt"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec/selector"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
 	"time"
 
 	"github.com/chromedp/chromedp"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/chrome/browser"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/otp"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/chrome/browser"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/otp"
 )
 
 const (

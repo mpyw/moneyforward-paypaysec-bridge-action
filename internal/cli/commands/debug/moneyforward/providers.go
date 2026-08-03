@@ -8,12 +8,12 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/asset"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/assetname"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/portfolio"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/port"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/adapter"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/moneyforward/manualasset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/asset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/assetname"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/portfolio"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/port"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/adapter"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward/manualasset"
 )
 
 // providerSet is what `debug mf sync` is built from.

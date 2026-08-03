@@ -3,10 +3,10 @@ package sync
 import (
 	"log"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/asset"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/portfolio"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/actionslog"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/asset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/portfolio"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/actionslog"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec"
 )
 
 // What the run says as it goes. The figures are masked by the time any of this

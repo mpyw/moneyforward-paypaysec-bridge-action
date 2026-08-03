@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/asset"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/otp"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/asset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/otp"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec"
 )
 
 // PayPaySecBroker reads holdings from PayPay 証券.

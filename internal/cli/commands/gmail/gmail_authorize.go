@@ -7,9 +7,9 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/credentials"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/config"
-	gmailapi "github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/gmail"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/credentials"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/config"
+	gmailapi "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/gmail"
 )
 
 // DefaultClientFile is the OAuth client downloaded from the Google Cloud

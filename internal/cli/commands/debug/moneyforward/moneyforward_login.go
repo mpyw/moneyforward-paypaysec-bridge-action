@@ -7,11 +7,11 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/secret"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands/debug/session"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/config"
-	mfsite "github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/moneyforward"
-	mfsel "github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/moneyforward/selector"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/secret"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug/session"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/config"
+	mfsite "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward"
+	mfsel "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward/selector"
 )
 
 func loginCommand() *cli.Command {

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/assetname"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/assetname"
 )
 
 // TestTargetKeysAreUnique guards the identifier used in logs and error messages.

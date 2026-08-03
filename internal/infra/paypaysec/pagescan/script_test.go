@@ -9,8 +9,8 @@ import (
 
 	"github.com/chromedp/chromedp"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/chrome/browser"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec/selector"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/chrome/browser"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
 )
 
 // extract_balance.js says of itself that "page script is the one place in this

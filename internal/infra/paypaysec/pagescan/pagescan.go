@@ -21,7 +21,7 @@ import (
 
 	"github.com/chromedp/chromedp"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec/selector"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
 )
 
 const (

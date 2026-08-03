@@ -16,8 +16,8 @@ import (
 	"golang.org/x/oauth2"
 	googleoauth "golang.org/x/oauth2/google"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/credential"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/gmail"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/credential"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/gmail"
 )
 
 const (

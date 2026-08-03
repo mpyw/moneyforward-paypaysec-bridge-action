@@ -16,7 +16,7 @@ package moneyforward_test
 
 import (
 	"context"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/moneyforward/selector"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward/selector"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,8 +25,8 @@ import (
 
 	"github.com/chromedp/chromedp"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/chrome/browser"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/moneyforward"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/chrome/browser"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward"
 )
 
 const (

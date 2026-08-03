@@ -3,7 +3,7 @@ package browser
 import (
 	"embed"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/chrome/pagescript"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/chrome/pagescript"
 )
 
 // scriptFS holds this package's page-side JavaScript.

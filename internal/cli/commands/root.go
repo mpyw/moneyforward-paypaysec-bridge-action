@@ -26,9 +26,9 @@
 package commands
 
 import (
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands/debug"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands/gmail"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands/sync"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/gmail"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/sync"
 	"github.com/urfave/cli/v3"
 )
 

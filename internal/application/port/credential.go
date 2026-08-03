@@ -3,7 +3,7 @@ package port
 import (
 	"context"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/credential"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/credential"
 )
 
 // ConsentFlow obtains a Gmail credential by asking a person to grant one.

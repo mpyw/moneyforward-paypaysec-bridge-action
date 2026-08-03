@@ -245,7 +245,15 @@ go run ./cmd/mfpp gmail authorize   # gmail-credentials.json を作る
 
 ## リリース手順
 
-利用者は `@v2` を参照する。`v2` は**可動タグ**で、置き忘れると修正が誰にも届かない
+**メジャーを上げたらモジュールパスの `/vN` も上げる。** Go は v2 以降のモジュールに
+パス末尾の major を要求する。付け忘れると `go run …@v3` が
+`no matching versions` になり、`@latest` は**付いていなかった頃の最後の版**
+（このリポジトリでは v1.0.2）を返し続ける。タグを消しても proxy には残るので、
+利用者は旧命名・修正前のバグを含む版を黙って掴む。action の `uses: @v3` は git ref
+なので影響を受けず、**Go 側だけが壊れる**。気づきにくい。
+
+
+利用者は `@v3` を参照する。`v2` は**可動タグ**で、置き忘れると修正が誰にも届かない
 ——スクレイパなので、セレクタの修正が届かないことは毎営業日の失敗を意味する。
 
 ```bash
@@ -257,7 +265,7 @@ TZ=UTC go test -race ./...
 go run github.com/rhysd/actionlint/cmd/actionlint@latest
 
 git tag vX.Y.Z && git push origin vX.Y.Z
-git tag -f v2  && git push -f origin v2      # ★ これを忘れない
+git tag -f v3  && git push -f origin v3      # ★ これを忘れない
 ```
 
 そのうえで template の変更があれば push し、private fork に merge する。

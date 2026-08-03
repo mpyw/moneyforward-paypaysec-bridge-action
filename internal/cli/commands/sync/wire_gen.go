@@ -8,8 +8,8 @@ package sync
 
 import (
 	"context"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/usecase/syncassets"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/actionslog"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/usecase/syncassets"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/actionslog"
 )
 
 // Injectors from wire.go:

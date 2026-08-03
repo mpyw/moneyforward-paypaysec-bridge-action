@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/chrome/cookiestore"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/chrome/cookiestore"
 )
 
 // origin is the app's own host, for building absolute URLs.

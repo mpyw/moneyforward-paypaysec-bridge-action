@@ -7,9 +7,9 @@
 package moneyforward
 
 import (
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/asset"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/usecase/syncassets"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/moneyforward/manualasset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/asset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/usecase/syncassets"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward/manualasset"
 )
 
 // Injectors from wire.go:

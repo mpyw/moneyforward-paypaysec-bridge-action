@@ -8,7 +8,7 @@ package selector
 import (
 	"regexp"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/otp"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/otp"
 )
 
 // All MoneyForward DOM selectors and URLs live here so a front-end change is a

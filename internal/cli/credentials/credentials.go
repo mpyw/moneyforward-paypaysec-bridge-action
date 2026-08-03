@@ -16,8 +16,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/config"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/gmail"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/config"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/gmail"
 )
 
 // DefaultCredentialsFile is where `mfpp gmail authorize` writes the user

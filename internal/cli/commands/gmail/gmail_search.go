@@ -9,7 +9,7 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/credentials"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/credentials"
 )
 
 func searchCommand() *cli.Command {

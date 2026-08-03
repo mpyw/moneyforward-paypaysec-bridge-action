@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/wire"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands/debug/session"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug/session"
 )
 
 // newClient assembles the site client and where its one-time code comes from.

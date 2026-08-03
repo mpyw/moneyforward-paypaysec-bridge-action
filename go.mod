@@ -1,4 +1,4 @@
-module github.com/mpyw/moneyforward-paypaysec-bridge-action
+module github.com/mpyw/moneyforward-paypaysec-bridge-action/v3
 
 go 1.26
 

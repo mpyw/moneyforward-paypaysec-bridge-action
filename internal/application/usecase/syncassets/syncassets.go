@@ -12,9 +12,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/asset"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/portfolio"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/port"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/asset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/portfolio"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/port"
 )
 
 // Sync is one configured run.

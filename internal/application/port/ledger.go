@@ -3,7 +3,7 @@ package port
 import (
 	"context"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/asset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/asset"
 )
 
 // Ledger is the account the holdings are recorded in.

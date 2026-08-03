@@ -8,8 +8,8 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/credentials"
-	gmailapi "github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/gmail"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/credentials"
+	gmailapi "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/gmail"
 )
 
 func checkCommand() *cli.Command {

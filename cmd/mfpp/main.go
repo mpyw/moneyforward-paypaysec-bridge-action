@@ -12,7 +12,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands"
 )
 
 func main() {

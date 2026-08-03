@@ -8,12 +8,12 @@
 package selector
 
 import (
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/asset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/asset"
 	"regexp"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/assetname"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/assetname"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/otp"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/otp"
 )
 
 // All PayPay 証券 DOM selectors, URLs and extraction snippets live here so a

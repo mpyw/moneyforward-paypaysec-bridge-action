@@ -5,12 +5,12 @@ import (
 
 	"context"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/secret"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands/debug/session"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/config"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/otp"
-	ppsite "github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec"
-	ppsel "github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec/selector"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/secret"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug/session"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/config"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/otp"
+	ppsite "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec"
+	ppsel "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
 )
 
 // providerSet is what a sign-in is built from.

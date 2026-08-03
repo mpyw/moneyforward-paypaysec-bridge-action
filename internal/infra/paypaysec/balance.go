@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/asset"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/assetname"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/money"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/valuation"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec/pagescan"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec/selector"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/asset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/assetname"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/money"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/valuation"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/pagescan"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
 )
 
 // Holding is one 銘柄 and its valuation.
