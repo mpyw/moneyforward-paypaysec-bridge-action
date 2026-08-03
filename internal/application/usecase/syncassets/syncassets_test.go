@@ -496,8 +496,8 @@ func TestRunReportsAPlanItRefusesAsAPlanOnly(t *testing.T) {
 func TestRunRefusesToEmptyACategory(t *testing.T) {
 	ledger := &stubLedger{held: []asset.Asset{
 		{Name: "[米国株] テスト電機", Yen: 1},
-		{Name: "[投信ミ] iFreeNEXT", Yen: 1},
-		{Name: "[投信ミ] グローバル", Yen: 1},
+		{Name: "[投信ミ] テストAファンド", Yen: 1},
+		{Name: "[投信ミ] テストBファンド", Yen: 1},
 	}}
 
 	_, err := syncassets.Sync{
@@ -528,8 +528,8 @@ func TestRunRefusesToEmptyACategory(t *testing.T) {
 func TestRunEmptiesACategoryWhenAsked(t *testing.T) {
 	ledger := &stubLedger{held: []asset.Asset{
 		{Name: "[米国株] テスト電機", Yen: 1},
-		{Name: "[投信ミ] iFreeNEXT", Yen: 1},
-		{Name: "[投信ミ] グローバル", Yen: 1},
+		{Name: "[投信ミ] テストAファンド", Yen: 1},
+		{Name: "[投信ミ] テストBファンド", Yen: 1},
 	}}
 
 	_, err := syncassets.Sync{
