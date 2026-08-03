@@ -37,6 +37,14 @@ inputs:
       `mfpp debug gmail authorize`; a service account cannot read a consumer
       mailbox, so this is a user refresh token and must be treated as one.
     required: true
+  allow-emptying-categories:
+    description: >-
+      Permit deleting every entry in a category. Off by default: every mis-read
+      this scraper has had took that shape — a category holding two 銘柄 came
+      back empty and both were deleted. Set it for one manual run when the
+      holdings really were all sold.
+    required: false
+    default: ''
   go-version-file:
     description: 'Passed to actions/setup-go. Defaults to this action''s own go.mod.'
     required: false
@@ -91,6 +99,7 @@ runs:
         MONEYFORWARD_PASSWORD: ${{ inputs.moneyforward-password }}
         MONEYFORWARD_ASSET_ID: ${{ inputs.moneyforward-asset-id }}
         GMAIL_CREDENTIALS: ${{ inputs.gmail-credentials }}
+        ALLOW_EMPTYING_CATEGORIES: ${{ inputs.allow-emptying-categories }}
       run: |
         # Mask the values this program will see before it runs. Balances and
         # one-time codes are masked by the program itself, as it reads them.

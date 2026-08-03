@@ -91,6 +91,7 @@ go run github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/cmd/mfpp@v3 \
 | `moneyforward-password` | `MONEYFORWARD_PASSWORD` | 同パスワード |
 | `moneyforward-asset-id` | `MONEYFORWARD_ASSET_ID` | 書き込み先の手入力口座。URL に出る `account_id_hash` |
 | `gmail-credentials` | `GMAIL_CREDENTIALS` | `gmail.readonly` の authorized_user JSON。上の `go run` で作る |
+| `allow-emptying-categories` | `ALLOW_EMPTYING_CATEGORIES` | 任意。カテゴリを丸ごと空にする削除を 1 回許可する |
 | `go-version-file` | — | 任意。既定はこのアクション自身の `go.mod` |
 
 **環境変数名は input 名を大文字にしてハイフンを `_` にしたもの**、という 1 本の規則に
@@ -111,14 +112,20 @@ OTP を Gmail API で読むため。転送でも受信はできるが、OTP メ�
 **指定した手入力口座の中身はこのアクションが管理する。保有銘柄に対応しない
 エントリは削除される。** 他の口座には触らない。
 
-安全側の制限が 3 つある:
+安全側の制限が 4 つある:
 
 - **読まなかったカテゴリからは削除しない** (`portfolio.CheckCoverage`)。
   8 ページのどれか 1 つでも読めなければ実行全体が失敗するので、計画が存在する
   時点で全ページが検証済み。それでも台帳にあってこの実行が一度も見なかった
   カテゴリの行は「古い」ではなく「未検証」なので、消さずに落とす
-- **売却で銘柄が減るのは正常系。** 何銘柄減っても、そのカテゴリを読めていれば
-  そのまま反映される
+- **カテゴリが丸ごと空になる読み取りは拒否する** (`portfolio.CheckCategoryEmptied`)。
+  誤読が毎回とった形がこれ（保有 2 銘柄のカテゴリが 0 件と読まれ、両方消えた）。
+  ページを取得して検証まで通っても、前に選ばれていたタブの数字が返ることがある
+- **本当に売り切ったときは 1 回だけ解除できる。** `allow-emptying-categories` を
+  付けて手動実行する。**解除手段の無い停止は入れない** — 「limit を上げて再実行しろ」
+  と言うだけで上げる手段が無かった以前の実装が、まさにそれだった
+- **カテゴリ内で銘柄が減るのは正常系。** 何銘柄減っても、そのカテゴリに 1 つでも
+  残っていればそのまま反映される
 - ページが読み込み中のプレースホルダを返している間は値を採用しない。
   投資信託ページは非同期ロード中に全項目 0 円を表示し、それは 3 ルート照合を
   すべて通ってしまう

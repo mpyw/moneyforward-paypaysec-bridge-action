@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/asset"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/assetname"
@@ -238,4 +239,54 @@ func (p Plan) CheckCoverage(covered []string) error {
 		return nil
 	}
 	return fmt.Errorf("%w: %v — the read covered %v", ErrUnverifiedDeletes, unverified, covered)
+}
+
+// ErrCategoryEmptied reports a category that went from holding something to
+// holding nothing in a single run.
+var ErrCategoryEmptied = errors.New("a category the ledger has entries under read as empty")
+
+// CheckCategoryEmptied refuses a plan that empties a whole category at once.
+//
+// The coverage check asks whether the run looked at the category. This asks a
+// different question, because looking is not the same as seeing: a page can be
+// fetched, verified, and still hand back the previously selected tab's figures.
+// That happened twice, and both times a category holding two 銘柄 read as empty
+// and every entry in it was deleted.
+//
+// A partial reduction goes through — selling three of five is a normal day, and
+// refusing it was the mistake that started all of this. What stops here is a
+// category emptying completely, which is both the shape every one of these
+// failures took and rare enough as a real event to be worth confirming once.
+//
+// Not a proportion of anything. The condition is a specific event: the ledger
+// has entries under this category and the read produced none.
+//
+// Entries with no category prefix are not counted. Nothing this program wrote
+// looks like that, so they cannot be compared against what it read.
+func CheckCategoryEmptied(recorded, held []asset.Asset) error {
+	count := func(assets []asset.Asset) map[string]int {
+		out := map[string]int{}
+		for _, a := range assets {
+			if c, ok := assetname.CategoryOf(a.Name); ok {
+				out[c]++
+			}
+		}
+		return out
+	}
+	was, now := count(recorded), count(held)
+
+	var emptied []string
+	for category, had := range was {
+		if had > 0 && now[category] == 0 {
+			emptied = append(emptied, fmt.Sprintf("%s (%d entries)", category, had))
+		}
+	}
+	if len(emptied) == 0 {
+		return nil
+	}
+	sort.Strings(emptied)
+	return fmt.Errorf("%w: %s — refusing to delete them. If they really were sold, "+
+		"run the workflow once with allow-emptying-categories set; if not, the read "+
+		"is wrong and the entries are still correct",
+		ErrCategoryEmptied, strings.Join(emptied, ", "))
 }

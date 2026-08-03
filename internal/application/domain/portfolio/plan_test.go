@@ -330,3 +330,52 @@ func TestReconcileNoticesAChangedKind(t *testing.T) {
 		t.Error("an identical position was not left alone")
 	}
 }
+
+// TestCheckCategoryEmptied is the guard added after the same category lost the
+// same two 銘柄 twice, on two different reading bugs.
+func TestCheckCategoryEmptied(t *testing.T) {
+	entry := func(names ...string) []asset.Asset {
+		out := make([]asset.Asset, 0, len(names))
+		for _, n := range names {
+			out = append(out, asset.Asset{Name: n, Yen: 1})
+		}
+		return out
+	}
+
+	tests := map[string]struct {
+		recorded, held []asset.Asset
+		wantErr        bool
+	}{
+		// The failure. Both 投信ミ rows gone, the category read as empty.
+		"a category read as empty": {
+			entry("[米国株] テスト電機", "[投信ミ] A", "[投信ミ] B"),
+			entry("[米国株] テスト電機"),
+			true,
+		},
+		// The case refusing which started all of this. Four of five sold, and
+		// every category still has something.
+		"most of a category sold": {
+			entry("[米国株] A", "[米国株] B", "[米国株] C", "[米国株] D", "[ミニ] E"),
+			entry("[米国株] A", "[ミニ] E"),
+			false,
+		},
+		"nothing removed":  {entry("[米国株] A"), entry("[米国株] A"), false},
+		"a category added": {entry("[米国株] A"), entry("[米国株] A", "[ミニ] B"), false},
+		// Hand-typed rows carry no category, so there is nothing to compare.
+		"unprefixed rows are not categories": {
+			entry("手で足した何か"), entry("[米国株] A"), false,
+		},
+		"an empty ledger": {nil, entry("[米国株] A"), false},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := CheckCategoryEmptied(tt.recorded, tt.held)
+			if tt.wantErr != (err != nil) {
+				t.Fatalf("CheckCategoryEmptied() = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil && !errors.Is(err, ErrCategoryEmptied) {
+				t.Errorf("error = %v, want ErrCategoryEmptied", err)
+			}
+		})
+	}
+}

@@ -38,6 +38,7 @@ var providerSet = wire.NewSet(
 	provideBroker,
 	provideLedger,
 	provideReporter,
+	provideAllowEmptyingCategories,
 )
 
 // The providers the injector in wire.go is built from.
@@ -146,6 +147,12 @@ func provideLedger(c config.Config, bctx browserContext, codes moneyForwardCodes
 		OnLogin: logChallenge("MoneyForward"),
 		OnRead:  maskEntries(masker),
 	}
+}
+
+// provideAllowEmptyingCategories hands the flag to the use case as its own type,
+// so wire cannot confuse it with any other bool in the graph.
+func provideAllowEmptyingCategories(c config.Config) bool {
+	return c.AllowEmptyingCategories
 }
 
 func provideReporter(masker actionslog.Masker) port.Reporter {

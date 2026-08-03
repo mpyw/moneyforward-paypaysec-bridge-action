@@ -26,6 +26,13 @@ type Sync struct {
 	Ledger   port.Ledger
 	Reporter port.Reporter
 
+	// AllowEmptyingCategories permits deleting every entry in a category.
+	//
+	// Off by default, because every mis-read has taken that shape. On when a
+	// person says so for one run, because selling out of a category is real and a
+	// stop nothing can lift is the mistake this replaced.
+	AllowEmptyingCategories bool
+
 	// AllowEmpty permits reconciling against no holdings at all, which deletes
 	// everything the ledger holds.
 	//
@@ -108,6 +115,15 @@ func (s Sync) reconcile(ctx context.Context, held asset.Holdings) (portfolio.Pla
 	if !askedToEmpty {
 		if err := plan.CheckCoverage(held.Categories); err != nil {
 			return plan, err
+		}
+		// Coverage asks whether the category was looked at. This asks whether
+		// anything was seen — a page can be fetched and verified and still hand
+		// back the previously selected tab's figures, which is how a category
+		// holding two 銘柄 came to read as empty and lose both.
+		if !s.AllowEmptyingCategories {
+			if err := portfolio.CheckCategoryEmptied(recorded, held.Assets); err != nil {
+				return plan, err
+			}
 		}
 	}
 

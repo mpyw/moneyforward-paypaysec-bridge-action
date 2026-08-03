@@ -43,10 +43,12 @@ func newSync(ctx context.Context) (syncassets.Sync, func(), error) {
 	syncMoneyForwardCodes := provideMoneyForwardCodes(mailSearcher, masker)
 	ledger := provideLedger(config, syncBrowserContext, syncMoneyForwardCodes, masker)
 	portReporter := provideReporter(masker)
+	bool2 := provideAllowEmptyingCategories(config)
 	sync := syncassets.Sync{
-		Broker:   broker,
-		Ledger:   ledger,
-		Reporter: portReporter,
+		Broker:                  broker,
+		Ledger:                  ledger,
+		Reporter:                portReporter,
+		AllowEmptyingCategories: bool2,
 	}
 	return sync, func() {
 		cleanup()

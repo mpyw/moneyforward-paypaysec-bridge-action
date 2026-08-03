@@ -16,6 +16,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/secret"
@@ -33,7 +34,30 @@ const (
 	// reduction in isolation for a browser pointed at brokerage sites, and a
 	// local run should not do it.
 	CI = "CI"
+
+	// AllowEmptyingCategories lifts the refusal to delete every entry in a
+	// category, for one run.
+	//
+	// The refusal exists because every mis-read this scraper has had took that
+	// shape: a category holding two 銘柄 came back empty and both were deleted.
+	// But selling out of a category completely is a thing people do, and a stop
+	// with no way past it is the same mistake as the share-based limit it
+	// replaced — which told the reader to raise a limit that nothing could raise.
+	//
+	// So this exists, it is off by default, and it is meant to be passed once
+	// from a manual run rather than left on.
+	AllowEmptyingCategories = "ALLOW_EMPTYING_CATEGORIES"
 )
+
+// Inputs is every environment variable action.yml is expected to supply.
+//
+// One list, because there are two statements of this contract — this package and
+// action.yml — and a test compares them. Without somewhere authoritative to
+// compare against, the comparison becomes a third list to keep in step.
+func Inputs() []string {
+	out := secret.RequiredNames()
+	return append(out, GmailCredentials, AllowEmptyingCategories)
+}
 
 // Config is everything one run was given.
 type Config struct {
@@ -47,6 +71,9 @@ type Config struct {
 	// GmailCredentialsJSON is the authorized_user blob, empty when the run is
 	// expected to fall back to the local file.
 	GmailCredentialsJSON string
+
+	// AllowEmptyingCategories permits deleting every entry in a category.
+	AllowEmptyingCategories bool
 
 	// CI says this is a hosted runner.
 	CI bool
@@ -80,6 +107,18 @@ func Load() (Config, error) {
 		GmailCredentialsJSON: os.Getenv(GmailCredentials),
 		CI:                   os.Getenv(CI) != "",
 	}
+
+	// Refused rather than defaulted. Someone who wrote "yes" meant to lift the
+	// guard, and treating that as off would fail the run for the reason they were
+	// trying to get past, saying nothing about the typo.
+	if v := os.Getenv(AllowEmptyingCategories); v != "" {
+		allow, err := strconv.ParseBool(v)
+		if err != nil {
+			return Config{}, fmt.Errorf("%s is %q; it takes true or false", AllowEmptyingCategories, v)
+		}
+		c.AllowEmptyingCategories = allow
+	}
+
 	if missing := Missing(secret.RequiredNames()...); len(missing) > 0 {
 		return Config{}, fmt.Errorf("missing required environment variables: %s",
 			strings.Join(missing, ", "))

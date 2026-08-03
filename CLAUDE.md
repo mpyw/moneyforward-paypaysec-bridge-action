@@ -136,6 +136,8 @@ internal/
       money/            #   ParseYen
       valuation/        #   3 ルート照合。信じてよい合計か
       portfolio/        #   Reconcile / Plan / 書き込みの成否 / 削除の妥当性
+                        #     CheckCoverage: 読んだカテゴリからしか消さない
+                        #     CheckCategoryEmptied: 丸ごと空になる削除は拒否（解除可）
       assetname/        #   資産名の生成と一意性
       asset/            #   サイト間を渡る単位と Kind
       secret/           #   ジョブが必要とする資格情報の集合

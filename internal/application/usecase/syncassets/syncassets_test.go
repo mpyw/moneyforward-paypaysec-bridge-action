@@ -389,31 +389,34 @@ func TestRunRefusesDeletesFromAnUnreadCategory(t *testing.T) {
 	}
 }
 
-// TestRunAllowsSellingOutOfACategory is the case the old share-based limit
+// TestRunAllowsSellingWithinACategory is the case the old share-based limit
 // refused and this one must not.
 //
-// Four of five positions sold. Every page was read; one of them is now empty.
-// Under the old limit that was 80% of the ledger and the run failed, every
-// weekday, with an error telling the reader to raise a limit no flag exposed.
-func TestRunAllowsSellingOutOfACategory(t *testing.T) {
+// Three of six positions sold, and the run writes all three deletions. What
+// matters is that every category still has something in it, so none read as
+// empty — the one shape every mis-read has taken.
+func TestRunAllowsSellingWithinACategory(t *testing.T) {
 	ledger := &stubLedger{held: []asset.Asset{
-		{Name: "[米国株] テスト電機", Yen: 1}, {Name: "[米国株] テスト商事", Yen: 1},
-		{Name: "[ミニ] テスト電機", Yen: 1}, {Name: "[投信ミ] テストAIファンド", Yen: 1},
-		{Name: "[投信ミ] テスト・ファンド", Yen: 1},
+		{Name: "[米国株] A", Yen: 1}, {Name: "[米国株] B", Yen: 1},
+		{Name: "[米国株] C", Yen: 1}, {Name: "[ミニ] D", Yen: 1},
+		{Name: "[投信ミ] E", Yen: 1}, {Name: "[投信ミ] F", Yen: 1},
 	}}
 
 	_, err := syncassets.Sync{
 		Broker: &stubBroker{
-			assets:     []asset.Asset{{Name: "[米国株] テスト電機", Yen: 1}},
+			assets: []asset.Asset{
+				{Name: "[米国株] A", Yen: 1}, {Name: "[ミニ] D", Yen: 1},
+				{Name: "[投信ミ] E", Yen: 1},
+			},
 			categories: []string{"米国株", "ミニ", "投信ミ"},
 		},
 		Ledger: ledger,
 	}.Run(t.Context())
 	if err != nil {
-		t.Fatalf("Run() refused a sale it had read every page for: %v", err)
+		t.Fatalf("Run() refused a sale within categories it had read: %v", err)
 	}
-	if len(ledger.held) != 1 {
-		t.Errorf("the ledger holds %d entries, want the one still held", len(ledger.held))
+	if len(ledger.held) != 3 {
+		t.Errorf("the ledger holds %d entries, want the three still held", len(ledger.held))
 	}
 }
 
@@ -482,5 +485,65 @@ func TestRunReportsAPlanItRefusesAsAPlanOnly(t *testing.T) {
 	}
 	if len(ledger.writes) != 0 {
 		t.Errorf("it wrote before refusing: %v", ledger.writes)
+	}
+}
+
+// TestRunRefusesToEmptyACategory is the incident, twice over: 投信ミ held two
+// 銘柄, the read returned none, and both were deleted.
+//
+// The reading bugs behind it are fixed, and were fixed the first time too. This
+// is the stop that does not depend on having found them all.
+func TestRunRefusesToEmptyACategory(t *testing.T) {
+	ledger := &stubLedger{held: []asset.Asset{
+		{Name: "[米国株] テスト電機", Yen: 1},
+		{Name: "[投信ミ] iFreeNEXT", Yen: 1},
+		{Name: "[投信ミ] グローバル", Yen: 1},
+	}}
+
+	_, err := syncassets.Sync{
+		Broker: &stubBroker{
+			assets: []asset.Asset{{Name: "[米国株] テスト電機", Yen: 1}},
+			// 投信ミ was read — coverage is satisfied. It just came back empty.
+			categories: []string{"米国株", "投信ミ"},
+		},
+		Ledger: ledger,
+	}.Run(t.Context())
+
+	if err == nil {
+		t.Fatal("Run() emptied a whole category")
+	}
+	if !errors.Is(err, portfolio.ErrCategoryEmptied) {
+		t.Errorf("error = %v, want ErrCategoryEmptied", err)
+	}
+	if len(ledger.held) != 3 {
+		t.Errorf("the ledger holds %d entries, want all three still there", len(ledger.held))
+	}
+}
+
+// TestRunEmptiesACategoryWhenAsked is the half the share-based limit never had.
+//
+// That limit told the reader to rerun with it raised, and nothing could raise
+// it. A stop worth having is one a person can get past deliberately, so this
+// asserts the way past exists and works.
+func TestRunEmptiesACategoryWhenAsked(t *testing.T) {
+	ledger := &stubLedger{held: []asset.Asset{
+		{Name: "[米国株] テスト電機", Yen: 1},
+		{Name: "[投信ミ] iFreeNEXT", Yen: 1},
+		{Name: "[投信ミ] グローバル", Yen: 1},
+	}}
+
+	_, err := syncassets.Sync{
+		Broker: &stubBroker{
+			assets:     []asset.Asset{{Name: "[米国株] テスト電機", Yen: 1}},
+			categories: []string{"米国株", "投信ミ"},
+		},
+		Ledger:                  ledger,
+		AllowEmptyingCategories: true,
+	}.Run(t.Context())
+	if err != nil {
+		t.Fatalf("Run() refused even when asked: %v", err)
+	}
+	if len(ledger.held) != 1 {
+		t.Errorf("the ledger holds %+v, want only the 米国株 row", ledger.held)
 	}
 }

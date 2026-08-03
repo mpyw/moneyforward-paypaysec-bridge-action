@@ -35,7 +35,10 @@ func newSync(ctx context.Context) (syncassets.Sync, func(), error) {
 		// build the struct otherwise, having nothing to fill it from — which is
 		// the right answer: the scheduled job must never be the caller that
 		// empties the account.
-		wire.Struct(new(syncassets.Sync), "Broker", "Ledger", "Reporter"),
+		//
+		// AllowEmptyingCategories is listed, because that one does come from the
+		// environment and a run is allowed to ask for it.
+		wire.Struct(new(syncassets.Sync), "Broker", "Ledger", "Reporter", "AllowEmptyingCategories"),
 	)
 	return syncassets.Sync{}, nil, nil
 }

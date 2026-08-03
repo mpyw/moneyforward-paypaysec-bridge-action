@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/secret"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/config"
 )
 
@@ -26,10 +25,16 @@ var (
 	actionEnvPattern = regexp.MustCompile(`(?m)^\s+([A-Z0-9_]+): \$\{\{ inputs\.([a-z0-9-]+) \}\}$`)
 )
 
-// buildKnobs are inputs that are not credentials and never reach the
-// environment. Listed rather than inferred: an input silently exempting itself
-// is how a credential would go unchecked.
-var buildKnobs = map[string]bool{"go-version-file": true}
+// optional are inputs a caller may leave out. Listed rather than inferred: an
+// input silently exempting itself from `required: true` is how a credential
+// would come through empty.
+var optional = map[string]bool{
+	"go-version-file":           true,
+	"allow-emptying-categories": true,
+}
+
+// notEnvironment are inputs that never reach the environment.
+var notEnvironment = map[string]bool{"go-version-file": true}
 
 // envNameFor is the rule, as a function.
 func envNameFor(input string) string {
@@ -59,12 +64,15 @@ func TestActionEnvNamesFollowTheInputNames(t *testing.T) {
 // by hand and fails for everyone using the action as documented.
 func TestEveryCredentialInputIsRead(t *testing.T) {
 	declared := map[string]bool{}
-	for name := range credentialInputs(t) {
+	for name := range inputs(t) {
+		if notEnvironment[name] {
+			continue
+		}
 		declared[envNameFor(name)] = true
 	}
 
-	read := map[string]bool{config.GmailCredentials: true}
-	for _, name := range secret.RequiredNames() {
+	read := map[string]bool{}
+	for _, name := range config.Inputs() {
 		read[name] = true
 	}
 
@@ -85,7 +93,10 @@ func TestEveryCredentialInputIsRead(t *testing.T) {
 // `required: true` produces: the action runs, the variable is empty, and the
 // run fails at whichever step first needs it rather than at its declaration.
 func TestEveryCredentialInputIsRequired(t *testing.T) {
-	for name, body := range credentialInputs(t) {
+	for name, body := range inputs(t) {
+		if optional[name] {
+			continue
+		}
 		if !strings.Contains(body, "required: true") {
 			t.Errorf("input %s is not required, so a caller omitting it gets an empty "+
 				"value instead of an error", name)
@@ -93,13 +104,12 @@ func TestEveryCredentialInputIsRequired(t *testing.T) {
 	}
 }
 
-// credentialInputs returns each credential input in action.yml and the body of
-// its declaration.
+// inputs returns each input in action.yml and the body of its declaration.
 //
 // Scoped to the inputs block on purpose. A pattern loose enough to run over the
 // whole file also matches `steps:` under `runs:`, which is how the first
 // version of this test reported that the action declares an input called STEPS.
-func credentialInputs(t *testing.T) map[string]string {
+func inputs(t *testing.T) map[string]string {
 	t.Helper()
 	body := readActionYML(t)
 
@@ -118,9 +128,7 @@ func credentialInputs(t *testing.T) map[string]string {
 	out := map[string]string{}
 	for i, h := range heads {
 		name := block[h[2]:h[3]]
-		if buildKnobs[name] {
-			continue
-		}
+
 		stop := len(block)
 		if i+1 < len(heads) {
 			stop = heads[i+1][0]
