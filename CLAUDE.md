@@ -240,6 +240,12 @@ internal/
       selector/         #     確定セレクタ・8 ターゲット・埋め込み JS
       pagescan/         #     ページ操作。テキストだけ返す (chromedp)
       investapi/        #     投資信託の 2 bucket。ページの叩く API を直接叩く
+                        #       contract  パス・定数・リクエストボディ（バンドル由来）
+                        #       transport 1 回の POST と必須の Referer
+                        #       response  応答の形と、数値を読む前の判定
+                        #       decode    JSON 型を約束しないサービスへの対処
+                        #       account   その bucket が存在するのか
+                        #       holdings  保有と銘柄名の突合
 ```
 
 **依存の向きは `application/layer_test.go` が強制する。** `application/**` は

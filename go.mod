@@ -7,6 +7,7 @@ require (
 	github.com/chromedp/cdproto v0.0.0-20260714215040-dc233986426f
 	github.com/chromedp/chromedp v0.16.0
 	github.com/google/wire v0.7.0
+	github.com/samber/lo v1.53.0
 	github.com/urfave/cli/v3 v3.10.1
 	golang.org/x/oauth2 v0.36.0
 	google.golang.org/api v0.291.0
