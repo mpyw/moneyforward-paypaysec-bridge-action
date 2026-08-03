@@ -31,7 +31,9 @@ import (
 	"fmt"
 	"mime/multipart"
 	"net/http"
+	"sort"
 	"strconv"
+	"strings"
 )
 
 // Bucket is one of the two 投資信託 views.
@@ -148,6 +150,56 @@ func (e envelope) check(path string) error {
 	return nil
 }
 
+// brandList is INVEST_BRAND_ARRAY, which arrives in either of two shapes.
+//
+// Observed live: the ミニアプリ bucket answered with an object keyed by brand id,
+// and the アプリ bucket with a bare array. Both are one PHP array on the far side
+// — json_encode writes an object when the keys are sparse and an array when they
+// are dense — so which one arrives is a property of the account's holdings, not of
+// the endpoint. Neither shape can be assumed even once.
+//
+// Keys is the object's keys where there were any, aligned with Items, and empty
+// strings where the array form left none. Nothing here decides what a key means;
+// see [Client.Read] for how a holding is joined to its name.
+type brandList[T any] struct {
+	Keys  []string
+	Items []T
+}
+
+func (b *brandList[T]) UnmarshalJSON(data []byte) error {
+	text := strings.TrimSpace(string(data))
+	if text == "" || text == "null" {
+		return nil
+	}
+
+	if text[0] == '[' {
+		var items []T
+		if err := json.Unmarshal(data, &items); err != nil {
+			return err
+		}
+		b.Items = items
+		b.Keys = make([]string, len(items))
+		return nil
+	}
+
+	var byKey map[string]T
+	if err := json.Unmarshal(data, &byKey); err != nil {
+		return err
+	}
+	// Sorted so a log line and an error name the holdings in the same order
+	// twice running. Map order would be a new order every run.
+	keys := make([]string, 0, len(byKey))
+	for k := range byKey {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		b.Keys = append(b.Keys, k)
+		b.Items = append(b.Items, byKey[k])
+	}
+	return nil
+}
+
 // topResponse is pc_invest_top. Only the fields this program uses.
 type topResponse struct {
 	envelope
@@ -155,23 +207,23 @@ type topResponse struct {
 	TotalAcquisitionFeeTaxTotal int64 `json:"TOTAL_ACQUISITION_FEE_TAX_TOTAL"`
 	SumGrossProfitTotal         int64 `json:"SUM_GROSS_PROFIT_TOTAL"`
 
-	// InvestBrandArray is keyed by brand id as a string, and is absent rather
-	// than empty when the bucket holds nothing.
-	InvestBrandArray map[string]struct {
+	// InvestBrandArray is the holdings, and only the holdings. Absent or empty
+	// when the bucket holds nothing.
+	InvestBrandArray brandList[struct {
 		BrandID         int   `json:"BRAND_ID"`
 		SecuritiesValue int64 `json:"SECURITIES_VALUE"`
 		SumGrossProfit  int64 `json:"SUM_GROSS_PROFIT"`
-	} `json:"INVEST_BRAND_ARRAY"`
+	}] `json:"INVEST_BRAND_ARRAY"`
 }
 
 // initResponse is pc_invest_init: the catalogue of every 銘柄 the bucket offers,
 // which is where names come from.
 type initResponse struct {
 	envelope
-	InvestBrandArray map[string]struct {
+	InvestBrandArray brandList[struct {
 		BrandID int    `json:"BRAND_ID"`
 		BrandNM string `json:"BRAND_NM"`
-	} `json:"INVEST_BRAND_ARRAY"`
+	}] `json:"INVEST_BRAND_ARRAY"`
 }
 
 // infoResponse is pc_invest_info, consulted only for the mini bucket's client
@@ -208,11 +260,26 @@ func (c *Client) Read(ctx context.Context, bucket Bucket) (Figures, error) {
 	figures.Acquisition = top.TotalAcquisitionFeeTaxTotal
 	figures.Gain = top.SumGrossProfitTotal
 
-	for id, brand := range top.InvestBrandArray {
-		name := ""
-		if entry, ok := catalogue.InvestBrandArray[id]; ok {
-			name = entry.BrandNM
+	// Indexed under both the object key and BRAND_ID, because a holding can
+	// arrive with either and they agree wherever both are present. Keying on one
+	// alone would work against whichever shape the account happened to produce
+	// the day it was written.
+	names := map[string]string{}
+	for i, entry := range catalogue.InvestBrandArray.Items {
+		if key := catalogue.InvestBrandArray.Keys[i]; key != "" {
+			names[key] = entry.BrandNM
 		}
+		if entry.BrandID != 0 {
+			names[strconv.Itoa(entry.BrandID)] = entry.BrandNM
+		}
+	}
+
+	for i, brand := range top.InvestBrandArray.Items {
+		id := top.InvestBrandArray.Keys[i]
+		if id == "" {
+			id = strconv.Itoa(brand.BrandID)
+		}
+		name := names[id]
 		if name == "" {
 			// Refused rather than recorded under a blank. A holding with no name
 			// has nothing to record it against, and the ledger keys on the name.

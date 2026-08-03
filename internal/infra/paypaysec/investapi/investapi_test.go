@@ -20,6 +20,14 @@ type stub struct {
 	loginOut bool
 	status   int
 	noName   bool
+
+	// asArray answers INVEST_BRAND_ARRAY as a bare array instead of an object
+	// keyed by brand id. Both are one PHP array on the far side, and the live
+	// service sent each of them on the same run.
+	asArray bool
+
+	// noHoldings is a bucket that holds nothing, which is the array shape too.
+	noHoldings bool
 }
 
 func (s *stub) handler(t *testing.T) http.Handler {
@@ -41,20 +49,30 @@ func (s *stub) handler(t *testing.T) http.Handler {
 		case appInfo:
 			_, _ = w.Write([]byte(`{"STATUS":0,"MINI_CLIENT_SEQ_NO":"900000001"}`))
 		case appTop, miniTop:
+			held := `{"7":{"BRAND_ID":7,"SECURITIES_VALUE":345678,"SUM_GROSS_PROFIT":45678}}`
+			if s.noHoldings {
+				held = `[]`
+			} else if s.asArray {
+				held = `[{"BRAND_ID":7,"SECURITIES_VALUE":345678,"SUM_GROSS_PROFIT":45678}]`
+			}
 			_, _ = w.Write([]byte(`{"STATUS":` + strconv.Itoa(s.status) + `,"LOGIN_STATUS":` + strconv.Itoa(login) + `,
 				"SECURITIES_VALUE_TOTAL":345678,
 				"TOTAL_ACQUISITION_FEE_TAX_TOTAL":300000,
 				"SUM_GROSS_PROFIT_TOTAL":45678,
 				"MESSAGE_ARRAY":[{"MESSAGE":"だめ"}],
-				"INVEST_BRAND_ARRAY":{"7":{"BRAND_ID":7,"SECURITIES_VALUE":345678,"SUM_GROSS_PROFIT":45678}}}`))
+				"INVEST_BRAND_ARRAY":` + held + `}`))
 		case appInit, miniInit:
 			if s.noName {
-				_, _ = w.Write([]byte(`{"STATUS":0,"INVEST_BRAND_ARRAY":{}}`))
+				_, _ = w.Write([]byte(`{"STATUS":0,"INVEST_BRAND_ARRAY":[]}`))
 				return
 			}
-			_, _ = w.Write([]byte(`{"STATUS":0,"INVEST_BRAND_ARRAY":
-				{"7":{"BRAND_ID":7,"BRAND_NM":"テスト・グローバル・ファンド"},
-				 "9":{"BRAND_ID":9,"BRAND_NM":"持っていない銘柄"}}}`))
+			catalogue := `{"7":{"BRAND_ID":7,"BRAND_NM":"テスト・グローバル・ファンド"},
+				 "9":{"BRAND_ID":9,"BRAND_NM":"持っていない銘柄"}}`
+			if s.asArray {
+				catalogue = `[{"BRAND_ID":7,"BRAND_NM":"テスト・グローバル・ファンド"},
+				 {"BRAND_ID":9,"BRAND_NM":"持っていない銘柄"}]`
+			}
+			_, _ = w.Write([]byte(`{"STATUS":0,"INVEST_BRAND_ARRAY":` + catalogue + `}`))
 		default:
 			http.NotFound(w, r)
 		}
@@ -191,5 +209,56 @@ func TestReadRefusesAHoldingItCannotName(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "does not name it") {
 		t.Errorf("error = %v", err)
+	}
+}
+
+// TestReadAcceptsTheArrayShape is the shape the live service sent on the first
+// real run, and the shape this package refused.
+//
+// INVEST_BRAND_ARRAY is a PHP array: json_encode writes an object when its keys
+// are sparse and an array when they are dense, so the shape follows the account's
+// holdings rather than the endpoint. One run saw both — the ミニアプリ bucket keyed
+// by brand id, the アプリ bucket a bare array — and there is no shape to assume.
+//
+// The array form carries no key, so the join to the catalogue has to fall back to
+// BRAND_ID. Both stub responses use the array form here, which is what makes that
+// fallback the thing under test.
+func TestReadAcceptsTheArrayShape(t *testing.T) {
+	got, err := serve(t, &stub{asArray: true}).Read(t.Context(), App)
+	if err != nil {
+		t.Fatalf("Read() error = %v", err)
+	}
+	if len(got.Holdings) != 1 {
+		t.Fatalf("holdings = %+v, want the one held", got.Holdings)
+	}
+	// Named, not just counted: an unnamed holding is refused, so a count alone
+	// would pass on a join that silently matched the wrong 銘柄.
+	if got.Holdings[0].Name != "テスト・グローバル・ファンド" {
+		t.Errorf("name = %q, want the catalogue entry with the held BRAND_ID",
+			got.Holdings[0].Name)
+	}
+	if got.Holdings[0].Acquisition != 300000 {
+		t.Errorf("acquisition = %d, want value - gain", got.Holdings[0].Acquisition)
+	}
+}
+
+// TestReadAcceptsAnEmptyBucket separates "holds nothing" from "could not be read".
+//
+// An empty PHP array is `[]`, which is the array shape again — and refusing to
+// decode it would turn every genuinely empty category into a failed run. There is
+// no danger in accepting it here: an empty answer that is actually a lost session
+// is caught by the envelope, and one that is actually a mis-read is caught by the
+// ledger's own refusal to empty a category.
+func TestReadAcceptsAnEmptyBucket(t *testing.T) {
+	got, err := serve(t, &stub{noHoldings: true}).Read(t.Context(), App)
+	if err != nil {
+		t.Fatalf("Read() error = %v", err)
+	}
+	if len(got.Holdings) != 0 {
+		t.Errorf("holdings = %+v, want none", got.Holdings)
+	}
+	// The totals still have to arrive: "no holdings" is not "no answer".
+	if got.Total != 345678 {
+		t.Errorf("total = %d, want the reported total", got.Total)
 	}
 }
