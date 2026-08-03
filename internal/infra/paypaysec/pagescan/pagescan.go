@@ -113,16 +113,30 @@ func Load(ctx context.Context, t selector.Target) (Figures, error) {
 	page := targetPage{ctx: tctx, target: t}
 
 	var figures Figures
-	load := make([]chromedp.Action, 0, 3)
+
+	// Armed before navigating, not before the click.
+	//
+	// The default tab's request happens during the page's own load, and clicking
+	// the tab that is already active is a no-op — the framework has no state
+	// change to react to, so nothing is fetched. Watching from the click onwards
+	// therefore waited forever for 投資信託（アプリ）, whose figures had already
+	// arrived.
+	//
+	// Listening from before the navigation cannot pick up the wrong tab's answer
+	// either, because the two tabs call different paths and each target waits for
+	// its own.
+	var watch *apiWatch
 	if t.FiguresAPI != "" {
-		// Before navigating, or the events this target waits on never arrive.
-		load = append(load, network.Enable())
+		if err := chromedp.Run(tctx, network.Enable()); err != nil {
+			return figures, fmt.Errorf("%s: enable network events: %w", t.Key, err)
+		}
+		watch = watchFiguresAPI(tctx, t.FiguresAPI)
 	}
-	load = append(load,
+
+	if err := chromedp.Run(tctx,
 		chromedp.Navigate(t.URL),
 		chromedp.WaitReady("body", chromedp.ByQuery),
-	)
-	if err := chromedp.Run(tctx, load...); err != nil {
+	); err != nil {
 		return figures, fmt.Errorf("%s: load %s: %w", t.Key, t.URL, err)
 	}
 
@@ -131,11 +145,6 @@ func Load(ctx context.Context, t selector.Target) (Figures, error) {
 	}
 
 	if t.TabLabel != "" {
-		// Armed before the click, because the response it waits for is the
-		// consequence of the click. Events only reach a listener registered
-		// before they happen, so anything the page fetched during its own load
-		// cannot be mistaken for this tab's answer.
-		watch := watchFiguresAPI(tctx, t.FiguresAPI)
 		if err := page.selectTab(); err != nil {
 			return figures, err
 		}
