@@ -1,0 +1,195 @@
+package investapi
+
+import (
+	"io"
+	"mime"
+	"mime/multipart"
+	"net/http"
+	"net/http/httptest"
+	"strconv"
+	"strings"
+	"testing"
+)
+
+// The figures are invented. Real ones do not belong in a repository.
+
+// stub answers the three endpoints and records what it was asked.
+type stub struct {
+	mu       []string // paths, in order
+	fields   map[string]map[string]string
+	loginOut bool
+	status   int
+	noName   bool
+}
+
+func (s *stub) handler(t *testing.T) http.Handler {
+	t.Helper()
+	if s.fields == nil {
+		s.fields = map[string]map[string]string{}
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.mu = append(s.mu, r.URL.Path)
+		s.fields[r.URL.Path] = readFields(t, r)
+
+		w.Header().Set("Content-Type", "application/json")
+		login := 0
+		if s.loginOut {
+			login = 1
+		}
+
+		switch r.URL.Path {
+		case appInfo:
+			_, _ = w.Write([]byte(`{"STATUS":0,"MINI_CLIENT_SEQ_NO":"900000001"}`))
+		case appTop, miniTop:
+			_, _ = w.Write([]byte(`{"STATUS":` + strconv.Itoa(s.status) + `,"LOGIN_STATUS":` + strconv.Itoa(login) + `,
+				"SECURITIES_VALUE_TOTAL":345678,
+				"TOTAL_ACQUISITION_FEE_TAX_TOTAL":300000,
+				"SUM_GROSS_PROFIT_TOTAL":45678,
+				"MESSAGE_ARRAY":[{"MESSAGE":"だめ"}],
+				"INVEST_BRAND_ARRAY":{"7":{"BRAND_ID":7,"SECURITIES_VALUE":345678,"SUM_GROSS_PROFIT":45678}}}`))
+		case appInit, miniInit:
+			if s.noName {
+				_, _ = w.Write([]byte(`{"STATUS":0,"INVEST_BRAND_ARRAY":{}}`))
+				return
+			}
+			_, _ = w.Write([]byte(`{"STATUS":0,"INVEST_BRAND_ARRAY":
+				{"7":{"BRAND_ID":7,"BRAND_NM":"テスト・グローバル・ファンド"},
+				 "9":{"BRAND_ID":9,"BRAND_NM":"持っていない銘柄"}}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+func readFields(t *testing.T, r *http.Request) map[string]string {
+	t.Helper()
+	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil {
+		t.Fatalf("content type: %v", err)
+	}
+	out := map[string]string{}
+	mr := multipart.NewReader(r.Body, params["boundary"])
+	for {
+		part, err := mr.NextPart()
+		if err != nil {
+			return out
+		}
+		b, err := io.ReadAll(part)
+		if err != nil {
+			t.Fatalf("read part %q: %v", part.FormName(), err)
+		}
+		out[part.FormName()] = string(b)
+	}
+}
+
+func serve(t *testing.T, s *stub) *Client {
+	t.Helper()
+	srv := httptest.NewServer(s.handler(t))
+	t.Cleanup(srv.Close)
+	// The package addresses the real host; point it at the stub for the test.
+	old := origin
+	setOrigin(srv.URL)
+	t.Cleanup(func() { setOrigin(old) })
+	return &Client{HTTP: srv.Client()}
+}
+
+func TestReadApp(t *testing.T) {
+	s := &stub{}
+	got, err := serve(t, s).Read(t.Context(), App)
+	if err != nil {
+		t.Fatalf("Read() error = %v", err)
+	}
+
+	if got.Total != 345678 || got.Acquisition != 300000 || got.Gain != 45678 {
+		t.Errorf("totals = %+v", got)
+	}
+	if len(got.Holdings) != 1 {
+		t.Fatalf("holdings = %+v, want the one held", got.Holdings)
+	}
+	h := got.Holdings[0]
+	if h.Name != "テスト・グローバル・ファンド" {
+		t.Errorf("name = %q", h.Name)
+	}
+	// Derived, not fetched: value minus unrealised gain.
+	if h.Acquisition != 300000 {
+		t.Errorf("acquisition = %d, want value - gain", h.Acquisition)
+	}
+	// The catalogue lists a 銘柄 the account does not hold. Only what the top
+	// call reported is a holding — reading the catalogue as the portfolio would
+	// invent hundreds.
+	if s.fields[appTop]["APP_ID"] != "3" {
+		t.Errorf("APP_ID = %q, want the app bucket", s.fields[appTop]["APP_ID"])
+	}
+	if _, asked := s.fields[appInfo]; asked {
+		t.Error("the app bucket asked for a MINI_CLIENT_SEQ_NO it does not need")
+	}
+}
+
+// TestReadMiniAppFetchesItsClientNumber pins the one piece of state these calls
+// need, and where it comes from.
+func TestReadMiniAppFetchesItsClientNumber(t *testing.T) {
+	s := &stub{}
+	c := serve(t, s)
+	if _, err := c.Read(t.Context(), MiniApp); err != nil {
+		t.Fatalf("Read() error = %v", err)
+	}
+
+	if s.fields[miniTop]["MINI_CLIENT_SEQ_NO"] != "900000001" {
+		t.Errorf("MINI_CLIENT_SEQ_NO = %q, want the one info returned",
+			s.fields[miniTop]["MINI_CLIENT_SEQ_NO"])
+	}
+	if s.fields[miniTop]["APP_ID"] != "6" {
+		t.Errorf("APP_ID = %q, want the mini bucket", s.fields[miniTop]["APP_ID"])
+	}
+
+	// Asked once, then remembered: a second bucket read must not re-fetch it.
+	before := len(s.mu)
+	if _, err := c.Read(t.Context(), MiniApp); err != nil {
+		t.Fatalf("second Read() error = %v", err)
+	}
+	for _, p := range s.mu[before:] {
+		if p == appInfo {
+			t.Error("the client number was fetched again")
+		}
+	}
+}
+
+// TestReadRefusesASignedOutSession is the reason the envelope is checked.
+//
+// A session that has expired answers with LOGIN_STATUS 1 and no holdings. Taken
+// at face value that is a category that emptied — and this program deletes those,
+// which it has done twice for other reasons. An expired cookie must not be able
+// to look like a sale.
+func TestReadRefusesASignedOutSession(t *testing.T) {
+	_, err := serve(t, &stub{loginOut: true}).Read(t.Context(), App)
+	if err == nil {
+		t.Fatal("Read() accepted a signed-out session's empty portfolio")
+	}
+	if !strings.Contains(err.Error(), "signed out") {
+		t.Errorf("error = %v, want it to say the session is signed out", err)
+	}
+}
+
+// TestReadRefusesAnErrorStatus keeps a declared field from going unread, which
+// is how the acquisition checks in this project used to go quiet.
+func TestReadRefusesAnErrorStatus(t *testing.T) {
+	_, err := serve(t, &stub{status: 9}).Read(t.Context(), App)
+	if err == nil {
+		t.Fatal("Read() ignored a non-zero STATUS")
+	}
+	if !strings.Contains(err.Error(), "だめ") {
+		t.Errorf("error = %v, want the service's own message", err)
+	}
+}
+
+// TestReadRefusesAHoldingItCannotName guards the ledger's key. An entry recorded
+// under an empty name cannot be matched again, so the next run creates another.
+func TestReadRefusesAHoldingItCannotName(t *testing.T) {
+	_, err := serve(t, &stub{noName: true}).Read(t.Context(), App)
+	if err == nil {
+		t.Fatal("Read() returned a holding with no name")
+	}
+	if !strings.Contains(err.Error(), "does not name it") {
+		t.Errorf("error = %v", err)
+	}
+}
