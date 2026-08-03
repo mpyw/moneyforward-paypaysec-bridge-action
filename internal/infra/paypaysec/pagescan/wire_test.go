@@ -82,8 +82,6 @@ func TestEveryFieldIsNamedByItsScript(t *testing.T) {
 	}{
 		{"extract_holding.js", selector.ExtractHolding, Detail{}},
 		{"page_state.js", func() (string, error) { return selector.PageState(selector.ValueTotal) }, pageState{}},
-		{"select_tab.js", func() (string, error) { return selector.SelectTab("ミニアプリ") }, tabClick{}},
-		{"active_tab.js", selector.ActiveTab, activeTab{}},
 	}
 
 	for _, tt := range tests {

@@ -9,6 +9,7 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/assetname"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/money"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/valuation"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/investapi"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/pagescan"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
 )
@@ -74,9 +75,6 @@ type Reading struct {
 	HasGain        bool
 	HoldingsSumYen int64
 	HoldingsParsed int
-
-	// Tab is the tab that was activated, empty when the target needed none.
-	Tab string
 }
 
 // HoldingCount is how many 銘柄 rows the page listed.
@@ -84,7 +82,7 @@ func (r Reading) HoldingCount() int { return len(r.Holdings) }
 
 // readingOf turns one page's text into a reading, without yet parsing it.
 func readingOf(t selector.Target, figures pagescan.Figures) Reading {
-	r := Reading{Target: t, Figures: figures, Tab: t.TabLabel}
+	r := Reading{Target: t, Figures: figures}
 	r.Holdings = make([]Holding, 0, len(figures.Holdings))
 	for _, row := range figures.Holdings {
 		r.Holdings = append(r.Holdings, Holding{
@@ -304,8 +302,22 @@ func (c *Client) GetBalances(ctx context.Context) (Balances, error) {
 	var out Balances
 	out.Readings = make([]Reading, 0, len(selector.Targets))
 
+	// Borrowed once, on the first target that needs it.
+	var api *investapi.Client
+
 	for _, t := range selector.Targets {
-		reading, err := Read(ctx, t)
+		var reading Reading
+		var err error
+		if t.ViaAPI {
+			if api == nil {
+				if api, err = investAPIFor(ctx); err != nil {
+					return Balances{}, stepErr(StepReadBalance, err)
+				}
+			}
+			reading, err = c.readInvestmentTrust(ctx, t, api)
+		} else {
+			reading, err = Read(ctx, t)
+		}
 		// Before the error check: Read returns what it managed to gather even
 		// when it failed, and a failure is exactly when those figures are about
 		// to appear in a message. See [Client.OnRead].

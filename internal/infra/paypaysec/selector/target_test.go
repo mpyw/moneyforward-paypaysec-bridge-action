@@ -71,10 +71,17 @@ func TestTargetsAreFullyDescribed(t *testing.T) {
 	}
 }
 
-// TestSharedURLTargetsSelectATab pins the invariant behind the 投資信託 pair: if
-// two targets read the same page, each must switch to its own tab first, or both
-// would report whichever tab happened to be showing.
-func TestSharedURLTargetsSelectATab(t *testing.T) {
+// TestSharedURLTargetsAreReadOverTheAPI pins the invariant behind the 投資信託
+// pair: two targets on one URL are two views of that page, and the page offers
+// no way to tell which view its numbers belong to.
+//
+// The page swaps between them with a tab. The click is instant and the figures
+// arrive about a second later, so for that second the document is in the new
+// state showing the old bucket's numbers. Reading it there once reported a
+// category holding two 銘柄 as empty and deleted both — twice, under two
+// different waiting strategies. Anything sharing a URL has to come from
+// [investapi], where a bucket is a request rather than a view.
+func TestSharedURLTargetsAreReadOverTheAPI(t *testing.T) {
 	byURL := map[string][]Target{}
 	for _, target := range Targets {
 		byURL[target.URL] = append(byURL[target.URL], target)
@@ -83,11 +90,18 @@ func TestSharedURLTargetsSelectATab(t *testing.T) {
 		if len(shared) < 2 {
 			continue
 		}
+		buckets := map[Bucket]string{}
 		for _, target := range shared {
-			if target.TabLabel == "" {
-				t.Errorf("%s is one of %d targets on %s but selects no tab",
+			if !target.ViaAPI {
+				t.Errorf("%s is one of %d targets on %s but is read from the page, "+
+					"which cannot say which of them its figures belong to",
 					target.Key, len(shared), url)
 			}
+			if other, dup := buckets[target.Bucket]; dup {
+				t.Errorf("%s and %s share %s and the same bucket, so nothing "+
+					"distinguishes their holdings", target.Key, other, url)
+			}
+			buckets[target.Bucket] = target.Key
 		}
 	}
 }

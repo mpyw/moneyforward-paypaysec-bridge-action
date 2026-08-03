@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
 
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
@@ -30,18 +29,12 @@ const (
 	// than everything it contains or it becomes the thing that fires.
 	//
 	//	settle           20s   the figures on arrival
-	//	figures API      30s   the tab's own response (tab targets only)
-	//	settle           20s   the figures after the swap
 	//	navigate/extract  —    seconds
 	//
 	// An outer deadline firing first replaces a specific complaint — "the page
-	// was still loading", "that request did not respond" — with a context
-	// deadline, which says nothing about which wait was the problem.
-	targetTimeout = 75 * time.Second
-
-	// tabSettleDelay gives a tab's panel a moment to swap in. The tabs are
-	// client-side, so there is no navigation to wait on.
-	tabSettleDelay = 750 * time.Millisecond
+	// was still loading" — with a context deadline, which says nothing about
+	// which wait was the problem.
+	targetTimeout = 45 * time.Second
 
 	// settleTimeout bounds waiting for the figures to finish loading.
 	settleTimeout = 20 * time.Second
@@ -50,15 +43,7 @@ const (
 	// consecutive identical readings count as settled.
 	settlePoll = 400 * time.Millisecond
 
-	// figuresTimeout bounds the wait for a tab's own figures request, and
-	// figuresPoll is how often the watch is checked. Measured: the response lands
-	// about a second after the click.
-	//
-	// Generous, because exceeding it is now an error rather than a silent read of
-	// the wrong bucket. A slow runner should make the job late, not wrong.
-	figuresTimeout = 30 * time.Second
-	figuresPoll    = 200 * time.Millisecond
-	stableReads    = 3
+	stableReads = 3
 )
 
 // Row is one 銘柄 as the page listed it, in the page's own words.
@@ -104,8 +89,13 @@ type Figures struct {
 	Holdings []Row `json:"holdings"`
 }
 
-// Load navigates to one target, activates its tab if it has one, waits for the
-// figures to settle, and reads them off.
+// Load navigates to one target, waits for the figures to settle, and reads them
+// off.
+//
+// No tab handling. 投資信託 was the only screen that needed it, and it is read
+// through its own endpoints now — see [investapi]. Every failure this scraper had
+// lived in that click, so the machinery went with it rather than staying around
+// for a caller that no longer exists.
 func Load(ctx context.Context, t selector.Target) (Figures, error) {
 	tctx, cancel := context.WithTimeout(ctx, targetTimeout)
 	defer cancel()
@@ -113,26 +103,6 @@ func Load(ctx context.Context, t selector.Target) (Figures, error) {
 	page := targetPage{ctx: tctx, target: t}
 
 	var figures Figures
-
-	// Armed before navigating, not before the click.
-	//
-	// The default tab's request happens during the page's own load, and clicking
-	// the tab that is already active is a no-op — the framework has no state
-	// change to react to, so nothing is fetched. Watching from the click onwards
-	// therefore waited forever for 投資信託（アプリ）, whose figures had already
-	// arrived.
-	//
-	// Listening from before the navigation cannot pick up the wrong tab's answer
-	// either, because the two tabs call different paths and each target waits for
-	// its own.
-	var watch *apiWatch
-	if t.FiguresAPI != "" {
-		if err := chromedp.Run(tctx, network.Enable()); err != nil {
-			return figures, fmt.Errorf("%s: enable network events: %w", t.Key, err)
-		}
-		watch = watchFiguresAPI(tctx, t.FiguresAPI)
-	}
-
 	if err := chromedp.Run(tctx,
 		chromedp.Navigate(t.URL),
 		chromedp.WaitReady("body", chromedp.ByQuery),
@@ -142,19 +112,6 @@ func Load(ctx context.Context, t selector.Target) (Figures, error) {
 
 	if err := page.settle(); err != nil {
 		return figures, fmt.Errorf("%s: %w", t.Key, err)
-	}
-
-	if t.TabLabel != "" {
-		if err := page.selectTab(); err != nil {
-			return figures, err
-		}
-		if err := page.awaitFigures(watch); err != nil {
-			return figures, fmt.Errorf("%s: after tab %q: %w", t.Key, t.TabLabel, err)
-		}
-		// The response arriving is not the same as the page having rendered it.
-		if err := page.settle(); err != nil {
-			return figures, fmt.Errorf("%s: after tab %q: %w", t.Key, t.TabLabel, err)
-		}
 	}
 
 	expr, err := selector.ExtractBalance()
@@ -169,9 +126,9 @@ func Load(ctx context.Context, t selector.Target) (Figures, error) {
 
 // targetPage is one target's page in one browser context.
 //
-// A type so that settling and tab selection are methods on the page they act
-// on. As package-level functions taking a ctx they read as though they applied
-// to any page, including a 銘柄 detail page, where selecting a tab is meaningless.
+// A type so that settling is a method on the page it acts on. As a
+// package-level function taking a ctx it reads as though it applied to any page,
+// where in fact it watches the element this target's figure lives in.
 type targetPage struct {
 	ctx    context.Context
 	target selector.Target
@@ -191,32 +148,6 @@ type pageState struct {
 // cleanly, so an early read produces a confident zero for an account that holds
 // real money — the worst kind of failure this program can have.
 func (p targetPage) settle() error { return settle(p.ctx, selector.ValueTotal) }
-
-// awaitFigures waits for this tab's own figures to arrive.
-//
-// An error when they do not, which is the whole change. The previous version
-// waited a while and then read whatever was on screen; on a slow runner that was
-// the other bucket's data, and an empty category is a plan to delete everything
-// in it. The request fires whether or not the two tabs hold the same numbers, so
-// not seeing it means something is wrong — not that there was nothing to see.
-func (p targetPage) awaitFigures(watch *apiWatch) error {
-	deadline := time.Now().Add(figuresTimeout)
-	for {
-		if watch.arrived() {
-			return nil
-		}
-		if time.Now().After(deadline) {
-			return fmt.Errorf("%s did not respond within %s, so the figures on screen "+
-				"are still the previously selected tab's",
-				p.target.FiguresAPI, figuresTimeout)
-		}
-		select {
-		case <-p.ctx.Done():
-			return p.ctx.Err()
-		case <-time.After(figuresPoll):
-		}
-	}
-}
 
 // settle is the wait itself, told which element carries the figure to wait for.
 func settle(ctx context.Context, value string) error {
@@ -283,65 +214,4 @@ func settleTimedOut(last pageState) error {
 	default:
 		return nil
 	}
-}
-
-// tabClick is what select_tab.js reports back.
-type tabClick struct {
-	Clicked   bool     `json:"clicked"`
-	Active    string   `json:"active"`
-	Available []string `json:"available"`
-}
-
-// activeTab is what active_tab.js reports back.
-//
-// Not the same type as [tabClick], though it was once: that script attempts no
-// click, so it has nothing to say about one, and a shared Clicked field decoded
-// to false on every confirmation. Nothing read it, which is exactly the problem
-// — the type claimed an answer the page never gave.
-type activeTab struct {
-	Active    string   `json:"active"`
-	Available []string `json:"available"`
-}
-
-// selectTab activates the target's tab and verifies it took.
-//
-// 投資信託 puts both buckets at one URL, so without this the same figure would
-// be read twice and one bucket silently double-counted — the kind of error that
-// produces a believable total rather than a failure.
-func (p targetPage) selectTab() error {
-	t := p.target
-
-	expr, err := selector.SelectTab(t.TabLabel)
-	if err != nil {
-		return fmt.Errorf("%s: build tab script: %w", t.Key, err)
-	}
-
-	var res tabClick
-	if err := chromedp.Run(p.ctx, chromedp.Evaluate(expr, &res)); err != nil {
-		return fmt.Errorf("%s: select tab %q: %w", t.Key, t.TabLabel, err)
-	}
-	if !res.Clicked {
-		return fmt.Errorf("%s: no tab labelled %q under %s (found %v)",
-			t.Key, t.TabLabel, selector.TabMenu, res.Available)
-	}
-
-	// The click is client-side, so there is no navigation to wait on. Give the
-	// panel a moment, then confirm the intended tab really is the active one:
-	// reading the wrong bucket is worse than failing.
-	if err := chromedp.Run(p.ctx, chromedp.Sleep(tabSettleDelay)); err != nil {
-		return err
-	}
-
-	confirmExpr, err := selector.ActiveTab()
-	if err != nil {
-		return fmt.Errorf("%s: build tab-confirm script: %w", t.Key, err)
-	}
-	var after activeTab
-	if err := chromedp.Run(p.ctx, chromedp.Evaluate(confirmExpr, &after)); err != nil {
-		return fmt.Errorf("%s: confirm active tab: %w", t.Key, err)
-	}
-	if after.Active != t.TabLabel {
-		return fmt.Errorf("%s: clicked %q but %q is active", t.Key, t.TabLabel, after.Active)
-	}
-	return nil
 }

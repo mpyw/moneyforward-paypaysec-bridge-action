@@ -66,13 +66,9 @@ func (r reporter) Applied(plan portfolio.Plan) {
 // looking entirely healthy: a zero total and no rows agree with each other, and
 // with every cross-check there is.
 func reportTarget(r paypaysec.Reading) {
-	tab := ""
-	if r.Tab != "" {
-		tab = " tab=" + r.Tab
-	}
-	log.Printf("   %-16s %d 銘柄  section=%v total=%v cost=%v gain=%v%s",
+	log.Printf("   %-16s %d 銘柄  section=%v total=%v cost=%v gain=%v",
 		r.Target.Key, r.HoldingCount(), r.Figures.HoldingsSection,
-		r.HasTotal, r.HasAcquisition, r.HasGain, tab)
+		r.HasTotal, r.HasAcquisition, r.HasGain)
 }
 
 // logChallenge reports whether a service asked for a one-time code.

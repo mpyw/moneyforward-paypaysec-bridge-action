@@ -24,29 +24,6 @@ var siteScripts = pagescript.Load(scriptFS, "js")
 // surface at init rather than on the first scrape.
 const extractBalanceScript = "extract_balance.js"
 
-// selectTabJS is read once, for the same reason as extractBalanceJS.
-const selectTabScript = "select_tab.js"
-
-// SelectTab renders the tab-activation call for one label.
-func SelectTab(label string) (string, error) {
-	return siteScripts.Call(selectTabScript, map[string]string{
-		"container":   TabMenu,
-		"label":       label,
-		"activeClass": TabActiveClass,
-	})
-}
-
-// activeTabJS is read once, for the same reason as extractBalanceJS.
-const activeTabScript = "active_tab.js"
-
-// ActiveTab renders the call that reports the currently active tab.
-func ActiveTab() (string, error) {
-	return siteScripts.Call(activeTabScript, map[string]string{
-		"container":   TabMenu,
-		"activeClass": TabActiveClass,
-	})
-}
-
 // pageStateJS is read once, for the same reason as extractBalanceJS.
 const pageStateScript = "page_state.js"
 

@@ -86,8 +86,10 @@ const (
 	URLMiniApp = "https://www.paypay-sec.co.jp/trade?country=pp"
 
 	// URLInvestmentTrust is the 投資信託 page. Unlike the /trade views it holds
-	// two totals — PayPay 証券アプリ and ミニアプリ — behind tabs at one URL, so
-	// reading it means clicking a tab first. See [Targets].
+	// two totals — PayPay 証券アプリ and ミニアプリ — at one URL, which is why the
+	// two targets on it are read over HTTP rather than off the page. Kept as the
+	// target's URL because it is where a human goes to check the figures by hand.
+	// See [Targets].
 	URLInvestmentTrust = "https://www.paypay-sec.co.jp/investment_trust/"
 )
 
@@ -104,9 +106,9 @@ const (
 // Target is one 評価額合計 that has to be read, and what it represents.
 //
 // Most targets are a URL on their own. 投資信託 is not: it presents both buckets
-// as tabs on a single page, so a target may also carry a tab to click first.
-// Modelling that as part of the target keeps the reader uniform — every entry is
-// "go here, maybe click this, then extract".
+// at a single URL, so a target also says whether it is read from the page or from
+// the endpoints behind it. Modelling that as part of the target keeps the reader
+// uniform — every entry says where its figure comes from.
 //
 // Name and Bucket exist because the figure alone is not useful downstream: a
 // balance has to be attributable to what produced it, both to be recorded under
@@ -131,19 +133,14 @@ type Target struct {
 	// Bucket is the subtotal this target contributes to.
 	Bucket Bucket
 
-	// FiguresAPI is the request this target's figures arrive in, as a substring
-	// of its URL. Only set where a tab has to be clicked.
+	// ViaAPI reads this target from the endpoints the page calls instead of from
+	// the page.
 	//
-	// The click is client-side and instant; the numbers arrive about a second
-	// later, and until they do the previous tab's numbers are on screen and
-	// perfectly still. Nothing in the DOM distinguishes the two states —
-	// measured against the live page, the tab's actived class and the nav's
-	// bucket markers both flip 8ms after the click.
-	//
-	// This is the event that actually means "this tab's data is here". The two
-	// tabs call different paths, so waiting for the right one cannot be
-	// satisfied by the other's.
-	FiguresAPI string
+	// Set for 投資信託, where two buckets share one URL behind a tab. That swap is
+	// where every reading failure lived, and no amount of waiting closed it — see
+	// the investapi package. A bucket is an endpoint there, so there is no swap to
+	// observe.
+	ViaAPI bool
 
 	// Kind is what these holdings are, as an instrument — not as a PayPay view.
 	// ミニアプリ is a way of buying, and what it holds here is US stock.
@@ -152,10 +149,6 @@ type Target struct {
 	// carried the other site's numbering and a change there reached in here. The
 	// ledger translates at its own edge now.
 	Kind asset.Kind
-
-	// TabLabel, when non-empty, is the tab to activate before extracting,
-	// matched on its visible text. See [TabMenu].
-	TabLabel string
 }
 
 // AssetName renders the MoneyForward manual-asset name for one 銘柄 held under
@@ -188,23 +181,6 @@ func (t Target) Category() string {
 	return t.Name
 }
 
-// The 投資信託 tab bar. CONFIRMED 2026-08-01 from the live page:
-//
-//	<div class="tab_menu">…<ul>
-//	  <li class="actived"><a>PayPay証券アプリ</a></li>
-//	  <li class=""><a>ミニアプリ</a></li>
-//	</ul>…</div>
-//
-// The items carry no id, role, href or data attribute, so their label text is
-// the only stable handle.
-const (
-	TabMenu        = ".tab_menu"
-	TabActiveClass = "actived"
-
-	TabLabelApp     = "PayPay証券アプリ"
-	TabLabelMiniApp = "ミニアプリ"
-)
-
 // Targets lists every 評価額合計 contributing to the account total.
 //
 // A missing entry understates the balance silently rather than failing, which
@@ -218,10 +194,10 @@ var Targets = []Target{
 	{Kind: asset.MutualFund, Key: "robo", Name: "ロボ貯蓄", URL: "https://www.paypay-sec.co.jp/trade?reserve_mode=1", Bucket: BucketApp},
 	{Kind: asset.USStock, Key: "miniapp", Name: "ミニアプリ", ShortName: "ミニ", URL: URLMiniApp, Bucket: BucketMiniApp},
 
-	// Same URL, different tab — so the names have to distinguish them, or the
+	// Same URL, different bucket — so the names have to distinguish them, or the
 	// two would collide into one asset.
-	{Kind: asset.MutualFund, Key: "toushin-app", Name: "投資信託（アプリ）", ShortName: "投信ア", URL: URLInvestmentTrust, Bucket: BucketApp, TabLabel: TabLabelApp, FiguresAPI: FiguresAPIApp},
-	{Kind: asset.MutualFund, Key: "toushin-miniapp", Name: "投資信託（ミニアプリ）", ShortName: "投信ミ", URL: URLInvestmentTrust, Bucket: BucketMiniApp, TabLabel: TabLabelMiniApp, FiguresAPI: FiguresAPIMiniApp},
+	{Kind: asset.MutualFund, Key: "toushin-app", Name: "投資信託（アプリ）", ShortName: "投信ア", URL: URLInvestmentTrust, Bucket: BucketApp, ViaAPI: true},
+	{Kind: asset.MutualFund, Key: "toushin-miniapp", Name: "投資信託（ミニアプリ）", ShortName: "投信ミ", URL: URLInvestmentTrust, Bucket: BucketMiniApp, ViaAPI: true},
 }
 
 // The OTP challenge. CONFIRMED 2026-08-01 from the live page markup.
@@ -314,18 +290,6 @@ const (
 // site marks up its tradeable-brand catalogue, so an unscoped query returns
 // every brand PayPay offers — 305 of them on the 日本株 page — rather than the
 // handful actually held.
-// The requests the 投資信託 tabs fetch their figures with. CONFIRMED 2026-08-04
-// by watching the network while clicking each tab.
-//
-// The two buckets are the same screen and differ by the path's version and an
-// APP_ID in the form body (3 for アプリ, 6 for ミニアプリ). Matching on the path
-// is enough to tell one tab's response from the other's, which is the whole
-// point: a wait for ミニアプリ's figures must not be satisfied by アプリ's.
-const (
-	FiguresAPIApp     = "/v2/invest/brand/pc_invest_top"
-	FiguresAPIMiniApp = "/v3/invest/brand/pc_invest_top"
-)
-
 const HoldingsHeading = "保有銘柄"
 
 const (

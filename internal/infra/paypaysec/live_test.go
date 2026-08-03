@@ -67,7 +67,7 @@ func TestTargetsRequireAuth(t *testing.T) {
 	seen := map[string]bool{}
 	for _, target := range selector.Targets {
 		if seen[target.URL] {
-			continue // 投資信託 appears twice, once per tab
+			continue // 投資信託 appears twice, once per bucket
 		}
 		seen[target.URL] = true
 

@@ -117,9 +117,9 @@ func (s Sync) reconcile(ctx context.Context, held asset.Holdings) (portfolio.Pla
 			return plan, err
 		}
 		// Coverage asks whether the category was looked at. This asks whether
-		// anything was seen — a page can be fetched and verified and still hand
-		// back the previously selected tab's figures, which is how a category
-		// holding two 銘柄 came to read as empty and lose both.
+		// anything was seen — a page was fetched, verified, and still handed back
+		// a different view's figures, which is how a category holding two 銘柄
+		// came to read as empty and lose both.
 		if !s.AllowEmptyingCategories {
 			if err := portfolio.CheckCategoryEmptied(recorded, held.Assets); err != nil {
 				return plan, err

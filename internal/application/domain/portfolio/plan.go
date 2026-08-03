@@ -201,7 +201,7 @@ var ErrUnverifiedDeletes = errors.New("the plan deletes entries from categories 
 // It is also unnecessary. Every way a read can go wrong quietly is closed at the
 // source with the complaint it deserves: a page still showing its loading
 // placeholder, a total with no holdings under it, three routes that disagree, a
-// tab that did not activate. Any of them fails the whole read. By the time there
+// reply that says the session is signed out. Any of them fails the whole read. By the time there
 // is a plan, every page it rests on has been verified.
 //
 // What is worth checking is not how much is being deleted but whether the run
@@ -248,10 +248,11 @@ var ErrCategoryEmptied = errors.New("a category the ledger has entries under rea
 // CheckCategoryEmptied refuses a plan that empties a whole category at once.
 //
 // The coverage check asks whether the run looked at the category. This asks a
-// different question, because looking is not the same as seeing: a page can be
-// fetched, verified, and still hand back the previously selected tab's figures.
-// That happened twice, and both times a category holding two 銘柄 read as empty
-// and every entry in it was deleted.
+// different question, because looking is not the same as seeing. A page was
+// fetched, verified, and still handed back a different view's figures — twice,
+// and both times a category holding two 銘柄 read as empty and every entry in it
+// was deleted. That particular way of being wrong is closed now; this check does
+// not depend on which way the next one arrives.
 //
 // A partial reduction goes through — selling three of five is a normal day, and
 // refusing it was the mistake that started all of this. What stops here is a

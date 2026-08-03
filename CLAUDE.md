@@ -56,18 +56,21 @@ PayPay 証券・MoneyForward どちらも **ID/PW + メール OTP** でログイ
 
 ### ターゲット 8 件
 
-| Key | URL / タブ | bucket |
-|---|---|---|
-| `japan` / `japan-etf` / `usa` / `usa-etf` | `/trade?country=…` | app |
-| `robo` | `/trade?reserve_mode=1` | app |
-| `miniapp` | `/trade?country=pp` | miniapp |
-| `toushin-app` | `/investment_trust/` + タブ「PayPay証券アプリ」 | app |
-| `toushin-miniapp` | `/investment_trust/` + タブ「ミニアプリ」 | miniapp |
+| Key | 取得元 | bucket | 読み方 |
+|---|---|---|---|
+| `japan` / `japan-etf` / `usa` / `usa-etf` | `/trade?country=…` | app | ページ |
+| `robo` | `/trade?reserve_mode=1` | app | ページ |
+| `miniapp` | `/trade?country=pp` | miniapp | ページ |
+| `toushin-app` | `/investment_trust/` の API | app | **API** |
+| `toushin-miniapp` | 同上（別パス） | miniapp | **API** |
 
-投資信託だけは **同一 URL でタブ切り替え**。タブは id も role も href も持たない Vue の
-`<li><a>ラベル</a></li>` なので、**ラベル文字列で選択**してアクティブ化を確認してから読む。
-順序依存の `nth-child` は、並び替わったときに「もっともらしい数字を別 bucket に加算する」
-壊れ方をするため使わない。
+**投資信託の 2 件だけは API を叩く** (`infra/paypaysec/investapi`)。この 2 つは
+同一 URL の 2 ビューで、ページからはどちらの数字かを区別できない（「投資信託だけ
+API から読む理由」節）。他の 6 件は jQuery のサーバレンダリングで JSON API を
+持たないため、ページから読む。
+
+`Target.ViaAPI` がその分岐で、同一 URL に 2 件並んだら API 経由であることを
+`target_test.go` が要求する。
 
 ### 3 ルート照合
 
@@ -81,32 +84,59 @@ PayPay 証券・MoneyForward どちらも **ID/PW + メール OTP** でログイ
 **`TOTAL_ACQUISITION_FEE_TAX_TOTAL` は取得原価であって評価額ではない。**
 単体で採用すると含み益の分だけ過少計上する。
 
+### 投資信託だけ API から読む理由
+
+同一 URL の 2 ビューをタブで切り替える。**クリックは同期で即座、数字は約 1 秒後**——
+実測で `actived` も `menu_1_mini` も **8ms**、数字が変わるのは **1028ms**。
+その間ページは「新しいタブが選ばれた状態」で「前のタブの数字」を表示している。
+DOM にこの 2 状態を区別する材料がない。
+
+3 通り試して 3 通り漏れた:
+
+| 待ち方 | 結果 |
+|---|---|
+| MutationObserver + 5 秒の下限 | 保有 2 銘柄が 0 件と読まれ、両方削除 |
+| 下限を 10 秒に倍増 | 同じ事故が再発（v3.2.1 の実行） |
+| そのタブ自身の `pc_invest_top` レスポンスを待つ | レスポンスと描画の間でまだ競合 |
+
+**時間で待つ実装は必ず期限切れになり、切れた先で前のタブの値を読む。**
+だからページを読むのをやめた。API では bucket が「ビュー」ではなく
+**エンドポイント**なので、観測すべき状態が存在しない。
+
+| bucket | top | init（銘柄名） | APP_ID |
+|---|---|---|---|
+| アプリ | `/v2/invest/brand/pc_invest_top` | `/v2/…/pc_invest_init` | 3 |
+| ミニアプリ | `/v3/invest/brand/pc_invest_top` | `/v3/…/pc_invest_init` | 6 |
+
+- **契約はページ自身の JS バンドルから読んだ**（推測していない）。未認証の
+  `GET /investment_trust/` がバンドル名を返し、バンドルがパス・定数・
+  `MINI_CLIENT_SEQ_NO` の出どころ (`pc_invest_info`) を全部書いている
+- **`LOGIN_STATUS === 1` はサインアウト済みで、その応答は保有を持たない。**
+  額面どおり受けると「カテゴリが空になった」に見え、このプログラムはそれを削除する。
+  `STATUS !== 0` と併せて数値を読む前に弾く
+- **取得原価は導出**: `SECURITIES_VALUE - SUM_GROSS_PROFIT`。整数演算で、
+  ページ側が万の小数 1 桁に丸めていたのより正確
+- **銘柄名は init のカタログ由来**で、これは保有していない銘柄も返す。保有は top の
+  `INVEST_BRAND_ARRAY` だけ。**カタログを保有と読むと数百件を発明する**
+- 名前が引けない保有はエラー。台帳は名前をキーにするので、空名で記録すると
+  次回マッチせずもう 1 行作る
+- セッションは chromedp の cookie jar を借りる (`cookiestore.HTTPClientFor`)。
+  投資信託に到達しなかった実行が代金を払わないよう遅延生成する
+- **他の 6 件は同じことができない。** `/trade` は jQuery のサーバレンダリングで
+  JSON API を持たない。「API に寄せる」は投資信託に限った話
+
 ### 踏んだ罠（再発防止のため記録）
 
 - **金額は入れ子要素**: `<span id="…">34<span>万</span>5678<span>円</span></span>`。
   `innerText` は改行を挟むので正規表現が効かず、**ページ内の無関係な「0円」に誤マッチ**して
   25万1234円の口座を 0 と報告していた。要素指定 + `textContent` で読む
 - **投資信託は数値を非同期ロードし、その間 0円 を表示**。このプレースホルダは正常にパース
-  できてしまうので、`.loading_page` の消滅と値の安定を待つ (`waitForFigures`)
+  できてしまうので、`.loading_page` の消滅と値の安定を待つ (`pagescan.settle`)
 - **万表記のパースは Go 側** (`ParseYen`)。端数は 4 桁必須（`60万0000` とゼロパディングされる）。
   `1万23` のような曖昧形は 10,023 か 12,300 か決められないのでエラーにする
-- **タブ切替は「クリック同期」と「データ到着」が別。** 実測で `actived` も
-  `menu_1_mini` も **8ms** で切り替わり、数字が変わるのは **1028ms**。
-  クリックに由来する DOM 状態は、データが古いうちから正しく見える。
-  DOM の条件では区別できないので、**そのタブ自身の API レスポンスを待つ**
-  (`FiguresAPI`)。2 つのタブは別パスを叩くので、片方の待ちが他方で満たされない
-
-  | タブ | エンドポイント | APP_ID |
-  |---|---|---|
-  | アプリ | `/v2/invest/brand/pc_invest_top` | 3 |
-  | ミニアプリ | `/v3/invest/brand/pc_invest_top` | 6 (+ `MINI_CLIENT_SEQ_NO`) |
-
-  **来なければエラーにする。** 時間で待つ実装（DOM の静止・固定の下限）は必ず期限切れに
-  なり、切れた先で前のタブの値を読む。5 秒でも 10 秒でも再発した。リクエストは
-  2 タブが同じ値を持っていても飛ぶので、**来ないことは「空だった」ではなく異常**
 - **内側の待ちの合計は外側の deadline より小さく保つ。** `targetTimeout` が 30 秒の
-  ままだと settle 20 + figures 30 + settle 20 を包めず、外側が先に切れて
-  「どの待ちで詰まったか」を言わない context deadline に化ける
+  ままだと settle 20 + settle 20 を包めず、外側が先に切れて「どの待ちで詰まったか」を
+  言わない context deadline に化ける
 - **同一性は動かない値で判定する。** 「一覧の値」と「個別ページの値」の一致を
   求めていたが、2 つは数秒差で取得するので価格が動けば必ず食い違い、1 日に 2 回
   実行全体が落ちた。着地した URL で判定する
@@ -171,6 +201,7 @@ internal/
     paypaysec/          #   PayPay 証券: 数値の照合
       selector/         #     確定セレクタ・8 ターゲット・埋め込み JS
       pagescan/         #     ページ操作。テキストだけ返す (chromedp)
+      investapi/        #     投資信託の 2 bucket。ページの叩く API を直接叩く
 ```
 
 **依存の向きは `application/layer_test.go` が強制する。** `application/**` は
@@ -184,10 +215,12 @@ internal/
 
 **ログインとデータ経路は別パッケージ。** 両サイトとも認証は chromedp、その後の
 読み書きは別手段 (MF は HTTP、PayPay はページ読み取り)。同じ名前空間に置くと
-`Origin` や `fieldToken`、`waitForFigures` が他方から届いてしまう。
+`Origin` や `fieldToken`、`settle` が他方から届いてしまう。
 
 **PayPay 側の境界は「ページはテキストしか返さない」。** `pagescan` は文字列を返し、
-数値化と照合は `paypaysec` と `domain/valuation` が行う。
+数値化と照合は `paypaysec` と `domain/valuation` が行う。投資信託は `investapi` が
+数値のまま返すが、`investread.go` が同じ `Reading` に詰めるので、3 ルート照合・
+マスク・ログ行は下流で共通。
 
 ページスクリプトは `pagescan/script_test.go` が実ブラウザに fixture ページを
 読ませて駆動する (外部通信なし)。長く「テストが届かない」前提で書かれていたが届く。

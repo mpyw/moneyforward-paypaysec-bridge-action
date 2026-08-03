@@ -13,7 +13,7 @@ import (
 )
 
 func probeCommand() *cli.Command {
-	var url, tab string
+	var url string
 	return &cli.Command{
 		Name:  "probe",
 		Usage: "load one URL and report what it offers: extraction routes and interactive controls",
@@ -24,22 +24,16 @@ func probeCommand() *cli.Command {
 				Required:    true,
 				Destination: &url,
 			},
-			&cli.StringFlag{
-				Name:        "tab",
-				Usage:       "activate the tab with this label before reading (e.g. ミニアプリ)",
-				Destination: &tab,
-			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			return runProbe(ctx, session.From(cmd), url, tab)
+			return runProbe(ctx, session.From(cmd), url)
 		},
 	}
 }
 
 // runProbe loads one page and reports everything that might identify the
-// figures on it: each extraction route's result, and the interactive controls
-// (which is where a tab selector has to come from).
-func runProbe(ctx context.Context, opts *session.Options, url, tab string) error {
+// figures on it: each extraction route's result, and the interactive controls.
+func runProbe(ctx context.Context, opts *session.Options, url string) error {
 	s, err := opts.Start(ctx)
 	if err != nil {
 		return err
@@ -51,14 +45,11 @@ func runProbe(ctx context.Context, opts *session.Options, url, tab string) error
 	}
 	s.Report()
 
-	reading, rerr := ppsite.Read(s.Context(), ppsel.Target{Key: "probe", URL: url, TabLabel: tab})
+	reading, rerr := ppsite.Read(s.Context(), ppsel.Target{Key: "probe", URL: url})
 	if rerr != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "  read: %v\n", rerr)
 	}
 	_, _ = fmt.Fprintf(os.Stderr, "\nExtraction routes:\n")
-	if reading.Tab != "" {
-		_, _ = fmt.Fprintf(os.Stderr, "  tab     %q active\n", reading.Tab)
-	}
 	_, _ = fmt.Fprintf(os.Stderr, "  total        present=%v raw=%q yen=%d\n", reading.Figures.TotalPresent, reading.Figures.TotalRaw, reading.TotalYen)
 	_, _ = fmt.Fprintf(os.Stderr, "  acquisition  present=%v raw=%q yen=%d\n", reading.Figures.AcquisitionPresent, reading.Figures.AcquisitionRaw, reading.AcquisitionYen)
 	_, _ = fmt.Fprintf(os.Stderr, "  gain         present=%v raw=%q yen=%d\n", reading.Figures.GainPresent, reading.Figures.GainRaw, reading.GainYen)
