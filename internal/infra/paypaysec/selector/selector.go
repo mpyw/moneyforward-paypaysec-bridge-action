@@ -254,9 +254,9 @@ const (
 
 // The account summary. CONFIRMED 2026-08-01 from the live 投資信託 page:
 //
-//	<span id="SECURITIES_VALUE_TOTAL">33<span>万</span>9780<span>円</span></span>
-//	<span id="TOTAL_ACQUISITION_FEE_TAX_TOTAL">30<span>万</span>7015<span>円</span></span>
-//	<span id="gross_profit_total">+3<span>万</span>2765<span>円</span></span>
+//	<span id="SECURITIES_VALUE_TOTAL">34<span>万</span>5678<span>円</span></span>
+//	<span id="TOTAL_ACQUISITION_FEE_TAX_TOTAL">30<span>万</span>0000<span>円</span></span>
+//	<span id="gross_profit_total">+4<span>万</span>5678<span>円</span></span>
 //
 // Note what these mean: SECURITIES_VALUE_TOTAL is 評価額合計, the market value we
 // want. TOTAL_ACQUISITION_FEE_TAX_TOTAL is 投資元本 — the cost basis, which is a

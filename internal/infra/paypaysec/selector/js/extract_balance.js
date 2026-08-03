@@ -2,7 +2,7 @@
  * Read every amount on the page as raw text. No parsing happens here.
  *
  * Amounts are rendered as nested elements —
- * <span id="…">33<span>万</span>9780<span>円</span></span> — so innerText puts
+ * <span id="…">34<span>万</span>5678<span>円</span></span> — so innerText puts
  * newlines between the parts and a naive text pattern reads either nothing or,
  * worse, some other "0円" elsewhere on the page. textContent of the specific
  * element is what works.
