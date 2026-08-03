@@ -1,10 +1,10 @@
 package sync
 
 import (
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/actionslog"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward/manualasset"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/otp"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/actionslog"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/moneyforward/manualasset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/otp"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec"
 )
 
 // Registering values with the Actions log masker, which has to happen before

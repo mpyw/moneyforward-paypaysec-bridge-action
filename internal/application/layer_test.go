@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-const modulePath = "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3"
+const modulePath = "github.com/mpyw/moneyforward-paypaysec-bridge-action"
 
 // forbidden is what the application layer may not depend on, and why.
 var forbidden = map[string]string{

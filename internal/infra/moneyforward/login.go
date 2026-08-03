@@ -3,15 +3,15 @@ package moneyforward
 import (
 	"context"
 	"fmt"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward/selector"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/moneyforward/selector"
 	"maps"
 	"time"
 
 	"github.com/chromedp/chromedp"
 	"github.com/chromedp/chromedp/kb"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/chrome/browser"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/otp"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/chrome/browser"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/otp"
 )
 
 const (

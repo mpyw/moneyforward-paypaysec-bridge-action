@@ -16,9 +16,9 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/credentials"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/config"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/otp"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/credentials"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/config"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/otp"
 )
 
 // defaultDebugDir holds everything the debug commands write: the persisted

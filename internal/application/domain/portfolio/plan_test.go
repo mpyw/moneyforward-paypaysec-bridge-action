@@ -2,7 +2,7 @@ package portfolio
 
 import (
 	"errors"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/asset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/asset"
 	"strings"
 	"testing"
 )

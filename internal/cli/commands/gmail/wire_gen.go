@@ -7,7 +7,7 @@
 package gmail
 
 import (
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/usecase/authorizegmail"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/usecase/authorizegmail"
 )
 
 // Injectors from wire.go:

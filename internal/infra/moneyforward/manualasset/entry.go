@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/asset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/asset"
 )
 
 // AssetSubclass identifies what kind of instrument an entry holds. The values

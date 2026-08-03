@@ -5,10 +5,10 @@ import (
 
 	"context"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/credential"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/port"
-	gmailapi "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/gmail"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/gmail/consent"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/credential"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/port"
+	gmailapi "github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/gmail"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/gmail/consent"
 )
 
 // providerSet is what the consent flow is built from.

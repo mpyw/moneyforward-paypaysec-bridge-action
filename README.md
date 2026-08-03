@@ -39,7 +39,7 @@ MoneyForward の手入力口座に反映する GitHub Action。
 
 ```bash
 # client_secret.json を置いたディレクトリで
-go run github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/cmd/mfpp@v3 \
+go run github.com/mpyw/moneyforward-paypaysec-bridge-action/cmd/mfpp@v3 \
   gmail authorize
 ```
 

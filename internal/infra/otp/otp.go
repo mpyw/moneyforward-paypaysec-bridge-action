@@ -19,7 +19,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/gmail"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/gmail"
 )
 
 // DefaultCodePattern finds a run of exactly six digits.

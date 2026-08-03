@@ -19,7 +19,7 @@ import (
 
 	"cloud.google.com/go/auth/credentials"
 
-	credential "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/credential"
+	credential "github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/credential"
 
 	gmailapi "google.golang.org/api/gmail/v1"
 	"google.golang.org/api/option"

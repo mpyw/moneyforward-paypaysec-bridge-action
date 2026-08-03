@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/assetname"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/pagescan"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/assetname"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec/pagescan"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec/selector"
 )
 
 // newReading builds a Reading the way [Read] does — from the text a page scan

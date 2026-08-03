@@ -7,17 +7,17 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/port"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/credentials"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/config"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/actionslog"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/adapter"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/chrome/browser"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward"
-	mfsel "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward/selector"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/otp"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec"
-	ppsel "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/port"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/credentials"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/config"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/actionslog"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/adapter"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/chrome/browser"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/moneyforward"
+	mfsel "github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/moneyforward/selector"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/otp"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec"
+	ppsel "github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec/selector"
 )
 
 // providerSet is everything the scheduled job is built from.

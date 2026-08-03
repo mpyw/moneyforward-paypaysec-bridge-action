@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/secret"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/config"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/secret"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/config"
 )
 
 // setAll gives every required variable a value, so a test can then remove one.

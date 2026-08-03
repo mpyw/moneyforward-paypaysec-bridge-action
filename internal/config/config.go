@@ -18,7 +18,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/secret"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/secret"
 )
 
 // Variables not already named by [secret], because they are not credentials.

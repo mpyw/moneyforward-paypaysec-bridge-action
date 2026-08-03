@@ -15,7 +15,7 @@ import (
 
 	"github.com/google/wire"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/usecase/syncassets"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/usecase/syncassets"
 )
 
 // newSync assembles the scheduled job's dependencies.

@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/asset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/asset"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec/selector"
 )
 
 func TestBalancesAssets(t *testing.T) {

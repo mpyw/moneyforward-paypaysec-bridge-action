@@ -4,11 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/actionslog"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward/manualasset"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/pagescan"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/actionslog"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/moneyforward/manualasset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec/pagescan"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec/selector"
 )
 
 // TestMaskFiguresCoversAReconciliationError is the point of the OnRead hook.

@@ -1,4 +1,24 @@
-module github.com/mpyw/moneyforward-paypaysec-bridge-action/v3
+// Deprecated: この import パスは v1 系だけのものです。v2 以降はモジュールパスに
+// メジャーが要るので github.com/mpyw/moneyforward-paypaysec-bridge-action/v3 を
+// 使ってください。このパスの最新 (v1.0.4) は /v3 の最新と同じコードですが、
+// 更新はされません。
+module github.com/mpyw/moneyforward-paypaysec-bridge-action
+
+// なぜ v1.0.4 を出すのか（保守メモ。撤回理由には含めない）
+//
+// v1.0.0〜v1.0.2 は proxy.golang.org にキャッシュされており、タグを消しても
+// 消えない。撤回だけが、それを指定した人に警告を出せる手段。撤回は「その
+// モジュールパスの最新版の go.mod」からしか読まれないので、旧パスに新しい版が
+// 要る。
+//
+// v1.0.4 自身は撤回しない。撤回すると @latest が選べる版を失い、このパスを
+// 指定した人が「動かない」に当たる。狙いは逆で、間違えて古いパスを使っても
+// 最新のコードが動くこと。中身は /v3 の最新と同じ。
+
+// 入力の名前が違い、実在する銘柄を削除し得る読み取り不具合を含みます。
+// github.com/mpyw/moneyforward-paypaysec-bridge-action/v3 を使ってください。
+retract [v1.0.0, v1.0.3]
+
 
 go 1.26
 

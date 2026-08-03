@@ -12,8 +12,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/asset"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/assetname"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/asset"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/application/domain/assetname"
 )
 
 // A position here is an [asset.Asset].

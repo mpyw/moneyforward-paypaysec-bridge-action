@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec/selector"
 )
 
 // The structs in this package exist only to be populated by chromedp

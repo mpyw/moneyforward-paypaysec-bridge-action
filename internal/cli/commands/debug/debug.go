@@ -34,9 +34,9 @@
 package debug
 
 import (
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug/moneyforward"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug/paypaysec"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug/session"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands/debug/moneyforward"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands/debug/paypaysec"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/cli/commands/debug/session"
 	"github.com/urfave/cli/v3"
 )
 

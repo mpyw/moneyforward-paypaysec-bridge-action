@@ -12,7 +12,7 @@ package moneyforward
 import (
 	"fmt"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/helpers/steperr"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/helpers/steperr"
 )
 
 // Client holds the credentials for one MoneyForward account. The zero value is

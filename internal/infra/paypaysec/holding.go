@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/pagescan"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/paypaysec/pagescan"
 )
 
 // fillAcquisition looks up each holding's acquisition cost.

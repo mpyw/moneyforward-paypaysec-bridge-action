@@ -8,10 +8,10 @@ import (
 
 	"github.com/chromedp/chromedp"
 
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/config"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/chrome/browser"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/chrome/cookiestore"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/helpers/steperr"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/config"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/chrome/browser"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/chrome/cookiestore"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/internal/infra/helpers/steperr"
 )
 
 // Session is one running Chrome plus the context bounding its use.
