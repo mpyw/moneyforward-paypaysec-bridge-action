@@ -121,10 +121,10 @@ type Figures struct {
 // program deletes those. An expired cookie must not be able to look like a sale.
 type envelope struct {
 	// Status is 0 on success. Anything else is an error, described in Messages.
-	Status int `json:"STATUS"`
+	Status laxInt64 `json:"STATUS"`
 
 	// LoginStatus is 1 when the session is no longer signed in.
-	LoginStatus int `json:"LOGIN_STATUS"`
+	LoginStatus laxInt64 `json:"LOGIN_STATUS"`
 
 	Messages []struct {
 		Message string `json:"MESSAGE"`
@@ -147,6 +147,65 @@ func (e envelope) check(path string) error {
 		}
 		return fmt.Errorf("%s returned STATUS %d%s", path, e.Status, detail)
 	}
+	return nil
+}
+
+// laxInt64 is a number the service may send either as a JSON number or as a
+// decimal string.
+//
+// Both were observed on one run: INVEST_BRAND_ARRAY changed shape between two
+// buckets, and MINI_CLIENT_SEQ_NO came back as a number where the page's own
+// bundle treats it as a string. That is what a PHP service over a database driver
+// looks like from outside — whether a scalar keeps its quotes depends on where the
+// value came from, not on what it means — so a field's JSON type is not something
+// to design around one observation of.
+//
+// This is not a guess at a value: the string form is parsed strictly and refused
+// if it is not a number. A missing field stays zero, as it would without this.
+type laxInt64 int64
+
+func (n *laxInt64) UnmarshalJSON(data []byte) error {
+	text := strings.TrimSpace(string(data))
+	if text == "null" {
+		return nil
+	}
+	if strings.HasPrefix(text, `"`) {
+		var quoted string
+		if err := json.Unmarshal(data, &quoted); err != nil {
+			return err
+		}
+		text = strings.TrimSpace(quoted)
+	}
+	v, err := strconv.ParseInt(text, 10, 64)
+	if err != nil {
+		return fmt.Errorf("%q is not a number", text)
+	}
+	*n = laxInt64(v)
+	return nil
+}
+
+// laxString is an identifier the service may send either quoted or bare.
+//
+// The digits are kept exactly as they arrived rather than parsed and reprinted:
+// this is a name for something, not a quantity, and a round trip through an
+// integer is a chance to lose a leading zero or overflow a width nobody
+// promised.
+type laxString string
+
+func (l *laxString) UnmarshalJSON(data []byte) error {
+	text := strings.TrimSpace(string(data))
+	if text == "null" {
+		return nil
+	}
+	if strings.HasPrefix(text, `"`) {
+		var quoted string
+		if err := json.Unmarshal(data, &quoted); err != nil {
+			return err
+		}
+		*l = laxString(strings.TrimSpace(quoted))
+		return nil
+	}
+	*l = laxString(text)
 	return nil
 }
 
@@ -203,16 +262,16 @@ func (b *brandList[T]) UnmarshalJSON(data []byte) error {
 // topResponse is pc_invest_top. Only the fields this program uses.
 type topResponse struct {
 	envelope
-	SecuritiesValueTotal        int64 `json:"SECURITIES_VALUE_TOTAL"`
-	TotalAcquisitionFeeTaxTotal int64 `json:"TOTAL_ACQUISITION_FEE_TAX_TOTAL"`
-	SumGrossProfitTotal         int64 `json:"SUM_GROSS_PROFIT_TOTAL"`
+	SecuritiesValueTotal        laxInt64 `json:"SECURITIES_VALUE_TOTAL"`
+	TotalAcquisitionFeeTaxTotal laxInt64 `json:"TOTAL_ACQUISITION_FEE_TAX_TOTAL"`
+	SumGrossProfitTotal         laxInt64 `json:"SUM_GROSS_PROFIT_TOTAL"`
 
 	// InvestBrandArray is the holdings, and only the holdings. Absent or empty
 	// when the bucket holds nothing.
 	InvestBrandArray brandList[struct {
-		BrandID         int   `json:"BRAND_ID"`
-		SecuritiesValue int64 `json:"SECURITIES_VALUE"`
-		SumGrossProfit  int64 `json:"SUM_GROSS_PROFIT"`
+		BrandID         laxInt64 `json:"BRAND_ID"`
+		SecuritiesValue laxInt64 `json:"SECURITIES_VALUE"`
+		SumGrossProfit  laxInt64 `json:"SUM_GROSS_PROFIT"`
 	}] `json:"INVEST_BRAND_ARRAY"`
 }
 
@@ -221,8 +280,8 @@ type topResponse struct {
 type initResponse struct {
 	envelope
 	InvestBrandArray brandList[struct {
-		BrandID int    `json:"BRAND_ID"`
-		BrandNM string `json:"BRAND_NM"`
+		BrandID laxInt64 `json:"BRAND_ID"`
+		BrandNM string   `json:"BRAND_NM"`
 	}] `json:"INVEST_BRAND_ARRAY"`
 }
 
@@ -230,7 +289,7 @@ type initResponse struct {
 // number. The app bucket does not need one.
 type infoResponse struct {
 	envelope
-	MiniClientSeqNo string `json:"MINI_CLIENT_SEQ_NO"`
+	MiniClientSeqNo laxString `json:"MINI_CLIENT_SEQ_NO"`
 }
 
 // Read returns one bucket's holdings and totals.
@@ -256,9 +315,9 @@ func (c *Client) Read(ctx context.Context, bucket Bucket) (Figures, error) {
 		return figures, err
 	}
 
-	figures.Total = top.SecuritiesValueTotal
-	figures.Acquisition = top.TotalAcquisitionFeeTaxTotal
-	figures.Gain = top.SumGrossProfitTotal
+	figures.Total = int64(top.SecuritiesValueTotal)
+	figures.Acquisition = int64(top.TotalAcquisitionFeeTaxTotal)
+	figures.Gain = int64(top.SumGrossProfitTotal)
 
 	// Indexed under both the object key and BRAND_ID, because a holding can
 	// arrive with either and they agree wherever both are present. Keying on one
@@ -270,14 +329,14 @@ func (c *Client) Read(ctx context.Context, bucket Bucket) (Figures, error) {
 			names[key] = entry.BrandNM
 		}
 		if entry.BrandID != 0 {
-			names[strconv.Itoa(entry.BrandID)] = entry.BrandNM
+			names[strconv.FormatInt(int64(entry.BrandID), 10)] = entry.BrandNM
 		}
 	}
 
 	for i, brand := range top.InvestBrandArray.Items {
 		id := top.InvestBrandArray.Keys[i]
 		if id == "" {
-			id = strconv.Itoa(brand.BrandID)
+			id = strconv.FormatInt(int64(brand.BrandID), 10)
 		}
 		name := names[id]
 		if name == "" {
@@ -287,10 +346,10 @@ func (c *Client) Read(ctx context.Context, bucket Bucket) (Figures, error) {
 				id, initPath)
 		}
 		figures.Holdings = append(figures.Holdings, Holding{
-			BrandID:     brand.BrandID,
+			BrandID:     int(brand.BrandID),
 			Name:        name,
-			Yen:         brand.SecuritiesValue,
-			Acquisition: brand.SecuritiesValue - brand.SumGrossProfit,
+			Yen:         int64(brand.SecuritiesValue),
+			Acquisition: int64(brand.SecuritiesValue - brand.SumGrossProfit),
 		})
 	}
 	return figures, nil
@@ -336,7 +395,7 @@ func (c *Client) fetchMiniSeqNo(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("%s returned no MINI_CLIENT_SEQ_NO, so the ミニアプリ "+
 			"holdings cannot be requested", appInfo)
 	}
-	return info.MiniClientSeqNo, nil
+	return string(info.MiniClientSeqNo), nil
 }
 
 // post sends one multipart form and decodes the reply.

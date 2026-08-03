@@ -28,6 +28,13 @@ type stub struct {
 
 	// noHoldings is a bucket that holds nothing, which is the array shape too.
 	noHoldings bool
+
+	// quoted sends every number as a decimal string, the other way a PHP service
+	// can hand over a scalar.
+	quoted bool
+
+	// brokenTotal sends a total that is not a number in either form.
+	brokenTotal bool
 }
 
 func (s *stub) handler(t *testing.T) http.Handler {
@@ -47,7 +54,9 @@ func (s *stub) handler(t *testing.T) http.Handler {
 
 		switch r.URL.Path {
 		case appInfo:
-			_, _ = w.Write([]byte(`{"STATUS":0,"MINI_CLIENT_SEQ_NO":"900000001"}`))
+			// A bare number, which is what the live service sends — the page's
+			// own bundle treats it as a string.
+			_, _ = w.Write([]byte(`{"STATUS":0,"MINI_CLIENT_SEQ_NO":900000001}`))
 		case appTop, miniTop:
 			held := `{"7":{"BRAND_ID":7,"SECURITIES_VALUE":345678,"SUM_GROSS_PROFIT":45678}}`
 			if s.noHoldings {
@@ -55,8 +64,18 @@ func (s *stub) handler(t *testing.T) http.Handler {
 			} else if s.asArray {
 				held = `[{"BRAND_ID":7,"SECURITIES_VALUE":345678,"SUM_GROSS_PROFIT":45678}]`
 			}
+			if s.quoted {
+				held = `{"7":{"BRAND_ID":"7","SECURITIES_VALUE":"345678","SUM_GROSS_PROFIT":"45678"}}`
+			}
+			total := `345678`
+			if s.quoted {
+				total = `"345678"`
+			}
+			if s.brokenTotal {
+				total = `"-"`
+			}
 			_, _ = w.Write([]byte(`{"STATUS":` + strconv.Itoa(s.status) + `,"LOGIN_STATUS":` + strconv.Itoa(login) + `,
-				"SECURITIES_VALUE_TOTAL":345678,
+				"SECURITIES_VALUE_TOTAL":` + total + `,
 				"TOTAL_ACQUISITION_FEE_TAX_TOTAL":300000,
 				"SUM_GROSS_PROFIT_TOTAL":45678,
 				"MESSAGE_ARRAY":[{"MESSAGE":"だめ"}],
@@ -68,6 +87,10 @@ func (s *stub) handler(t *testing.T) http.Handler {
 			}
 			catalogue := `{"7":{"BRAND_ID":7,"BRAND_NM":"テスト・グローバル・ファンド"},
 				 "9":{"BRAND_ID":9,"BRAND_NM":"持っていない銘柄"}}`
+			if s.quoted {
+				catalogue = `[{"BRAND_ID":"7","BRAND_NM":"テスト・グローバル・ファンド"},
+				 {"BRAND_ID":"9","BRAND_NM":"持っていない銘柄"}]`
+			}
 			if s.asArray {
 				catalogue = `[{"BRAND_ID":7,"BRAND_NM":"テスト・グローバル・ファンド"},
 				 {"BRAND_ID":9,"BRAND_NM":"持っていない銘柄"}]`
@@ -260,5 +283,46 @@ func TestReadAcceptsAnEmptyBucket(t *testing.T) {
 	// The totals still have to arrive: "no holdings" is not "no answer".
 	if got.Total != 345678 {
 		t.Errorf("total = %d, want the reported total", got.Total)
+	}
+}
+
+// TestReadAcceptsQuotedNumbers is the other half of what a PHP service does to
+// scalars.
+//
+// Two of these arrived unquoted where the page's bundle implied a string, and the
+// reverse is the same coin: a value's JSON type here reflects where it came from
+// on the far side, not what it means. Every number this package reads is parsed
+// from either form, so finding out costs a test rather than a failed sync.
+func TestReadAcceptsQuotedNumbers(t *testing.T) {
+	got, err := serve(t, &stub{quoted: true}).Read(t.Context(), MiniApp)
+	if err != nil {
+		t.Fatalf("Read() error = %v", err)
+	}
+	if got.Total != 345678 || got.Acquisition != 300000 || got.Gain != 45678 {
+		t.Errorf("totals = %+v, want them parsed out of the quoted form", got)
+	}
+	if len(got.Holdings) != 1 {
+		t.Fatalf("holdings = %+v, want the one held", got.Holdings)
+	}
+	// Joined on a quoted BRAND_ID, which is the part a lenient total would not
+	// have covered.
+	if got.Holdings[0].Name != "テスト・グローバル・ファンド" {
+		t.Errorf("name = %q", got.Holdings[0].Name)
+	}
+	if got.Holdings[0].Yen != 345678 {
+		t.Errorf("yen = %d", got.Holdings[0].Yen)
+	}
+}
+
+// TestReadRefusesANumberItCannotParse keeps the leniency from becoming a guess: a
+// scalar that is neither a number nor a number in quotes is refused, not zeroed.
+// A zero here would be an amount, and this program acts on amounts.
+func TestReadRefusesANumberItCannotParse(t *testing.T) {
+	_, err := serve(t, &stub{brokenTotal: true}).Read(t.Context(), App)
+	if err == nil {
+		t.Fatal("Read() accepted a total that is not a number")
+	}
+	if !strings.Contains(err.Error(), "not a number") {
+		t.Errorf("error = %v, want it to say what was wrong with the value", err)
 	}
 }
