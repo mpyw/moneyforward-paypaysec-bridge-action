@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/dc9887e8-9037-4a84-8512-c6b21b3b58f8" alt="moneyforward-paypaysec-bridge-action" width="640">
+  <img src="https://github.com/user-attachments/assets/0285a2ec-77d4-43d1-85fb-e6ac814cc674" alt="moneyforward-paypaysec-bridge-action" width="640">
 </p>
 
 <h1 align="center">moneyforward-paypaysec-bridge-action</h1>
