@@ -17,6 +17,7 @@ func Command() *cli.Command {
 			selectorsCommand(),
 			loginCommand(),
 			balanceCommand(),
+			investCommand(),
 			probeCommand(),
 		},
 	}

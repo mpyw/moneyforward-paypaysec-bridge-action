@@ -16,6 +16,7 @@ import (
 // stub answers the three endpoints and records what it was asked.
 type stub struct {
 	mu       []string // paths, in order
+	referers map[string]string
 	fields   map[string]map[string]string
 	loginOut bool
 	status   int
@@ -49,6 +50,10 @@ func (s *stub) handler(t *testing.T) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.mu = append(s.mu, r.URL.Path)
 		s.fields[r.URL.Path] = readFields(t, r)
+		if s.referers == nil {
+			s.referers = map[string]string{}
+		}
+		s.referers[r.URL.Path] = r.Header.Get("Referer")
 
 		w.Header().Set("Content-Type", "application/json")
 		login := 0
@@ -386,5 +391,32 @@ func TestReadRefusesAMiniAccountThatHasNoClientNumber(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "MINI_CLIENT_SEQ_NO") {
 		t.Errorf("error = %v, want it to name the field that was missing", err)
+	}
+}
+
+// TestReadSaysWhichPageItIsOn is the header the ミニアプリ bucket will not answer
+// without.
+//
+// Measured against the live service: the identical body is accepted from inside
+// the document and refused from a client that sends no Referer, with STATUS 9 and
+// システムの不具合 — which names nothing, and cost three releases of guessing from
+// CI before the call was made from a terminal instead. A browser User-Agent makes
+// no difference; this header is the whole of it.
+func TestReadSaysWhichPageItIsOn(t *testing.T) {
+	s := &stub{}
+	if _, err := serve(t, s).Read(t.Context(), MiniApp); err != nil {
+		t.Fatalf("Read() error = %v", err)
+	}
+	// Every call, not only the ミニアプリ ones: the v2 endpoints do not ask, and an
+	// exception is a thing to keep true.
+	for _, path := range []string{appInfo, miniInit, miniTop} {
+		got := s.referers[path]
+		if got == "" {
+			t.Errorf("%s was sent no Referer", path)
+			continue
+		}
+		if !strings.HasSuffix(got, "/investment_trust/") {
+			t.Errorf("%s Referer = %q, want the 投資信託 screen", path, got)
+		}
 	}
 }

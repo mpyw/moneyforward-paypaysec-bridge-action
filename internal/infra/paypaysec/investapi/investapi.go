@@ -29,6 +29,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"sort"
@@ -58,6 +59,19 @@ var origin = "https://www.paypay-sec.co.jp"
 func setOrigin(u string) { origin = u }
 
 const (
+	// pagePath is the screen these endpoints belong to. Sent as the Referer, and
+	// the ミニアプリ bucket will not answer without it: the same body that is
+	// accepted from inside the document is refused from a client that does not say
+	// which page it is on, with STATUS 9 and システムの不具合 — a message that names
+	// nothing. Measured against the live service, that header alone is the
+	// difference; a browser User-Agent makes none.
+	//
+	// Sent on every call, not just the ミニアプリ ones. The v2 endpoints do not ask
+	// for it, but one rule is easier to keep true than an exception, and the claim
+	// is accurate either way: this program really is on that page, in a browser,
+	// borrowing its session.
+	pagePath = "/investment_trust/"
+
 	appTop   = "/v2/invest/brand/pc_invest_top"
 	appInit  = "/v2/invest/brand/pc_invest_init"
 	appInfo  = "/v2/invest/brand/pc_invest_info"
@@ -90,6 +104,43 @@ type Client struct {
 
 	// miniSeqNo is the mini bucket's client number, fetched once on demand.
 	miniSeqNo string
+
+	// Trace, when set, is handed every reply before it is judged: the path, the
+	// fields sent, and the body verbatim.
+	//
+	// For the debug command only. The service answers a request it does not like
+	// with STATUS 9 and システムの不具合, which names nothing — three releases were
+	// spent guessing at that from CI, one guess per run, at a login and a full
+	// scrape each. A body in front of a person settles it in one.
+	//
+	// Never set in the scheduled job: a body here holds the account's balances.
+	Trace func(path string, fields map[string]string, body []byte)
+}
+
+// Info is what pc_invest_info says about the account, beyond the client number.
+//
+// InvTrustUsable and PPKYC are the page's own test for whether the ミニアプリ
+// bucket exists at all: it shows that tab only when the client number and
+// InvTrustUsable are both set. An account failing that has no ミニアプリ 投資信託
+// to read, which is a different thing from a read that failed.
+type Info struct {
+	MiniClientSeqNo string
+	InvTrustUsable  string
+	PPKYC           string
+}
+
+// ReadInfo reports what the account is, asking as the ミニアプリ.
+func (c *Client) ReadInfo(ctx context.Context) (Info, error) {
+	fields := miniInfoFields()
+	var info infoResponse
+	if err := c.post(ctx, appInfo, fields, &info); err != nil {
+		return Info{}, err
+	}
+	return Info{
+		MiniClientSeqNo: string(info.MiniClientSeqNo),
+		InvTrustUsable:  string(info.InvTrustUsable),
+		PPKYC:           string(info.PPKYC),
+	}, nil
 }
 
 // Holding is one 銘柄 as the API reports it.
@@ -290,6 +341,11 @@ type initResponse struct {
 type infoResponse struct {
 	envelope
 	MiniClientSeqNo laxString `json:"MINI_CLIENT_SEQ_NO"`
+
+	// InvTrustUsable and PPKYC decide whether the ミニアプリ bucket exists for
+	// this account; see [Info].
+	InvTrustUsable laxString `json:"INV_TRUST_USABLE"`
+	PPKYC          laxString `json:"PP_KYC"`
 }
 
 // Read returns one bucket's holdings and totals.
@@ -395,13 +451,7 @@ func (c *Client) fieldsFor(ctx context.Context, bucket Bucket) (map[string]strin
 // MINI_CLIENT_SEQ_NO, so every mini call carries it, including the call that
 // exists to find out what it is.
 func (c *Client) fetchMiniSeqNo(ctx context.Context) (string, error) {
-	fields := map[string]string{
-		"APP_ID":             strconv.Itoa(appIDMiniApp),
-		"MINI_CLIENT_SEQ_NO": "",
-	}
-	for k, v := range commonFields {
-		fields[k] = v
-	}
+	fields := miniInfoFields()
 
 	var info infoResponse
 	if err := c.post(ctx, appInfo, fields, &info); err != nil {
@@ -416,6 +466,18 @@ func (c *Client) fetchMiniSeqNo(ctx context.Context) (string, error) {
 	}
 	return "", fmt.Errorf("%s returned no MINI_CLIENT_SEQ_NO, so the ミニアプリ "+
 		"holdings cannot be requested", appInfo)
+}
+
+// miniInfoFields is the body the page sends when it asks this as the ミニアプリ.
+func miniInfoFields() map[string]string {
+	fields := map[string]string{
+		"APP_ID":             strconv.Itoa(appIDMiniApp),
+		"MINI_CLIENT_SEQ_NO": "",
+	}
+	for k, v := range commonFields {
+		fields[k] = v
+	}
+	return fields
 }
 
 // post sends one multipart form and decodes the reply.
@@ -443,6 +505,7 @@ func (c *Client) post(ctx context.Context, path string, fields map[string]string
 		return fmt.Errorf("build %s request: %w", path, err)
 	}
 	req.Header.Set("Content-Type", form.FormDataContentType())
+	req.Header.Set("Referer", origin+pagePath)
 
 	res, err := c.HTTP.Do(req)
 	if err != nil {
@@ -453,7 +516,18 @@ func (c *Client) post(ctx context.Context, path string, fields map[string]string
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("post %s: %s", path, res.Status)
 	}
-	if err := json.NewDecoder(res.Body).Decode(out); err != nil {
+
+	// Read whole rather than streamed into the decoder, so that Trace has
+	// something to show when the decode is what failed.
+	payload, err := io.ReadAll(res.Body)
+	if err != nil {
+		return fmt.Errorf("read %s: %w", path, err)
+	}
+	if c.Trace != nil {
+		c.Trace(path, fields, payload)
+	}
+
+	if err := json.Unmarshal(payload, out); err != nil {
 		return fmt.Errorf("decode %s: %w — an HTML body here means the session is "+
 			"not authenticated", path, err)
 	}
