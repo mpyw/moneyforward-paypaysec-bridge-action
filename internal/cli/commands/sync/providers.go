@@ -127,6 +127,7 @@ func provideBroker(c config.Config, bctx browserContext, codes payPaySecCodes, m
 			Username: c.PayPaySec.Username,
 			Password: c.PayPaySec.Password,
 			OnRead:   maskFigures(masker),
+			OnSkip:   reportSkip,
 		},
 		Browser: bctx,
 		Codes:   codes,

@@ -9,6 +9,7 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/assetname"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/money"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/valuation"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/investapi"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/pagescan"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
 )
@@ -308,6 +309,17 @@ func (c *Client) GetBalances(ctx context.Context) (Balances, error) {
 		// to appear in a message. See [Client.OnRead].
 		if c.OnRead != nil {
 			c.OnRead(reading)
+		}
+		// A bucket the account does not have is left out of the read entirely,
+		// rather than recorded as empty. Recorded as empty it would be a category
+		// this run covered and found nothing in — which is a licence to delete
+		// everything under it. Left out, it is a category the run never saw, and
+		// [portfolio.Plan.CheckCoverage] refuses to delete from those.
+		if errors.Is(err, investapi.ErrNoMiniApp) {
+			if c.OnSkip != nil {
+				c.OnSkip(t, err)
+			}
+			continue
 		}
 		if err != nil {
 			return Balances{}, stepErr(StepReadBalance, err)

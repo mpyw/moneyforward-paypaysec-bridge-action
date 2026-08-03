@@ -1,6 +1,7 @@
 package investapi
 
 import (
+	"errors"
 	"io"
 	"mime"
 	"mime/multipart"
@@ -40,6 +41,10 @@ type stub struct {
 	// noMiniClient is an account with no ミニアプリ, which reports its client
 	// number as zero rather than as absent.
 	noMiniClient bool
+
+	// miniNotUsable is the other half of the page's test: a client number exists
+	// but the bucket is not on offer.
+	miniNotUsable bool
 }
 
 func (s *stub) handler(t *testing.T) http.Handler {
@@ -67,9 +72,16 @@ func (s *stub) handler(t *testing.T) http.Handler {
 			if s.noMiniClient {
 				seq = `0`
 			}
-			// A bare number, which is what the live service sends — the page's
-			// own bundle treats it as a string.
-			_, _ = w.Write([]byte(`{"STATUS":0,"MINI_CLIENT_SEQ_NO":` + seq + `}`))
+			// The number is bare and the flag is a quoted "true": both are what the
+			// live service sends, where the page's own bundle treats the first as a
+			// string.
+			usable := `"true"`
+			if s.miniNotUsable {
+				usable = `"false"`
+			}
+			_, _ = w.Write([]byte(`{"STATUS":0,"PP_KYC":1,
+				"INV_TRUST_USABLE":` + usable + `,
+				"MINI_CLIENT_SEQ_NO":` + seq + `}`))
 		case appTop, miniTop:
 			held := `{"7":{"BRAND_ID":7,"SECURITIES_VALUE":345678,"SUM_GROSS_PROFIT":45678}}`
 			if s.noHoldings {
@@ -377,20 +389,33 @@ func TestReadAsksForTheCatalogueFirst(t *testing.T) {
 	}
 }
 
-// TestReadRefusesAMiniAccountThatHasNoClientNumber covers an account without the
-// ミニアプリ at all.
+// TestReadReportsAnAbsentMiniBucketAsAbsent covers both halves of the page's own
+// test for whether this bucket exists.
 //
-// The field arrives as a number, so "absent" reads as zero rather than as an empty
-// string. Passed on, it is a client number with no client behind it, and the
-// service answers with a system error that names nothing — a day spent on the
-// wrong end of the call.
-func TestReadRefusesAMiniAccountThatHasNoClientNumber(t *testing.T) {
-	_, err := serve(t, &stub{noMiniClient: true}).Read(t.Context(), MiniApp)
-	if err == nil {
-		t.Fatal("Read() sent a client number of zero")
-	}
-	if !strings.Contains(err.Error(), "MINI_CLIENT_SEQ_NO") {
-		t.Errorf("error = %v, want it to name the field that was missing", err)
+// The distinction it protects is the whole point: absent must not read as failed,
+// which would stop a run every weekday for anyone without the ミニアプリ, and must
+// not read as empty either, which is a licence to delete everything recorded under
+// the category. It is a third answer, and callers check for this sentinel.
+//
+// What the endpoints do for such an account is not known and cannot be observed
+// from an account that has the bucket. Not asking is the part that does not need
+// the observation.
+func TestReadReportsAnAbsentMiniBucketAsAbsent(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		stub *stub
+	}{
+		// A client number of zero: the field is numeric, so this is the shape
+		// absence takes in it.
+		{"no client number", &stub{noMiniClient: true}},
+		{"not on offer", &stub{miniNotUsable: true}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := serve(t, tc.stub).Read(t.Context(), MiniApp)
+			if !errors.Is(err, ErrNoMiniApp) {
+				t.Errorf("Read() error = %v, want ErrNoMiniApp", err)
+			}
+		})
 	}
 }
 

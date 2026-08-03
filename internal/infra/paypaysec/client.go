@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/helpers/steperr"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
 )
 
 // Client holds the credentials for one PayPay 証券 account. The zero value is
@@ -36,6 +37,15 @@ type Client struct {
 	// the fact does not work: ::add-mask:: only affects output that comes after
 	// it.
 	OnRead func(Reading)
+
+	// OnSkip, if set, is told about a target the account does not have.
+	//
+	// Separate from OnRead because a skip is not a reading: there are no figures
+	// to mask and no amounts to reconcile. What it needs is to be said out loud.
+	// A category left out of a run is invisible otherwise — the guards keep its
+	// recorded entries from being deleted, so the run succeeds and the entries
+	// quietly stop being updated, which is worth a line in the log.
+	OnSkip func(t selector.Target, why error)
 }
 
 // Validate reports missing credentials up front, rather than letting an empty

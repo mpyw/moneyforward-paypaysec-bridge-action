@@ -28,6 +28,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -117,6 +118,21 @@ type Client struct {
 	Trace func(path string, fields map[string]string, body []byte)
 }
 
+// ErrNoMiniApp says the page's own test reports no ミニアプリ 投資信託 for this
+// account.
+//
+// Not a failure, and treated as neither a failure nor an empty portfolio. The two
+// need opposite handling — a read that failed must stop the run, an empty bucket
+// licenses deleting everything recorded under it — and this is a third thing: a
+// bucket that was never asked about. Skipping the target leaves the category
+// uncovered, which is what [portfolio.Plan.CheckCoverage] refuses to delete from.
+//
+// The condition comes from the page, not from the service: what these endpoints
+// answer for an account without the bucket has not been observed, because the
+// account this was built against has it. Deciding not to ask is the part that can
+// be got right without that observation.
+var ErrNoMiniApp = errors.New("the account has no ミニアプリ 投資信託")
+
 // Info is what pc_invest_info says about the account, beyond the client number.
 //
 // InvTrustUsable and PPKYC are the page's own test for whether the ミニアプリ
@@ -127,6 +143,33 @@ type Info struct {
 	MiniClientSeqNo string
 	InvTrustUsable  string
 	PPKYC           string
+}
+
+// HasMiniApp is the page's own test, kept in its terms.
+//
+// Verbatim from the bundle: `"" != (MINI_CLIENT_SEQ_NO && INV_TRUST_USABLE)`,
+// which in JavaScript is "both are truthy". Spelled out rather than paraphrased,
+// because the values arrive as text and the shapes differ — the client number is a
+// number, and INV_TRUST_USABLE has been seen as the string "true".
+//
+// PPKYC is deliberately not part of this. The bundle gates the tab menu on
+// `hasMiniApp && PP_KYC` and blocks the app-side portfolio route when PP_KYC is 0,
+// which says something about the アプリ bucket rather than this one — and says it
+// about screens, not about what the endpoints return. Reading a bucket out of that
+// would be a guess, so PPKYC is carried for the debug command to show and nothing
+// here acts on it.
+func (i Info) HasMiniApp() bool {
+	return truthy(i.MiniClientSeqNo) && truthy(i.InvTrustUsable)
+}
+
+// truthy reads one of these text-carried flags the way the page would.
+func truthy(v string) bool {
+	switch v {
+	case "", "0", "false":
+		return false
+	default:
+		return true
+	}
 }
 
 // ReadInfo reports what the account is, asking as the ミニアプリ.
@@ -457,15 +500,22 @@ func (c *Client) fetchMiniSeqNo(ctx context.Context) (string, error) {
 	if err := c.post(ctx, appInfo, fields, &info); err != nil {
 		return "", err
 	}
-	// "0" alongside empty: the field arrives as a number, and a zero is what an
-	// account without the ミニアプリ looks like. Sent on, it is a client number the
-	// service has no client for, which comes back as a system error rather than as
-	// anything naming the cause.
-	if seq := string(info.MiniClientSeqNo); seq != "" && seq != "0" {
-		return seq, nil
+	// The page's own test for whether this bucket exists, applied before anything
+	// is asked of it.
+	//
+	// What the endpoints do for an account that does not have it is not known: this
+	// account has it, and there is no way to observe the other case from here. So
+	// the site's own judgement is used as the judgement, and the bucket is not
+	// asked about at all rather than asked and second-guessed.
+	account := Info{
+		MiniClientSeqNo: string(info.MiniClientSeqNo),
+		InvTrustUsable:  string(info.InvTrustUsable),
+		PPKYC:           string(info.PPKYC),
 	}
-	return "", fmt.Errorf("%s returned no MINI_CLIENT_SEQ_NO, so the ミニアプリ "+
-		"holdings cannot be requested", appInfo)
+	if !account.HasMiniApp() {
+		return "", ErrNoMiniApp
+	}
+	return account.MiniClientSeqNo, nil
 }
 
 // miniInfoFields is the body the page sends when it asks this as the ミニアプリ.

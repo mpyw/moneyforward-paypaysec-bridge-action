@@ -7,6 +7,7 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/portfolio"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/actionslog"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec"
+	ppsel "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
 )
 
 // What the run says as it goes. The figures are masked by the time any of this
@@ -78,4 +79,15 @@ func logChallenge(service string) func(bool) {
 			log.Printf("→ %s presented no OTP challenge", service)
 		}
 	}
+}
+
+// reportSkip says out loud that a category was not read.
+//
+// Otherwise it is invisible: the guards keep the category's recorded entries from
+// being deleted, so the run succeeds and those entries quietly stop being updated.
+// A stale figure that nobody is told about is worse than a failure, because a
+// failure sends mail.
+func reportSkip(t ppsel.Target, why error) {
+	log.Printf("   %-16s skipped — %v; entries under %s are left as they are",
+		t.Key, why, t.Category())
 }

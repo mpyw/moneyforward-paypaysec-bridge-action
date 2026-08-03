@@ -2,6 +2,7 @@ package paypaysec
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"text/tabwriter"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug/session"
 	ppsite "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/investapi"
 	ppsel "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
 )
 
@@ -44,6 +46,13 @@ func runBalance(ctx context.Context, opts *session.Options) error {
 
 	for _, target := range ppsel.Targets {
 		reading, rerr := ppsite.Read(s.Context(), target)
+		// Not a failure: the account is not offered this bucket, so there was
+		// nothing to read. Counted nowhere and summed nowhere, which is what the
+		// job does with it too.
+		if errors.Is(rerr, investapi.ErrNoMiniApp) {
+			_, _ = fmt.Fprintf(w, "%s\t%s\t\t\t\t\tNOT OFFERED\n", target.Key, target.Bucket)
+			continue
+		}
 		if rerr != nil {
 			_, _ = fmt.Fprintf(w, "%s\t%s\t\t\t\t\tERROR\n", target.Key, target.Bucket)
 			failures++
