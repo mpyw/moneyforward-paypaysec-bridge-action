@@ -3,6 +3,7 @@ package paypaysec
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/chrome/cookiestore"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/investapi"
@@ -22,7 +23,7 @@ import (
 // The result is shaped as a [Reading] so that everything downstream — the
 // three-route reconciliation, the masker, the per-target log line — is unchanged.
 // What changes is where the numbers came from.
-func (c *Client) readInvestmentTrust(ctx context.Context, t selector.Target, api *investapi.Client) (Reading, error) {
+func readInvestmentTrust(ctx context.Context, t selector.Target) (Reading, error) {
 	bucket := investapi.App
 	if t.Bucket == selector.BucketMiniApp {
 		bucket = investapi.MiniApp
@@ -30,6 +31,10 @@ func (c *Client) readInvestmentTrust(ctx context.Context, t selector.Target, api
 
 	reading := Reading{Target: t}
 
+	api, err := investAPIFor(ctx)
+	if err != nil {
+		return reading, fmt.Errorf("%s: %w", t.Key, err)
+	}
 	figures, err := api.Read(ctx, bucket)
 	if err != nil {
 		return reading, fmt.Errorf("%s: %w", t.Key, err)
@@ -43,10 +48,18 @@ func (c *Client) readInvestmentTrust(ctx context.Context, t selector.Target, api
 	// a rendered section that failed to populate and a category holding nothing
 	// arrived identically. An answer with no holdings in it is an empty
 	// category, full stop.
+	// The raw fields are what the page said, and here nothing said anything —
+	// these are the API's numbers written out. Filled rather than left blank
+	// because they are what [Reading.Texts] hands the masker, and because the
+	// debug table reads them: an amount this program holds should be maskable in
+	// every form it can appear in.
 	reading.Figures = pagescan.Figures{
 		TotalPresent:       true,
+		TotalRaw:           yen(figures.Total),
 		AcquisitionPresent: true,
+		AcquisitionRaw:     yen(figures.Acquisition),
 		GainPresent:        true,
+		GainRaw:            yen(figures.Gain),
 		HoldingsSection:    true,
 	}
 
@@ -62,6 +75,7 @@ func (c *Client) readInvestmentTrust(ctx context.Context, t selector.Target, api
 
 		reading.Holdings = append(reading.Holdings, Holding{
 			Name:           h.Name,
+			InvestText:     yen(h.Yen),
 			Yen:            h.Yen,
 			HasYen:         true,
 			AcquisitionYen: h.Acquisition,
@@ -73,11 +87,16 @@ func (c *Client) readInvestmentTrust(ctx context.Context, t selector.Target, api
 	return reading, nil
 }
 
-// investAPI borrows the browser's session for the HTTP calls, once per run.
+// yen renders an amount as the raw text of a figure that had none.
+func yen(n int64) string { return strconv.FormatInt(n, 10) + "円" }
+
+// investAPIFor borrows the browser's session for the HTTP calls.
 //
-// Lazily, because a run that fails before it reaches 投資信託 should not have
-// paid for this, and because the borrow reads the live cookie jar — doing it
-// early would capture a session that later steps refresh.
+// Per read rather than per run: the only state a client accumulates is the
+// ミニアプリ client number, and exactly one target asks for it, so caching it
+// across targets saves nothing. Late rather than early, because the borrow reads
+// the live cookie jar and a session captured before the login steps is a session
+// from before the login steps.
 func investAPIFor(ctx context.Context) (*investapi.Client, error) {
 	http, err := cookiestore.HTTPClientFor(ctx)
 	if err != nil {

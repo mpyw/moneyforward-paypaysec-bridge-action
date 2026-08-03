@@ -9,7 +9,6 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/assetname"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/money"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/valuation"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/investapi"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/pagescan"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
 )
@@ -302,22 +301,8 @@ func (c *Client) GetBalances(ctx context.Context) (Balances, error) {
 	var out Balances
 	out.Readings = make([]Reading, 0, len(selector.Targets))
 
-	// Borrowed once, on the first target that needs it.
-	var api *investapi.Client
-
 	for _, t := range selector.Targets {
-		var reading Reading
-		var err error
-		if t.ViaAPI {
-			if api == nil {
-				if api, err = investAPIFor(ctx); err != nil {
-					return Balances{}, stepErr(StepReadBalance, err)
-				}
-			}
-			reading, err = c.readInvestmentTrust(ctx, t, api)
-		} else {
-			reading, err = Read(ctx, t)
-		}
+		reading, err := Read(ctx, t)
 		// Before the error check: Read returns what it managed to gather even
 		// when it failed, and a failure is exactly when those figures are about
 		// to appear in a message. See [Client.OnRead].
@@ -342,7 +327,14 @@ func (c *Client) GetBalances(ctx context.Context) (Balances, error) {
 	return out, nil
 }
 
-// Read loads one target and turns what the page said into figures.
+// Read turns one target into figures, from wherever that target is read.
+//
+// The branch lives here, not in [Client.GetBalances], so that every caller gets
+// the same answer for the same target. When GetBalances held it, the debug
+// command drove the other path and disagreed with the scheduled job about what
+// 投資信託 even is — and a debug tool that reads differently from the job is a
+// debug tool that cannot reproduce the job's mistakes. The same split, over
+// acquisition costs, is what the comment below is about.
 //
 // It is exported so the debug command can exercise a single target without
 // logging in again or reading the other seven.
@@ -351,6 +343,10 @@ func (c *Client) GetBalances(ctx context.Context) (Balances, error) {
 // whether the figure may appear in their output, because in CI it must be
 // masked before it reaches the workflow log.
 func Read(ctx context.Context, t selector.Target) (Reading, error) {
+	if t.ViaAPI {
+		return readInvestmentTrust(ctx, t)
+	}
+
 	figures, err := pagescan.Load(ctx, t)
 	if err != nil {
 		return Reading{Target: t}, err
