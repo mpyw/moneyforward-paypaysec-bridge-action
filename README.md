@@ -4,6 +4,13 @@
 
 <h1 align="center">moneyforward-paypaysec-bridge-action</h1>
 
+> [!CAUTION]
+> **有志が個人利用目的で作成した非公式のツールです。**
+> **利用には情報流出のリスクが伴います。**
+> **ご自身でリスク管理できる方のみ利用してください。**
+>
+> PayPay 証券・MoneyForward いずれとも関係はありません。
+
 MoneyForward が PayPay 証券に非対応なので、保有銘柄を毎営業日スクレイピングして
 MoneyForward の手入力口座に反映する GitHub Action。
 
