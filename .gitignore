@@ -48,5 +48,10 @@ coverage.out
 .vscode/
 *.swp
 
-# Claude Code のローカル状態
-/.claude/
+# Claude Code のローカル状態。skills/ は手順書なので追跡する。
+#
+# ディレクトリごと除外していた時期があり、書いたばかりの SKILL.md 3 本を
+# 黙って落とした。commit も push も成功し、それを参照する CLAUDE.md まで
+# 入ったので、中身が無いことに気づく手掛かりが無かった。
+/.claude/*
+!/.claude/skills/

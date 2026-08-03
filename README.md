@@ -1,4 +1,8 @@
-# moneyforward-paypaysec-bridge-action
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/dc9887e8-9037-4a84-8512-c6b21b3b58f8" alt="moneyforward-paypaysec-bridge-action" width="640">
+</p>
+
+<h1 align="center">moneyforward-paypaysec-bridge-action</h1>
 
 MoneyForward が PayPay 証券に非対応なので、保有銘柄を毎営業日スクレイピングして
 MoneyForward の手入力口座に反映する GitHub Action。

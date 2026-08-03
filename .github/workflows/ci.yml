@@ -52,9 +52,9 @@ jobs:
         # internal/cli/commands/secrets, and CI only noticed because the missing
         # file happened to be one the build needed.
         run: |
-          ignored="$(git ls-files --others --ignored --exclude-standard -- '*.go')"
+          ignored="$(git ls-files --others --ignored --exclude-standard -- '*.go' '*.md' '*.yml' '*.js')"
           if [ -n "$ignored" ]; then
-            echo "::error::these Go files are gitignored and will not reach CI:"
+            echo "::error::these files are gitignored and are not in the repository:"
             echo "$ignored"
             exit 1
           fi
