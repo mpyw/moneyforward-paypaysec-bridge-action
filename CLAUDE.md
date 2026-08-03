@@ -108,6 +108,14 @@ DOM にこの 2 状態を区別する材料がない。
 | アプリ | `/v2/invest/brand/pc_invest_top` | `/v2/…/pc_invest_init` | 3 |
 | ミニアプリ | `/v3/invest/brand/pc_invest_top` | `/v3/…/pc_invest_init` | 6 |
 
+**ページは bucket ごとに transport を持ち、各 transport が自分の既定フィールドを持つ。**
+`MINI_CLIENT_SEQ_NO` を取る `pc_invest_info` は v2 のパスだが、ミニアプリのときは
+**ミニアプリの transport 経由**で呼ばれる = `APP_ID: 6` かつ `MINI_CLIENT_SEQ_NO: ""`。
+アプリの transport（`APP_ID: 3`）で聞くのは別の質問で、その答えを v3 top に渡すと
+**`STATUS: 9`「システムの不具合」** で拒否される（原因を何も言わない）。
+ミニアプリを持たない口座では `MINI_CLIENT_SEQ_NO` が **0** で返る。数値フィールドなので
+空文字判定だけでは抜ける。`init` → `top` の順もページに合わせる（ステートフルな PHP）。
+
 - **契約はページ自身の JS バンドルから読んだ**（推測していない）。未認証の
   `GET /investment_trust/` がバンドル名を返し、バンドルがパス・定数・
   `MINI_CLIENT_SEQ_NO` の出どころ (`pc_invest_info`) を全部書いている

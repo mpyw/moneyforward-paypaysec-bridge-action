@@ -306,12 +306,15 @@ func (c *Client) Read(ctx context.Context, bucket Bucket) (Figures, error) {
 		topPath, initPath = miniTop, miniInit
 	}
 
-	var top topResponse
-	if err := c.post(ctx, topPath, fields, &top); err != nil {
-		return figures, err
-	}
+	// init before top, which is the order the page loads them in. Nothing here
+	// needs the catalogue first, but this is a stateful PHP service and the mini
+	// bucket has already refused a top call that arrived out of the page's order.
 	var catalogue initResponse
 	if err := c.post(ctx, initPath, fields, &catalogue); err != nil {
+		return figures, err
+	}
+	var top topResponse
+	if err := c.post(ctx, topPath, fields, &top); err != nil {
 		return figures, err
 	}
 
@@ -379,10 +382,23 @@ func (c *Client) fieldsFor(ctx context.Context, bucket Bucket) (map[string]strin
 	return fields, nil
 }
 
-// fetchMiniSeqNo asks the app bucket's info endpoint for the mini bucket's
-// client number, which is what the page does before its first mini call.
+// fetchMiniSeqNo asks for the ミニアプリ client number.
+//
+// The path is the app bucket's, but the fields are the mini bucket's: APP_ID 6
+// with an empty MINI_CLIENT_SEQ_NO. That is not a detail — the page has one
+// transport per bucket, each with its own default fields, and it reaches this one
+// endpoint through the mini transport whenever the mini tab is showing. Asking as
+// the app bucket is what the page does for the app tab, and it is a different
+// question.
+//
+// Sending the field empty is the page's own doing too: the mini defaults declare
+// MINI_CLIENT_SEQ_NO, so every mini call carries it, including the call that
+// exists to find out what it is.
 func (c *Client) fetchMiniSeqNo(ctx context.Context) (string, error) {
-	fields := map[string]string{"APP_ID": strconv.Itoa(appIDApp)}
+	fields := map[string]string{
+		"APP_ID":             strconv.Itoa(appIDMiniApp),
+		"MINI_CLIENT_SEQ_NO": "",
+	}
 	for k, v := range commonFields {
 		fields[k] = v
 	}
@@ -391,11 +407,15 @@ func (c *Client) fetchMiniSeqNo(ctx context.Context) (string, error) {
 	if err := c.post(ctx, appInfo, fields, &info); err != nil {
 		return "", err
 	}
-	if info.MiniClientSeqNo == "" {
-		return "", fmt.Errorf("%s returned no MINI_CLIENT_SEQ_NO, so the ミニアプリ "+
-			"holdings cannot be requested", appInfo)
+	// "0" alongside empty: the field arrives as a number, and a zero is what an
+	// account without the ミニアプリ looks like. Sent on, it is a client number the
+	// service has no client for, which comes back as a system error rather than as
+	// anything naming the cause.
+	if seq := string(info.MiniClientSeqNo); seq != "" && seq != "0" {
+		return seq, nil
 	}
-	return string(info.MiniClientSeqNo), nil
+	return "", fmt.Errorf("%s returned no MINI_CLIENT_SEQ_NO, so the ミニアプリ "+
+		"holdings cannot be requested", appInfo)
 }
 
 // post sends one multipart form and decodes the reply.

@@ -35,6 +35,10 @@ type stub struct {
 
 	// brokenTotal sends a total that is not a number in either form.
 	brokenTotal bool
+
+	// noMiniClient is an account with no ミニアプリ, which reports its client
+	// number as zero rather than as absent.
+	noMiniClient bool
 }
 
 func (s *stub) handler(t *testing.T) http.Handler {
@@ -54,9 +58,13 @@ func (s *stub) handler(t *testing.T) http.Handler {
 
 		switch r.URL.Path {
 		case appInfo:
+			seq := `900000001`
+			if s.noMiniClient {
+				seq = `0`
+			}
 			// A bare number, which is what the live service sends — the page's
 			// own bundle treats it as a string.
-			_, _ = w.Write([]byte(`{"STATUS":0,"MINI_CLIENT_SEQ_NO":900000001}`))
+			_, _ = w.Write([]byte(`{"STATUS":0,"MINI_CLIENT_SEQ_NO":` + seq + `}`))
 		case appTop, miniTop:
 			held := `{"7":{"BRAND_ID":7,"SECURITIES_VALUE":345678,"SUM_GROSS_PROFIT":45678}}`
 			if s.noHoldings {
@@ -181,6 +189,19 @@ func TestReadMiniAppFetchesItsClientNumber(t *testing.T) {
 	}
 	if s.fields[miniTop]["APP_ID"] != "6" {
 		t.Errorf("APP_ID = %q, want the mini bucket", s.fields[miniTop]["APP_ID"])
+	}
+
+	// Asked as the mini bucket, not as the app bucket whose path it borrows. The
+	// page has one transport per bucket and reaches this endpoint through the mini
+	// one whenever the mini tab is showing; asking as the app bucket is a
+	// different question, and the answer to it made the service refuse the top
+	// call outright.
+	if got := s.fields[appInfo]["APP_ID"]; got != "6" {
+		t.Errorf("info APP_ID = %q, want the mini bucket's", got)
+	}
+	if _, sent := s.fields[appInfo]["MINI_CLIENT_SEQ_NO"]; !sent {
+		t.Error("the mini defaults declare MINI_CLIENT_SEQ_NO, so even the call " +
+			"that asks for it carries it")
 	}
 
 	// Asked once, then remembered: a second bucket read must not re-fetch it.
@@ -324,5 +345,46 @@ func TestReadRefusesANumberItCannotParse(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "not a number") {
 		t.Errorf("error = %v, want it to say what was wrong with the value", err)
+	}
+}
+
+// TestReadAsksForTheCatalogueFirst pins the order the page loads these in.
+//
+// Nothing here needs the catalogue before the holdings — this is a stateful PHP
+// service, and the mini bucket has already refused a top call that arrived out of
+// the page's order once.
+func TestReadAsksForTheCatalogueFirst(t *testing.T) {
+	s := &stub{}
+	if _, err := serve(t, s).Read(t.Context(), App); err != nil {
+		t.Fatalf("Read() error = %v", err)
+	}
+	var init, top int
+	for i, path := range s.mu {
+		switch path {
+		case appInit:
+			init = i
+		case appTop:
+			top = i
+		}
+	}
+	if init > top {
+		t.Errorf("call order = %v, want %s before %s", s.mu, appInit, appTop)
+	}
+}
+
+// TestReadRefusesAMiniAccountThatHasNoClientNumber covers an account without the
+// ミニアプリ at all.
+//
+// The field arrives as a number, so "absent" reads as zero rather than as an empty
+// string. Passed on, it is a client number with no client behind it, and the
+// service answers with a system error that names nothing — a day spent on the
+// wrong end of the call.
+func TestReadRefusesAMiniAccountThatHasNoClientNumber(t *testing.T) {
+	_, err := serve(t, &stub{noMiniClient: true}).Read(t.Context(), MiniApp)
+	if err == nil {
+		t.Fatal("Read() sent a client number of zero")
+	}
+	if !strings.Contains(err.Error(), "MINI_CLIENT_SEQ_NO") {
+		t.Errorf("error = %v, want it to name the field that was missing", err)
 	}
 }
