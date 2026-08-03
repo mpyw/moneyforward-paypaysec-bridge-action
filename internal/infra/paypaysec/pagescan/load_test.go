@@ -59,7 +59,11 @@ const investmentTrustHTML = `<!doctype html><meta charset="utf-8"><title>fixture
       e.preventDefault();
       document.querySelectorAll(".tab_menu li").forEach((o) => o.classList.remove("actived"));
       li.classList.add("actived");
-      show(i === 0 ? app : mini);
+      // The live page fetches per tab; Load waits for that response, so a
+      // fixture that swaps without one would never be waited for.
+      const api = i === 0 ? "/v2/invest/brand/pc_invest_top"
+                          : "/v3/invest/brand/pc_invest_top";
+      fetch(api, {method: "POST"}).then(() => show(i === 0 ? app : mini));
     });
   });
 </script>
@@ -73,6 +77,7 @@ func TestLoadReadsATargetWithATab(t *testing.T) {
 
 	figures, err := Load(bctx, selector.Target{
 		Key: "toushin-miniapp", URL: url, TabLabel: selector.TabLabelMiniApp,
+		FiguresAPI: selector.FiguresAPIMiniApp,
 	})
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
@@ -94,6 +99,7 @@ func TestLoadReadsTheOtherTab(t *testing.T) {
 
 	figures, err := Load(bctx, selector.Target{
 		Key: "toushin-app", URL: url, TabLabel: selector.TabLabelApp,
+		FiguresAPI: selector.FiguresAPIApp,
 	})
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
@@ -170,7 +176,15 @@ func serving(t *testing.T, html string) (string, context.Context) {
 	if !chromeAvailable() {
 		t.Skip("no Chrome on PATH")
 	}
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// The figures request, answered slowly — that delay is the race this
+		// package exists to survive.
+		if strings.Contains(r.URL.Path, "pc_invest_top") {
+			time.Sleep(time.Second)
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = fmt.Fprint(w, `{"STATUS":0}`)
+			return
+		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = fmt.Fprint(w, html)
 	}))
@@ -229,9 +243,13 @@ const slowSwapHTML = `<!doctype html><meta charset="utf-8"><title>fixture</title
       e.preventDefault();
       document.querySelectorAll(".tab_menu li").forEach((o) => o.classList.remove("actived"));
       li.classList.add("actived");
-      // The class is already right. The data is not, for another 2.5 seconds —
-      // and nothing on the page says so.
-      setTimeout(() => show(i === 0 ? app : mini), 2500);
+      // The class is already right. The data is not until the request comes
+      // back, which is what the live page does and what Load now waits for.
+      const api = i === 0 ? "/v2/invest/brand/pc_invest_top"
+                          : "/v3/invest/brand/pc_invest_top";
+      fetch(api, {method: "POST"})
+        .then(() => new Promise((r) => setTimeout(r, 400)))
+        .then(() => show(i === 0 ? app : mini));
     });
   });
 </script>
@@ -252,6 +270,7 @@ func TestLoadWaitsForTheTabToRepaint(t *testing.T) {
 
 	figures, err := Load(bctx, selector.Target{
 		Key: "toushin-miniapp", URL: url, TabLabel: selector.TabLabelMiniApp,
+		FiguresAPI: selector.FiguresAPIMiniApp,
 	})
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
@@ -262,5 +281,59 @@ func TestLoadWaitsForTheTabToRepaint(t *testing.T) {
 	}
 	if len(figures.Holdings) != 1 {
 		t.Errorf("holdings = %d, want the one under this tab", len(figures.Holdings))
+	}
+}
+
+// silentSwapHTML is a tab that changes its class and fetches nothing.
+//
+// The page this models does not exist today, and that is the point: it is what a
+// tab looks like when the request its figures come in never happens. Reading it
+// yields the previously selected bucket, which for 投資信託 means one category
+// reporting the other's holdings — or none.
+const silentSwapHTML = `<!doctype html><meta charset="utf-8"><title>fixture</title><body>
+<ul class="tab_menu">
+  <li class="actived"><a href="#">PayPay証券アプリ</a></li>
+  <li><a href="#">ミニアプリ</a></li>
+</ul>
+<div class="summary">
+  <span id="SECURITIES_VALUE_TOTAL">0円</span>
+  <span id="TOTAL_ACQUISITION_FEE_TAX_TOTAL">0円</span>
+  <span id="gross_profit_total">0円</span>
+</div>
+<h3>保有銘柄</h3>
+<div class="icon_lv1" id="rows"></div>
+<script>
+  document.querySelectorAll(".tab_menu li").forEach((li) => {
+    li.querySelector("a").addEventListener("click", (e) => {
+      e.preventDefault();
+      document.querySelectorAll(".tab_menu li").forEach((o) => o.classList.remove("actived"));
+      li.classList.add("actived");
+      // No fetch. The class says the tab changed and nothing else does.
+    });
+  });
+</script>
+</body>`
+
+// TestLoadRefusesATabThatNeverFetched is the half of this that is new.
+//
+// Before, a tab whose data never arrived was read anyway — the wait was a
+// duration, and durations always expire. A category came back empty and the
+// reconciliation planned to delete both holdings in it.
+//
+// The figures request fires whether or not the two tabs hold the same numbers,
+// so its absence is a fault, not an empty category. Failing the read is the only
+// answer that cannot delete anything.
+func TestLoadRefusesATabThatNeverFetched(t *testing.T) {
+	url, bctx := serving(t, silentSwapHTML)
+
+	_, err := Load(bctx, selector.Target{
+		Key: "toushin-miniapp", URL: url, TabLabel: selector.TabLabelMiniApp,
+		FiguresAPI: selector.FiguresAPIMiniApp,
+	})
+	if err == nil {
+		t.Fatal("Load() read a tab whose figures never arrived")
+	}
+	if !strings.Contains(err.Error(), selector.FiguresAPIMiniApp) {
+		t.Errorf("error = %v, want it to name the request that did not respond", err)
 	}
 }

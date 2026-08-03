@@ -67,34 +67,6 @@ func PageState(value string) (string, error) {
 	})
 }
 
-// watchRepaintScript observes the figures for the repaint a tab switch causes.
-const watchRepaintScript = "watch_repaint.js"
-
-// WatchRepaintInstall arms the observer. Call before clicking a tab.
-//
-// The summary carries the totals and the container carries the 銘柄 rows; a tab
-// swap rewrites both, and watching only one would miss a bucket whose other
-// half happens to be identical.
-func WatchRepaintInstall() (string, error) {
-	return siteScripts.Call(watchRepaintScript, map[string]any{
-		"roots": []string{summaryOf(ValueTotal), HoldingsContainer},
-		"mode":  "install",
-	})
-}
-
-// WatchRepaintPoll reports how many mutations were seen and how long the
-// document has been still since.
-func WatchRepaintPoll() (string, error) {
-	return siteScripts.Call(watchRepaintScript, map[string]any{
-		"roots": []string{},
-		"mode":  "poll",
-	})
-}
-
-// summaryOf is the block a figure sits in. Observing the figure element alone
-// would miss a swap that replaces its parent rather than its text.
-func summaryOf(value string) string { return value + ", .summary" }
-
 // extractHoldingJS is read once, for the same reason as extractBalanceJS.
 const extractHoldingScript = "extract_holding.js"
 

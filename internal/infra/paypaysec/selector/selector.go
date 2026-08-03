@@ -131,6 +131,20 @@ type Target struct {
 	// Bucket is the subtotal this target contributes to.
 	Bucket Bucket
 
+	// FiguresAPI is the request this target's figures arrive in, as a substring
+	// of its URL. Only set where a tab has to be clicked.
+	//
+	// The click is client-side and instant; the numbers arrive about a second
+	// later, and until they do the previous tab's numbers are on screen and
+	// perfectly still. Nothing in the DOM distinguishes the two states —
+	// measured against the live page, the tab's actived class and the nav's
+	// bucket markers both flip 8ms after the click.
+	//
+	// This is the event that actually means "this tab's data is here". The two
+	// tabs call different paths, so waiting for the right one cannot be
+	// satisfied by the other's.
+	FiguresAPI string
+
 	// Kind is what these holdings are, as an instrument — not as a PayPay view.
 	// ミニアプリ is a way of buying, and what it holds here is US stock.
 	//
@@ -206,8 +220,8 @@ var Targets = []Target{
 
 	// Same URL, different tab — so the names have to distinguish them, or the
 	// two would collide into one asset.
-	{Kind: asset.MutualFund, Key: "toushin-app", Name: "投資信託（アプリ）", ShortName: "投信ア", URL: URLInvestmentTrust, Bucket: BucketApp, TabLabel: TabLabelApp},
-	{Kind: asset.MutualFund, Key: "toushin-miniapp", Name: "投資信託（ミニアプリ）", ShortName: "投信ミ", URL: URLInvestmentTrust, Bucket: BucketMiniApp, TabLabel: TabLabelMiniApp},
+	{Kind: asset.MutualFund, Key: "toushin-app", Name: "投資信託（アプリ）", ShortName: "投信ア", URL: URLInvestmentTrust, Bucket: BucketApp, TabLabel: TabLabelApp, FiguresAPI: FiguresAPIApp},
+	{Kind: asset.MutualFund, Key: "toushin-miniapp", Name: "投資信託（ミニアプリ）", ShortName: "投信ミ", URL: URLInvestmentTrust, Bucket: BucketMiniApp, TabLabel: TabLabelMiniApp, FiguresAPI: FiguresAPIMiniApp},
 }
 
 // The OTP challenge. CONFIRMED 2026-08-01 from the live page markup.
@@ -300,6 +314,18 @@ const (
 // site marks up its tradeable-brand catalogue, so an unscoped query returns
 // every brand PayPay offers — 305 of them on the 日本株 page — rather than the
 // handful actually held.
+// The requests the 投資信託 tabs fetch their figures with. CONFIRMED 2026-08-04
+// by watching the network while clicking each tab.
+//
+// The two buckets are the same screen and differ by the path's version and an
+// APP_ID in the form body (3 for アプリ, 6 for ミニアプリ). Matching on the path
+// is enough to tell one tab's response from the other's, which is the whole
+// point: a wait for ミニアプリ's figures must not be satisfied by アプリ's.
+const (
+	FiguresAPIApp     = "/v2/invest/brand/pc_invest_top"
+	FiguresAPIMiniApp = "/v3/invest/brand/pc_invest_top"
+)
+
 const HoldingsHeading = "保有銘柄"
 
 const (
