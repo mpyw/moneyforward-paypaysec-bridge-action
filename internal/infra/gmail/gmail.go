@@ -76,7 +76,7 @@ func NewFromJSON(ctx context.Context, credentialsJSON []byte) (*Client, error) {
 func (c *Client) Profile(ctx context.Context) (string, error) {
 	p, err := c.svc.Users.GetProfile(mailbox).Context(ctx).Do()
 	if err != nil {
-		return "", fmt.Errorf("gmail: get profile: %w", err)
+		return "", fmt.Errorf("gmail: get profile: %w", explainDeadCredential(err))
 	}
 	return p.EmailAddress, nil
 }
@@ -107,7 +107,7 @@ func (c *Client) Search(ctx context.Context, query string, max int64) ([]Message
 		Context(ctx).
 		Do()
 	if err != nil {
-		return nil, fmt.Errorf("gmail: list messages: %w", err)
+		return nil, fmt.Errorf("gmail: list messages: %w", explainDeadCredential(err))
 	}
 
 	out := make([]Message, 0, len(list.Messages))
@@ -117,7 +117,7 @@ func (c *Client) Search(ctx context.Context, query string, max int64) ([]Message
 			Context(ctx).
 			Do()
 		if err != nil {
-			return nil, fmt.Errorf("gmail: get message %s: %w", ref.Id, err)
+			return nil, fmt.Errorf("gmail: get message %s: %w", ref.Id, explainDeadCredential(err))
 		}
 		payload := messagePayload{message: full}
 		out = append(out, Message{
