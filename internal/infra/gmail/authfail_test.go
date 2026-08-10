@@ -11,11 +11,12 @@ import (
 // sends a reader nowhere, and because a message naming one cause sent this reader
 // somewhere wrong.
 //
-// "Token has been expired or revoked" says neither which nor why. The first attempt
-// at this annotation asserted the publishing status, on the strength of the failure
-// landing a little over seven days after the credential was installed — and the
-// status was In production. So the requirement is that every cause is offered, and
-// with it the observation that tells a revoke from the rest.
+// "Token has been expired or revoked" says neither which nor why. Two attempts at
+// saying it anyway were wrong: the publishing status, which turned out to be In
+// production, and then a claim that the account's permissions page tells a revoke
+// from the rest — made without checking, and contradicted the first time it was
+// used. So what is required here is that every cause is offered and that the page is
+// not sold as a test.
 func TestExplainDeadCredentialOffersEveryCause(t *testing.T) {
 	// As the token endpoint words it.
 	cause := errors.New(`auth: "invalid_grant" "Token has been expired or revoked."`)
@@ -29,7 +30,7 @@ func TestExplainDeadCredentialOffersEveryCause(t *testing.T) {
 		"password changed",                 // invalidates Gmail-scoped tokens
 		"myaccount.google.com/permissions", // a manual revoke
 		"OAuth client",                     // deleted or rotated
-		"removes the app from that permissions page", // how to tell a revoke apart
+		"does not tell them apart",         // the page is not a discriminator
 	} {
 		if !strings.Contains(got.Error(), want) {
 			t.Errorf("message does not mention %q:\n%v", want, got)
