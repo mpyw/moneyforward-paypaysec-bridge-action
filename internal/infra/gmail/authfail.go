@@ -9,30 +9,35 @@ import (
 // longer good. The accompanying text is "Token has been expired or revoked."
 const invalidGrant = "invalid_grant"
 
-// explainDeadCredential names the cause this project has actually had.
+// explainDeadCredential says where to look, because the API does not.
 //
-// The API says only `invalid_grant: "Token has been expired or revoked."` — which
-// of the two, and why, it does not say. Diagnosing it once took arithmetic on run
-// timestamps: the credential was installed on 2026-08-02 17:39Z, worked on
-// 2026-08-08 09:02Z, and was dead by 2026-08-10 00:15Z. Seven days.
+// Google reports a dead refresh token as `invalid_grant: "Token has been expired
+// or revoked."` — not which of the two, and not why. The causes are a short list
+// and they need different responses, so the message is the list rather than a
+// guess at which one applied.
 //
-// Seven days is not a coincidence and not a token lifetime anybody chose. It is
-// what Google grants while the OAuth consent screen's publishing status is
-// Testing. So the first thing to check is that status, and the reason to check it
-// before reissuing is that a new token issued under the same status dies the same
-// way a week later, having taught nobody anything.
-//
-// Deliberately not a claim about which cause it was: a token can also be revoked
-// by hand, and the message says what to look at rather than what happened.
+// It is a list and not a diagnosis on purpose. The first time this happened the
+// consent screen's publishing status looked like the answer: the credential was
+// installed on 2026-08-02 17:39Z and the run at 2026-08-10 00:15Z failed, which
+// is a shade over seven days, and seven days is exactly what Testing status
+// grants. The status was In production. The seven days were an artifact of when
+// anybody happened to look — the last success was 2026-08-08 09:02Z, so all that
+// was really known is that the token died inside a 39-hour window over a weekend
+// when nothing ran.
 func explainDeadCredential(err error) error {
 	if err == nil || !strings.Contains(err.Error(), invalidGrant) {
 		return err
 	}
 	return fmt.Errorf("%w\n"+
-		"  The refresh token is no longer accepted. Before issuing another, check the\n"+
-		"  OAuth consent screen's publishing status (Google Auth Platform → Audience).\n"+
-		"  While it is Testing, Google expires refresh tokens after seven days, and a\n"+
-		"  replacement issued under the same status will stop working next week too.\n"+
-		"  If it is already In production, the token was revoked instead — by hand at\n"+
-		"  myaccount.google.com/permissions, or by a change to the Google account", err)
+		"  The refresh token is no longer accepted. Google invalidates one for a few\n"+
+		"  distinct reasons, and they are told apart before reissuing — a replacement\n"+
+		"  issued against the wrong one dies the same way:\n"+
+		"    - the app's OAuth consent screen is in Testing, which caps refresh tokens\n"+
+		"      at seven days (Google Auth Platform → Audience)\n"+
+		"    - the Google account's password changed, which invalidates every refresh\n"+
+		"      token carrying a Gmail scope\n"+
+		"    - access was revoked by hand at myaccount.google.com/permissions\n"+
+		"    - the OAuth client itself was deleted or its secret rotated\n"+
+		"  A revoke removes the app from that permissions page; the others leave it\n"+
+		"  listed, which is the cheapest thing to look at first", err)
 }

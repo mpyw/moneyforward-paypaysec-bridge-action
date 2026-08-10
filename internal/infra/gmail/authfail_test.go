@@ -7,15 +7,16 @@ import (
 	"testing"
 )
 
-// TestExplainDeadCredentialNamesThePublishingStatus is here because the API's own
-// message sent a reader nowhere.
+// TestExplainDeadCredentialOffersEveryCause is here because the API's own message
+// sends a reader nowhere, and because a message naming one cause sent this reader
+// somewhere wrong.
 //
-// "Token has been expired or revoked" does not say which, or why, and the why in
-// this project's one real occurrence was a seven-day expiry that only shows up as
-// arithmetic on run timestamps. The point of the annotation is that the next person
-// checks the publishing status before issuing a replacement that would die the same
-// way.
-func TestExplainDeadCredentialNamesThePublishingStatus(t *testing.T) {
+// "Token has been expired or revoked" says neither which nor why. The first attempt
+// at this annotation asserted the publishing status, on the strength of the failure
+// landing a little over seven days after the credential was installed — and the
+// status was In production. So the requirement is that every cause is offered, and
+// with it the observation that tells a revoke from the rest.
+func TestExplainDeadCredentialOffersEveryCause(t *testing.T) {
 	// As the token endpoint words it.
 	cause := errors.New(`auth: "invalid_grant" "Token has been expired or revoked."`)
 
@@ -23,7 +24,13 @@ func TestExplainDeadCredentialNamesThePublishingStatus(t *testing.T) {
 	if !errors.Is(got, cause) {
 		t.Error("the original error was not wrapped, so callers lose it")
 	}
-	for _, want := range []string{"publishing status", "Testing", "seven days"} {
+	for _, want := range []string{
+		"Testing",                          // the seven-day cap
+		"password changed",                 // invalidates Gmail-scoped tokens
+		"myaccount.google.com/permissions", // a manual revoke
+		"OAuth client",                     // deleted or rotated
+		"removes the app from that permissions page", // how to tell a revoke apart
+	} {
 		if !strings.Contains(got.Error(), want) {
 			t.Errorf("message does not mention %q:\n%v", want, got)
 		}
