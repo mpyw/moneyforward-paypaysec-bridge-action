@@ -13,11 +13,13 @@ import (
 // The two buckets are different major versions of the same three endpoints, which
 // is what makes them separable at all: as views of one page they were not.
 
-// origin is the host these endpoints live on. A variable so a test can point the
-// client at a stub; nothing else reassigns it.
-var origin = "https://www.paypay-sec.co.jp"
-
-func setOrigin(u string) { origin = u }
+// origin is the host these endpoints live on.
+//
+// A constant, and the tests keep it that way: they serve the stub on an
+// in-memory network, where the client answers whatever host the request names.
+// Nothing has to be pointed anywhere, so the Referer these calls are checked for
+// is the one the live service is actually sent.
+const origin = "https://www.paypay-sec.co.jp"
 
 const (
 	// pagePath is the screen these endpoints belong to. Sent as the Referer, and

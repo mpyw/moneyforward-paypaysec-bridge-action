@@ -94,8 +94,8 @@ func TestReadSaysWhichPageItIsOn(t *testing.T) {
 			t.Errorf("%s was sent no Referer", path)
 			continue
 		}
-		if !strings.HasSuffix(got, "/investment_trust/") {
-			t.Errorf("%s Referer = %q, want the 投資信託 screen", path, got)
+		if got != origin+pagePath {
+			t.Errorf("%s Referer = %q, want %q", path, got, origin+pagePath)
 		}
 	}
 }

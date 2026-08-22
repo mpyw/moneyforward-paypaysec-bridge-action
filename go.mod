@@ -1,6 +1,6 @@
 module github.com/mpyw/moneyforward-paypaysec-bridge-action/v3
 
-go 1.26
+go 1.27
 
 require (
 	cloud.google.com/go/auth v0.23.0

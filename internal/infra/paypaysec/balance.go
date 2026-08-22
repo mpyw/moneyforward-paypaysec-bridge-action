@@ -82,8 +82,11 @@ func (r Reading) HoldingCount() int { return len(r.Holdings) }
 
 // readingOf turns one page's text into a reading, without yet parsing it.
 func readingOf(t selector.Target, figures pagescan.Figures) Reading {
-	r := Reading{Target: t, Figures: figures}
-	r.Holdings = make([]Holding, 0, len(figures.Holdings))
+	r := Reading{
+		Target:   t,
+		Figures:  figures,
+		Holdings: make([]Holding, 0, len(figures.Holdings)),
+	}
 	for _, row := range figures.Holdings {
 		r.Holdings = append(r.Holdings, Holding{
 			Name:       row.Name,
