@@ -55,9 +55,14 @@ func NewFromCredential(ctx context.Context, cred credential.Gmail) (*Client, err
 // NewFromJSON builds a client from an authorized_user credentials blob — the CI
 // path, where the same JSON is held as a secret.
 func NewFromJSON(ctx context.Context, credentialsJSON []byte) (*Client, error) {
-	creds, err := credentials.DetectDefault(&credentials.DetectOptions{
-		CredentialsJSON: credentialsJSON,
-		Scopes:          []string{Scope},
+	// Named as authorized_user rather than detected. This program has exactly one
+	// kind of credential — a personal mailbox's refresh token, because domain-wide
+	// delegation is Workspace-only — and detection would accept any of the other
+	// kinds from whatever set GMAIL_CREDENTIALS. An external_account blob, in
+	// particular, carries the URLs it is fetched from. Saying the type here makes
+	// anything else a parse error.
+	creds, err := credentials.NewCredentialsFromJSON(credentials.AuthorizedUser, credentialsJSON, &credentials.DetectOptions{
+		Scopes: []string{Scope},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("gmail: parse credentials: %w", err)
