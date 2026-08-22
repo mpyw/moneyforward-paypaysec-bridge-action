@@ -66,9 +66,10 @@ func serving(t *testing.T, html string) (string, context.Context) {
 	if !chromeAvailable() {
 		t.Skip("no Chrome on PATH")
 	}
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// The figures request, answered slowly — that delay is the race this
-		// package exists to survive.
+		// package exists to survive. A real one: the reader here is a browser in
+		// another process, so the wait cannot be faked away.
 		if strings.Contains(r.URL.Path, "pc_invest_top") {
 			time.Sleep(time.Second)
 			w.Header().Set("Content-Type", "application/json")
@@ -78,7 +79,9 @@ func serving(t *testing.T, html string) (string, context.Context) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = fmt.Fprint(w, html)
 	}))
-	t.Cleanup(srv.Close)
+	// Loopback rather than the in-memory network: Chrome dials this itself, from
+	// outside the test binary, so there has to be a port.
+	srv.Start()
 
 	// Generous: the settle window alone is 20s, and one case here waits it out.
 	ctx, cancel := context.WithTimeout(t.Context(), 120*time.Second)

@@ -98,29 +98,16 @@ func TestWriterPicksTheCreateForm(t *testing.T) {
 
 // accountServing is an Account whose every request is answered with body.
 //
-// The code under test builds absolute moneyforward.com URLs, so the transport is
-// rewritten rather than the URL — which also keeps the test honest about the
-// path being requested.
+// The code under test builds absolute https://moneyforward.com URLs, and the
+// in-memory network takes them as written: the client sends every request to
+// this handler whatever host it names, so nothing has to rewrite the URL and the
+// path the handler sees is the path the code asked for.
 func accountServing(t *testing.T, body string) Account {
 	t.Helper()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(body))
 	}))
-	t.Cleanup(srv.Close)
-	client := srv.Client()
-	client.Transport = redirectTo(srv.URL)
-	return Account{HTTP: client, AssetID: "ASSET-HASH"}
-}
-
-// redirectTo sends every request to the test server, whatever host it names.
-type redirectTo string
-
-func (r redirectTo) RoundTrip(req *http.Request) (*http.Response, error) {
-	target := req.Clone(req.Context())
-	base := strings.TrimPrefix(string(r), "http://")
-	target.URL.Scheme = "http"
-	target.URL.Host = base
-	return http.DefaultTransport.RoundTrip(target)
+	return Account{HTTP: srv.Client(), AssetID: "ASSET-HASH"}
 }
 
 func TestWriterRejectsAnUnauthenticatedPage(t *testing.T) {

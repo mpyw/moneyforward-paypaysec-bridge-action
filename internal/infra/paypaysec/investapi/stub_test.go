@@ -152,11 +152,10 @@ func readFields(t *testing.T, r *http.Request) map[string]string {
 
 func serve(t *testing.T, s *stub) *Client {
 	t.Helper()
-	srv := httptest.NewServer(s.handler(t))
-	t.Cleanup(srv.Close)
-	// The package addresses the real host; point it at the stub for the test.
-	old := origin
-	setOrigin(srv.URL)
-	t.Cleanup(func() { setOrigin(old) })
+	// The package addresses the real host and keeps addressing it: on the
+	// in-memory network the client sends every request here whatever host it
+	// names, so nothing is redirected and no global is swapped out from under a
+	// parallel test.
+	srv := httptest.NewTestServer(t, s.handler(t))
 	return &Client{HTTP: srv.Client()}
 }

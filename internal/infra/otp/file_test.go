@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/synctest"
 	"time"
 )
 
@@ -74,42 +75,54 @@ func TestFileFetchIgnoresAStaleFile(t *testing.T) {
 	}
 }
 
+// TestFileFetchWaitsForTheFile runs in a synctest bubble, so the wait it is
+// about is the poll loop's own and costs nothing.
+//
+// Both clocks inside the bubble are the fake one — the mtime this writes and the
+// cutoff Fetch compares it against — so the freshness rule is exercised on
+// timestamps that cannot drift apart, and synctest.Sleep returns only once Fetch
+// is genuinely parked waiting. A real sleep raced with the 5ms poll interval and
+// only approximated that.
 func TestFileFetchWaitsForTheFile(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "otp.txt")
-	since := time.Now().Add(-time.Second)
+	synctest.Test(t, func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "otp.txt")
+		since := time.Now().Add(-time.Second)
 
-	go func() {
-		time.Sleep(30 * time.Millisecond)
-		writeOTPFile(t, path, "112233", 0)
-	}()
+		go func() {
+			synctest.Sleep(30 * time.Millisecond)
+			writeOTPFile(t, path, "112233", 0)
+		}()
 
-	got, err := newFileSource(t, path).Fetch(t.Context(), since)
-	if err != nil {
-		t.Fatalf("Fetch() error = %v", err)
-	}
-	if got != "112233" {
-		t.Errorf("Fetch() = %q, want %q", got, "112233")
-	}
+		got, err := newFileSource(t, path).Fetch(t.Context(), since)
+		if err != nil {
+			t.Fatalf("Fetch() error = %v", err)
+		}
+		if got != "112233" {
+			t.Errorf("Fetch() = %q, want %q", got, "112233")
+		}
+	})
 }
 
 // TestFileFetchKeepsWaitingAfterBadInput lets the writer correct a typo rather
 // than failing the whole login over it.
 func TestFileFetchKeepsWaitingAfterBadInput(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "otp.txt")
-	writeOTPFile(t, path, "abc", time.Minute)
+	synctest.Test(t, func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "otp.txt")
+		writeOTPFile(t, path, "abc", time.Minute)
 
-	go func() {
-		time.Sleep(30 * time.Millisecond)
-		writeOTPFile(t, path, "445566", time.Minute)
-	}()
+		go func() {
+			synctest.Sleep(30 * time.Millisecond)
+			writeOTPFile(t, path, "445566", time.Minute)
+		}()
 
-	got, err := newFileSource(t, path).Fetch(t.Context(), time.Now().Add(-time.Hour))
-	if err != nil {
-		t.Fatalf("Fetch() error = %v", err)
-	}
-	if got != "445566" {
-		t.Errorf("Fetch() = %q, want the corrected code", got)
-	}
+		got, err := newFileSource(t, path).Fetch(t.Context(), time.Now().Add(-time.Hour))
+		if err != nil {
+			t.Fatalf("Fetch() error = %v", err)
+		}
+		if got != "445566" {
+			t.Errorf("Fetch() = %q, want the corrected code", got)
+		}
+	})
 }
 
 func TestFileFetchHonoursCancellation(t *testing.T) {

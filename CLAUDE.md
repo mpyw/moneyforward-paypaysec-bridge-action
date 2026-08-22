@@ -269,6 +269,25 @@ internal/
 ページスクリプトは `pagescan/script_test.go` が実ブラウザに fixture ページを
 読ませて駆動する (外部通信なし)。長く「テストが届かない」前提で書かれていたが届く。
 
+**HTTP のテストは in-memory network を使う** (`httptest.NewTestServer`)。クライアントが
+**ホスト名に関わらず**その handler に届くので、コード側が実ホスト
+(`https://moneyforward.com` / `https://www.paypay-sec.co.jp`) を書いたまま試せる。
+おかげで消えたものが 2 つある:
+
+- **URL を書き換える RoundTripper**。手で `Scheme`/`Host` を差し替えていたぶん、
+  「本番が投げる URL」と「テストが観測する URL」が別物だった
+- **`investapi` の `origin` 差し替え**。グローバル変数を巻き戻す `t.Cleanup` 付きで、
+  並列実行ができなかった。いまは `const`
+
+**ただしブラウザを読ませるテストは loopback のまま** (`NewTestServer` + `srv.Start()`)。
+Chrome は別プロセスなので、ポートが要る。同じ理由で `pagescan/load_test.go` の
+「遅い応答」は実 sleep のまま — 待っているのがこのプロセスの goroutine ではない。
+
+**時計に依存するテストは synctest のバブルに入れる** (`internal/infra/otp/file_test.go`)。
+mtime も締切も同じ偽クロックから来るので、ポーリング間隔と書き込みタイミングの
+競争がなくなる。`synctest.Sleep` は「他の goroutine が全部止まってから」返るので、
+「Fetch がもう待っている」を近似せずに書ける。
+
 サブコマンド:
 
 ```

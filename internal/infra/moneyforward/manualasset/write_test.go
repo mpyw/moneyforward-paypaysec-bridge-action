@@ -1,10 +1,7 @@
 package manualasset
 
 import (
-	"context"
-	"crypto/tls"
 	"fmt"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -213,27 +210,21 @@ func atoi64(s string) int64 {
 // accountBackedBy wires an Account to a running fake.
 func accountBackedBy(t *testing.T, f *fakeAccount) Account {
 	t.Helper()
-	srv := httptest.NewServer(http.HandlerFunc(f.serve))
-	t.Cleanup(srv.Close)
-	client := srv.Client()
-	client.Transport = redirectTo(srv.URL)
-	return Account{HTTP: client, AssetID: "ASSET-HASH"}
+	srv := httptest.NewTestServer(t, http.HandlerFunc(f.serve))
+	return Account{HTTP: srv.Client(), AssetID: "ASSET-HASH"}
 }
 
 // TestWriterPostReportsAnErrorStatus covers a guard the stateful fake never
 // reaches, because it answers 200 to everything the real site would.
 func TestWriterPostReportsAnErrorStatus(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			http.Error(w, "boom", http.StatusInternalServerError)
 			return
 		}
 		_, _ = w.Write([]byte(accountPageHTML("")))
 	}))
-	t.Cleanup(srv.Close)
-	client := srv.Client()
-	client.Transport = redirectTo(srv.URL)
-	account := Account{HTTP: client, AssetID: "ASSET-HASH"}
+	account := Account{HTTP: srv.Client(), AssetID: "ASSET-HASH"}
 
 	writer, err := account.Writer(t.Context())
 	if err != nil {
@@ -251,28 +242,24 @@ func TestWriterPostReportsAnErrorStatus(t *testing.T) {
 // there" from the verification step — true, and no help at all in working out
 // why.
 //
-// The URLs stay real here and only the dialling is redirected, because the check
-// reads resp.Request.URL.Host. A transport that rewrote the host — which is what
-// the other tests here use — would erase the very thing under test.
+// The hostnames have to survive to the response, because the check reads
+// resp.Request.URL.Host. The in-memory network leaves them alone — every request
+// reaches this handler with the host the code asked for — so the two sites are
+// told apart by r.Host rather than by dialling them to different listeners.
 func TestWriterPostNoticesTheSignInBounce(t *testing.T) {
-	idPortal := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte("<html>sign in</html>"))
-	}))
-	t.Cleanup(idPortal.Close)
-
-	app := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Host == "id.moneyforward.com" {
+			_, _ = w.Write([]byte("<html>sign in</html>"))
+			return
+		}
 		if r.Method == http.MethodPost {
 			http.Redirect(w, r, "https://id.moneyforward.com/sign_in", http.StatusFound)
 			return
 		}
 		_, _ = w.Write([]byte(accountPageHTML("")))
 	}))
-	t.Cleanup(app.Close)
 
-	account := Account{
-		HTTP:    &http.Client{Transport: dialInstead(t, app.Listener.Addr().String(), idPortal.Listener.Addr().String())},
-		AssetID: "ASSET-HASH",
-	}
+	account := Account{HTTP: srv.Client(), AssetID: "ASSET-HASH"}
 
 	writer, err := account.Writer(t.Context())
 	if err != nil {
@@ -284,23 +271,6 @@ func TestWriterPostNoticesTheSignInBounce(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "CSRF") && !strings.Contains(err.Error(), "session") {
 		t.Errorf("Create() error = %v, want it to name the likely cause", err)
-	}
-}
-
-// dialInstead keeps every URL as written and sends the connection elsewhere:
-// id.moneyforward.com to one listener, everything else to the other.
-func dialInstead(t *testing.T, appAddr, idAddr string) http.RoundTripper {
-	t.Helper()
-	var dialer net.Dialer
-	return &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // stand-in servers
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			target := appAddr
-			if strings.HasPrefix(addr, "id.moneyforward.com") {
-				target = idAddr
-			}
-			return dialer.DialContext(ctx, network, target)
-		},
 	}
 }
 
