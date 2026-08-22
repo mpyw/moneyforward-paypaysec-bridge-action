@@ -8,7 +8,7 @@ require (
 	github.com/chromedp/chromedp v0.16.0
 	github.com/google/wire v0.7.0
 	github.com/samber/lo v1.53.0
-	github.com/urfave/cli/v3 v3.10.1
+	github.com/urfave/cli/v3 v3.11.0
 	golang.org/x/oauth2 v0.36.0
 	google.golang.org/api v0.293.0
 )
