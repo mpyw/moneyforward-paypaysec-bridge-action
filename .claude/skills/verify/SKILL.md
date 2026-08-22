@@ -12,7 +12,7 @@ gofmt -l .                                              # 出力が空である�
 go vet ./... && go vet -tags live ./... && go vet -tags wireinject ./...
 go run github.com/google/wire/cmd/wire ./internal/cli/commands/...
 git diff --quiet -- '*wire_gen.go' || echo "★ wire_gen.go が古い"
-golangci-lint run ./... && golangci-lint run --build-tags wireinject ./...
+golangci-lint run ./... && golangci-lint run --build-tags wireinject ./...  # ★ 版に下限あり
 TZ=UTC go test -race ./...
 go run github.com/rhysd/actionlint/cmd/actionlint@latest
 ```
@@ -26,6 +26,14 @@ go run github.com/rhysd/actionlint/cmd/actionlint@latest
 - **golangci を 2 タグぶん** — 既定ビルドは `wire.go` を見ないので `wire.NewSet` が
   `unused` に見え，`wireinject` ビルドは `wire_gen.go` を見ない。**どちらか片方では
   パッケージ全体を覆えない**
+- **golangci-lint の版** — go.mod の言語バージョンより古い Go でビルドされた
+  golangci-lint は `can't load config` で止まる。**検査 0 件で赤くなるだけ**なので，
+  「lint が通らない」ではなく「lint が走っていない」。CI のピン
+  (`.github/workflows/ci.yml` の `version:`) と手元を揃える:
+
+  ```bash
+  golangci-lint --version   # built with go1.XX が go.mod の go 行以上か
+  ```
 - **`TZ=UTC`** — 壁時計に依存したテストが JST の夕方に通り UTC の朝に落ちた
 - **actionlint** — ステップ名に `::` を書いて YAML を壊したことがある。**有効な YAML で
   無効なワークフロー**になり，`gh workflow list` には active と出たまま dispatch もできない

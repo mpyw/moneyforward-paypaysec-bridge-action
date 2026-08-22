@@ -97,6 +97,12 @@ jobs:
         run: go vet -tags live ./...
 
       - name: golangci-lint
+        # Pinned, and the pin has a floor: golangci-lint refuses to run when the
+        # Go version it was built with is older than the one go.mod targets, so
+        # raising the language version means raising this too. It fails loudly —
+        # "can't load config" naming both versions — rather than silently
+        # checking less.
+        #
         # Two passes because the build tags select disjoint files. The default
         # one never sees wire.go, so every wire.NewSet in it reads as unused;
         # the wireinject one never sees wire_gen.go. Neither alone covers the
@@ -107,12 +113,12 @@ jobs:
         # could not fail — that nothing in this file would have.
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          version: v2.11.4
+          version: v2.13.1
 
       - name: golangci-lint (wireinject tags)
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          version: v2.11.4
+          version: v2.13.1
           args: --build-tags wireinject
 
       - name: Check Chrome is available

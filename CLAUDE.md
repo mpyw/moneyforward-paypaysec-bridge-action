@@ -311,7 +311,10 @@ GitHub Variables は使わない。
 
 ## 開発
 
-- Go 1.22+
+- Go 1.27+ (go.mod がこれを宣言する。CI も action.yml も `go-version-file` で追随する)
+  - **golangci-lint は go.mod の言語バージョン以上の Go でビルドされたものが要る。**
+    古いと `can't load config` で**何も検査せずに**終わる。CI のピン (`.github/workflows/ci.yml`)
+    と手元を同じ版に揃える
 - chromedp 用に Chromium / Google Chrome をローカルにインストール
 - `.envrc` 等の機密ファイルはリポジトリにコミットしない (`.gitignore` 必須)
 - **ローカル開発のための経路をアプリケーションに持たせない**。プログラムは環境変数

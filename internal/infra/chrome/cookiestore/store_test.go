@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
@@ -17,16 +18,6 @@ func mustParseURL(t *testing.T, raw string) *url.URL {
 		t.Fatalf("parse %s: %v", raw, err)
 	}
 	return u
-}
-
-// containsString reports membership without pulling in a dependency.
-func containsString(haystack []string, needle string) bool {
-	for _, s := range haystack {
-		if s == needle {
-			return true
-		}
-	}
-	return false
 }
 
 // storedCookie is shorthand for a stored storedCookie record.
@@ -65,7 +56,7 @@ func TestStoreHTTPClientCarriesEveryOrigin(t *testing.T) {
 		for _, c := range client.Jar.Cookies(u) {
 			names = append(names, c.Name)
 		}
-		if !containsString(names, tc.want) {
+		if !slices.Contains(names, tc.want) {
 			t.Errorf("%s carries %v, missing %q", tc.url, names, tc.want)
 		}
 	}

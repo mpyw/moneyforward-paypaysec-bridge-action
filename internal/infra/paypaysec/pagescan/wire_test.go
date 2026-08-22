@@ -103,8 +103,8 @@ func TestEveryFieldIsNamedByItsScript(t *testing.T) {
 func jsonKeysOf(shape any) []string {
 	rt := reflect.TypeOf(shape)
 	keys := make([]string, 0, rt.NumField())
-	for i := range rt.NumField() {
-		name, _, _ := strings.Cut(rt.Field(i).Tag.Get("json"), ",")
+	for field := range rt.Fields() {
+		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
 		if name != "" && name != "-" {
 			keys = append(keys, name)
 		}
