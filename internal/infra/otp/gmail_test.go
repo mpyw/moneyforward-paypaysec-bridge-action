@@ -3,6 +3,7 @@ package otp
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -278,5 +279,77 @@ func TestGmailDescribe(t *testing.T) {
 	}
 	if got := (&Gmail{}).Describe(); got != "Gmail" {
 		t.Errorf("Describe() with no label = %q", got)
+	}
+}
+
+// TestGmailFetchSaysWhenThePatternIsWhatFailed separates the two ways a poll
+// produces nothing.
+//
+// They need opposite responses — wait, or go and fix the pattern — and for a
+// while both printed the same line: "N recent message(s), none at or after T
+// yet", which is a statement about arrival even when the mail has plainly
+// arrived. Reading it at face value against a マニュライフ生命 code that had
+// arrived on time cost an afternoon, and the pattern was wrong for a reason no
+// amount of waiting would change: Go's \s does not match an ideographic space.
+func TestGmailFetchSaysWhenThePatternIsWhatFailed(t *testing.T) {
+	since := time.Date(2026, 8, 1, 13, 0, 0, 0, time.UTC)
+
+	var lines []string
+	g := &Gmail{
+		Mail: &fakeMailbox{batches: [][]gmail.Message{{{
+			ID: "m1",
+			// After the cutoff, so arrival is not the problem — the body is.
+			Received: since.Add(10 * time.Second),
+			Body:     "there is no code in here at all",
+		}}}},
+		Spec:     MailSpec{Label: "テスト", Digits: 6},
+		Timeout:  50 * time.Millisecond,
+		Interval: 10 * time.Millisecond,
+		Warn:     func(format string, args ...any) { lines = append(lines, fmt.Sprintf(format, args...)) },
+	}
+
+	if _, err := g.Fetch(context.Background(), since); err == nil {
+		t.Fatal("Fetch found a code in a message that carries none")
+	}
+	if len(lines) == 0 {
+		t.Fatal("the wait said nothing at all")
+	}
+	last := lines[len(lines)-1]
+	if strings.Contains(last, "none at or after") {
+		t.Errorf("reported an arrival problem for a message that had arrived: %q", last)
+	}
+	for _, want := range []string{"at or after", "none carried a 6-digit code"} {
+		if !strings.Contains(last, want) {
+			t.Errorf("warning = %q, want it to mention %q", last, want)
+		}
+	}
+}
+
+// TestGmailFetchStillReportsArrivalWhenNothingIsFresh is the other half: with
+// no message past the cutoff, the wait is a wait and should say so.
+func TestGmailFetchStillReportsArrivalWhenNothingIsFresh(t *testing.T) {
+	since := time.Date(2026, 8, 1, 13, 0, 0, 0, time.UTC)
+
+	var lines []string
+	g := &Gmail{
+		Mail: &fakeMailbox{batches: [][]gmail.Message{{{
+			ID:       "old",
+			Received: since.Add(-time.Minute),
+			Body:     "認証コード: 112233",
+		}}}},
+		Spec:     MailSpec{Label: "テスト", Digits: 6},
+		Timeout:  50 * time.Millisecond,
+		Interval: 10 * time.Millisecond,
+		Warn:     func(format string, args ...any) { lines = append(lines, fmt.Sprintf(format, args...)) },
+	}
+
+	if _, err := g.Fetch(context.Background(), since); err == nil {
+		t.Fatal("Fetch accepted a message from before the cutoff")
+	}
+	if len(lines) == 0 {
+		t.Fatal("the wait said nothing at all")
+	}
+	if last := lines[len(lines)-1]; !strings.Contains(last, "none at or after") {
+		t.Errorf("warning = %q, want it to report that nothing has arrived yet", last)
 	}
 }

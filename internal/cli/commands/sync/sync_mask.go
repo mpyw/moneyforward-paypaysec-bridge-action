@@ -2,6 +2,7 @@ package sync
 
 import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/actionslog"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/manulife"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward/manualasset"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/otp"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec"
@@ -29,6 +30,22 @@ func maskFigures(masker actionslog.Masker) func(paypaysec.Reading) {
 			masker.MaskText(text)
 		}
 		reportTarget(r)
+	}
+}
+
+// maskContract registers everything one マニュライフ生命 reading knows.
+//
+// The same reason as [maskFigures]: the reconciliation error names the yen
+// figure, the contract-currency amount and the range they were checked against,
+// and it fires before any reporting happens.
+func maskContract(masker actionslog.Masker) func(manulife.Reading) {
+	return func(r manulife.Reading) {
+		for _, yen := range r.Amounts() {
+			masker.MaskAmount(yen)
+		}
+		for _, text := range r.Texts() {
+			masker.MaskText(text)
+		}
 	}
 }
 

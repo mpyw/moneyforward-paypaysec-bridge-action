@@ -1,7 +1,8 @@
-name: 'PayPay 証券 → MoneyForward'
+name: 'PayPay 証券 / マニュライフ生命 → MoneyForward'
 description: >-
-  Read the holdings from a PayPay 証券 account and record them, one asset per
-  銘柄, in a MoneyForward manual account.
+  Read the holdings from a PayPay 証券 account, and optionally a マニュライフ生命
+  contract's surrender value, and record them in MoneyForward manual accounts —
+  one account per source.
 author: mpyw
 
 branding:
@@ -13,23 +14,83 @@ branding:
 # for a value to come from.
 inputs:
   paypaysec-username:
-    description: 'PayPay 証券 login ID (an email address).'
-    required: true
+    description: >-
+      PayPay 証券 login ID (an email address). Optional, like every source:
+      supply all of paypaysec-username, paypaysec-password and
+      moneyforward-paypaysec-asset-id, or none of them.
+    required: false
+    default: ''
   paypaysec-password:
     description: 'PayPay 証券 password.'
-    required: true
+    required: false
+    default: ''
   moneyforward-email:
-    description: 'MoneyForward login email address.'
+    description: >-
+      MoneyForward login email address. Required: it is the account everything
+      is recorded in, whichever sources a run reads.
     required: true
   moneyforward-password:
     description: 'MoneyForward password.'
     required: true
+  moneyforward-paypaysec-asset-id:
+    description: >-
+      The account_id_hash of the MoneyForward manual account PayPay 証券's
+      holdings are written into, taken from its page URL. Everything in that
+      account is managed by this action: entries not matching a holding are
+      deleted.
+
+      One of the three paypaysec-* inputs — or moneyforward-asset-id, its
+      former name, which still counts. Supply a source's inputs in full or not
+      at all.
+    required: false
+    default: ''
   moneyforward-asset-id:
     description: >-
-      The account_id_hash of the MoneyForward manual account to write into,
-      taken from its page URL. Everything in that account is managed by this
-      action: entries not matching a holding are deleted.
-    required: true
+      Deprecated: the former name of moneyforward-paypaysec-asset-id, still
+      read so that existing callers keep working. It became ambiguous once a
+      second source got a manual account of its own — both are MoneyForward
+      accounts, and what distinguishes them is whose holdings go in.
+
+      Setting both to different values is an error rather than a preference:
+      which account a run writes into is not something to guess at.
+    required: false
+    default: ''
+  moneyforward-manulife-asset-id:
+    description: >-
+      The account_id_hash of the MoneyForward manual account マニュライフ生命's
+      contract is recorded in — a different account from the PayPay 証券 one, so
+      that a run which cannot read one source leaves the other's entries alone.
+
+      One of the four manulife-* inputs. Supply all of them or none: a source
+      with some of its credentials is not one that gets skipped, it is one that
+      fails.
+    required: false
+    default: ''
+  manulife-username:
+    description: >-
+      マニュライフ生命 マイページ login ID (an email address). Optional: leave the
+      manulife-* inputs unset if there is no contract to record.
+    required: false
+    default: ''
+  manulife-password:
+    description: 'マニュライフ生命 マイページ password.'
+    required: false
+    default: ''
+  manulife-acquisition-yen:
+    description: >-
+      What was actually paid for the single-premium contract, in yen — digits
+      only, e.g. 4000000.
+
+      Supplied rather than read, because the contract is denominated in a
+      foreign currency and nothing on the site converts the premium at the rate
+      it was struck at. Converting it at today's rate would give a cost that
+      moves with the exchange rate, and a holding can be down in dollars while
+      up in yen.
+
+      Optional even with the other manulife-* inputs set. Left out, MoneyForward
+      takes the cost to equal the value and reports a profit of exactly zero.
+    required: false
+    default: ''
   gmail-credentials:
     description: >-
       An authorized_user JSON credential scoped to gmail.readonly, for the
@@ -97,7 +158,12 @@ runs:
         PAYPAYSEC_PASSWORD: ${{ inputs.paypaysec-password }}
         MONEYFORWARD_EMAIL: ${{ inputs.moneyforward-email }}
         MONEYFORWARD_PASSWORD: ${{ inputs.moneyforward-password }}
+        MONEYFORWARD_PAYPAYSEC_ASSET_ID: ${{ inputs.moneyforward-paypaysec-asset-id }}
         MONEYFORWARD_ASSET_ID: ${{ inputs.moneyforward-asset-id }}
+        MONEYFORWARD_MANULIFE_ASSET_ID: ${{ inputs.moneyforward-manulife-asset-id }}
+        MANULIFE_USERNAME: ${{ inputs.manulife-username }}
+        MANULIFE_PASSWORD: ${{ inputs.manulife-password }}
+        MANULIFE_ACQUISITION_YEN: ${{ inputs.manulife-acquisition-yen }}
         GMAIL_CREDENTIALS: ${{ inputs.gmail-credentials }}
         ALLOW_EMPTYING_CATEGORIES: ${{ inputs.allow-emptying-categories }}
       run: |
@@ -106,7 +172,14 @@ runs:
         #
         # A caller passing these from `secrets.*` gets GitHub's own masking too;
         # a caller passing a literal does not, and this is what covers them.
+        # Guarded, because exactly one of the two asset-id names is normally
+        # set and ::add-mask:: with an empty value is a directive that masks
+        # nothing and says so in the log.
         echo "::add-mask::$PAYPAYSEC_USERNAME"
         echo "::add-mask::$MONEYFORWARD_EMAIL"
-        echo "::add-mask::$MONEYFORWARD_ASSET_ID"
+        [ -n "$MONEYFORWARD_PAYPAYSEC_ASSET_ID" ] && echo "::add-mask::$MONEYFORWARD_PAYPAYSEC_ASSET_ID"
+        [ -n "$MONEYFORWARD_ASSET_ID" ] && echo "::add-mask::$MONEYFORWARD_ASSET_ID"
+        [ -n "$MONEYFORWARD_MANULIFE_ASSET_ID" ] && echo "::add-mask::$MONEYFORWARD_MANULIFE_ASSET_ID"
+        [ -n "$MANULIFE_USERNAME" ] && echo "::add-mask::$MANULIFE_USERNAME"
+        [ -n "$MANULIFE_ACQUISITION_YEN" ] && echo "::add-mask::$MANULIFE_ACQUISITION_YEN"
         "${{ runner.temp }}/mfpp" sync

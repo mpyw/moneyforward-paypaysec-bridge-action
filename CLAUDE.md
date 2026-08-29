@@ -1,6 +1,14 @@
 # moneyforward-paypaysec-bridge-action
 
-MoneyForward が PayPay 証券に非対応なので、PayPay 証券の残高を毎営業日スクレイピングして MoneyForward の「手入力資産」に反映する GitHub Action。
+MoneyForward が対応していない口座の残高を毎営業日スクレイピングして、
+MoneyForward の「手入力資産」に反映する GitHub Action。
+
+**ソースは複数あり、どれも任意。** PayPay 証券 と マニュライフ生命 があり、
+**設定されているものだけ**読んで、**それぞれが自分の手入力口座に書く**。
+ソースを 1 つ増やすことは、`syncassets.Bridge`（ソースと口座の対）を 1 つ増やすこと。
+
+必須なのは **MoneyForward のログインだけ**（台帳はどの実行でも要る）。
+1 つもソースが設定されていなければエラー——それは小さい仕事ではなく設定ミス。
 
 利用者向けのフォーク元は別リポジトリ (`moneyforward-paypaysec-bridge-template`)。
 ここには `action.yml` と Go の実装、開発者向けの文書しか置かない。cron を持つ
@@ -10,7 +18,8 @@ MoneyForward が PayPay 証券に非対応なので、PayPay 証券の残高を�
 
 - PayPay 証券（Web）の残高を平日大引け後（JST 15:30）に取得
 - **8 つのターゲット**の 評価額合計 を合算（内訳は「PayPay 証券スクレイピング」節）
-- MoneyForward 上では **1 つの手入力資産** に合算残高を書き込む
+- マニュライフ生命の一時払終身保険（米ドル建）の解約時お支払金額を取得（任意）
+- **ソースごとに 1 つの手入力口座**に、銘柄／契約単位で書き込む
 - GitHub Actions の Free 枠で完結、追加課金 0 円
 - 設計はいつでも public 化できるセキュアな構成。「artifact によるセッション受け渡し」「個人情報のハードコード」「ログへの secret 出力」を含まない
 
@@ -22,17 +31,24 @@ PayPay 証券・MoneyForward どちらも **ID/PW + メール OTP** でログイ
 ```
 [cron 平日 15:30 JST — 呼び出し側の sync.yml]
   └─> action.yml (composite) = mfpp sync
-       Phase 1: PayPay 証券
-         1. chromedp でログイン → ID/PW 投入 → OTP メール発行をトリガー
-         2. Gmail API をポーリングし、送信時刻より新しいメールから 6 桁を抽出
-         3. ::add-mask::$OTP → 6 桁を 1 桁ずつ入力 → ログイン完了
-         4. 8 ターゲットから銘柄単位で 評価額 と 取得価額 を取得
+       Phase 1: 全ソースを読む（書き込み前に全部）
+         PayPay 証券   : ログイン → OTP → 8 ターゲットから銘柄単位で取得
+         マニュライフ生命 : ログイン → OTP → 契約一覧 → 契約詳細から解約時お支払金額
+         ※ OTP は各ソースの送信時刻を基準に Gmail API から取る
 
-       Phase 2: MoneyForward
-         5. chromedp でログイン → 同様に Gmail API から OTP 取得
-         6. 手入力口座 (MONEYFORWARD_ASSET_ID) の中身を銘柄単位で突合
-            insert or update / delete。書き込みごとに読み戻して検証
+       Phase 2: 記録する
+         MoneyForward に **1 回だけ**ログイン（口座は複数、ログインは 1 回）
+         ソースごとに、そのソースの口座と突合して insert/update/delete
+         書き込みごとに読み戻して検証
 ```
+
+**読みを全部先に済ませる理由**は OTP。どのサービスもログインに対してコードを
+メールするので、読みと書きを交互にすると発行が長い窓に散らばる。それに、
+1 行も書く前に「どのソースが読めなかったか」が分かる。
+
+**読めなかったソースは他を止めない。** そのソースの口座は一切触らず（何も読んで
+いないので突合しようがない）、実行は最後に**そのソース名を挙げて失敗する**。
+最初の失敗で全部止めると、保険会社のサイトが落ちている日は証券口座も更新されない。
 
 ### 設計判断と理由
 
@@ -48,6 +64,14 @@ PayPay 証券・MoneyForward どちらも **ID/PW + メール OTP** でログイ
 - **artifact 不使用**: public repo では誰でも DL 可、private でも collaborator 全員可で
   90 日保持。短命データを永続化しない
 - **シングルジョブ**: job 間のセッション受け渡しが不要
+- **ソースごとに手入力口座を分ける**: 突合は口座単位なので、`CheckCoverage` と
+  `CheckCategoryEmptied` がそのままソース単位で閉じる。1 口座に相乗りさせると、
+  「どの行が誰のものか」を全ガードに教える必要が出る。分けたことで、
+  **既存の不変条件を 1 つも緩めずに部分適用が成立**した
+- **ソースは設定されていなければ読まない**: 「読んで空だった」とは違う。
+  未読のカテゴリは触られず、空のカテゴリは削除される。だから
+  **変数が半端に埋まっていたらエラー**にする — 変数名の打ち間違いで
+  「そのソースが黙って読まれなくなる」のが一番たちが悪い
 - **passkey 不採用**: macOS Chrome の Virtual Authenticator が platform authenticator に
   優先されない。OTP 経路 1 本のほうが再現性が高い
 - **個人情報をリポジトリに残さない**: メールアドレス・トークンはコードにも文書にも書かない
@@ -201,18 +225,18 @@ cmd/
 internal/
   application/          # 判断。infra も cli も import しない (layer_test.go が強制)
     domain/
-      money/            #   ParseYen
+      money/            #   ParseYen / ParseHundredths / 外貨→円の換算範囲
       valuation/        #   3 ルート照合。信じてよい合計か
       portfolio/        #   Reconcile / Plan / 書き込みの成否 / 削除の妥当性
                         #     CheckCoverage: 読んだカテゴリからしか消さない
                         #     CheckCategoryEmptied: 丸ごと空になる削除は拒否（解除可）
       assetname/        #   資産名の生成と一意性
-      asset/            #   サイト間を渡る単位と Kind
-      secret/           #   ジョブが必要とする資格情報の集合
+      asset/            #   サイト間を渡る単位と Kind (Kinds() が網羅の基準)
+      secret/           #   資格情報の名前。必須 / 任意ソース / 旧名
       credential/       #   無人で使える資格情報とは何か
     port/               # 副作用そのものの interface。1 メソッド 1 通信
     usecase/
-      syncassets/       #   mfpp sync の段取り全部
+      syncassets/       #   mfpp sync の段取り全部。Bridge = ソース × 口座
       authorizegmail/   #   mfpp gmail authorize
   cli/                  # 配送手段。フラグと表示
     credentials/        #   Gmail 資格情報の解決順序 (secret → ファイル)
@@ -222,12 +246,15 @@ internal/
       gmail/            #     authorize / check / search。debug ではない
       debug/            #     開発用ハーネス
         session/        #       共有フラグ / 永続プロファイル付き Chrome
-        paypaysec/ moneyforward/
+        probe/          #       サイトを知らない調査コマンド
+        paypaysec/ manulife/ moneyforward/
   infra/                # 副作用の実装
-    adapter/            #   port の実装。サイトパッケージと繋ぐ
+    adapter/            #   port の実装。1 ソース 1 ファイル
+                        #     MoneyForwardSession は 1 回のログイン、
+                        #     MoneyForwardLedger は 1 つの口座
     actionslog/         #   Actions ログのマスキング
     helpers/steperr/    #   どの段階で失敗したか
-    chrome/browser/     #   chromedp ラッパ + probe + ページダンプ
+    chrome/browser/     #   chromedp ラッパ + probe + ページダンプ + 通信記録
     chrome/pagescript/  #   埋め込み JS の読み込みと引数適用
     chrome/cookiestore/ #   セッション cookie の保存と復元
     gmail/              #   Gmail API 読み取り専用クライアント
@@ -236,6 +263,10 @@ internal/
     moneyforward/       #   MF ログイン (chromedp)
       selector/         #     確定セレクタと OTP メールの見つけ方
       manualasset/      #     手入力口座の銘柄 CRUD (HTTP)
+    manulife/           #   マニュライフ生命: 契約の解約時お支払金額
+      selector/         #     確定セレクタ・ラベル・OTP メール・埋め込み JS
+                        #       ページの id は Visualforce の位置 id で使えない。
+                        #       行は**ラベルの文字列**で引く
     paypaysec/          #   PayPay 証券: 数値の照合
       selector/         #     確定セレクタ・8 ターゲット・埋め込み JS
       pagescan/         #     ページ操作。テキストだけ返す (chromedp)
@@ -252,6 +283,10 @@ internal/
 `infra/**` も `cli/**` も import しない。doc コメントに書いただけの規則は、
 何も考えずに追加された import で破られる — 実際、use case が自分のポートを
 スクレイパの構造体で宣言していたのはそれ。
+
+**`Bridge` はソースと口座の対。** ソースを足すことは対を足すこと。突合は口座単位
+なので、`portfolio` のガードは自動的にそのソースだけを見る。読めなかったソースは
+その対ごと飛ばされ、口座は前のまま残る。
 
 **port は副作用そのものの単位。** SignIn / Recorded / Create / Update / Delete。
 「突合せよ」ではない。そういう形の interface はユースケースごと実装者に渡してしまい、
@@ -291,11 +326,17 @@ mtime も締切も同じ偽クロックから来るので、ポーリング間�
 サブコマンド:
 
 ```
-mfpp sync               # 本体ジョブ
-mfpp debug paypaysec …  # selectors / login / balance / probe
-mfpp debug mf …         # login / portfolio / list / add / sync / fetch / probe
-mfpp gmail …            # authorize / check / search
+mfpp sync                # 本体ジョブ
+mfpp debug probe …       # 任意の URL を開いて中身を報告（サイトを知らない）
+mfpp debug paypaysec …   # selectors / login / balance / probe
+mfpp debug manulife …    # login / read
+mfpp debug mf …          # login / portfolio / list / subclasses / add / sync / fetch / probe
+mfpp gmail …             # authorize / check / search
 ```
+
+`debug probe --manual --save-session` は**まだセレクタが 1 つも無いサイト**への
+入口。人が手でログインし、そのあと何ページでも捕まえられる。マニュライフの
+セレクタは全部これで取った。
 
 `mf add` と `mf sync` は実口座に書き込む。他の debug コマンドは読むだけ。
 
@@ -310,13 +351,35 @@ mfpp gmail …            # authorize / check / search
 
 | 環境変数 | action.yml の input | 用途 |
 |---|---|---|
-| `PAYPAYSEC_USERNAME` / `PAYPAYSEC_PASSWORD` | `paypaysec-username` / `-password` | PayPay 証券ログイン |
+| `PAYPAYSEC_USERNAME` / `_PASSWORD` | `paypaysec-username` / `-password` | PayPay 証券ログイン（任意） |
 | `MONEYFORWARD_EMAIL` / `MONEYFORWARD_PASSWORD` | `moneyforward-email` / `-password` | MoneyForward ログイン (ID/PW) |
-| `MONEYFORWARD_ASSET_ID` | `moneyforward-asset-id` | MF 手入力口座の account_id_hash |
+| `MONEYFORWARD_PAYPAYSEC_ASSET_ID` | `moneyforward-paypaysec-asset-id` | PayPay 証券のぶんを書く MF 手入力口座（任意） |
+| `MONEYFORWARD_ASSET_ID` | `moneyforward-asset-id` | **上記の旧名。まだ読む**（`secret.Legacy`）。両方あって値が違えばエラー |
+| `MANULIFE_USERNAME` / `_PASSWORD` | `manulife-username` / `-password` | マニュライフ生命ログイン（任意） |
+| `MONEYFORWARD_MANULIFE_ASSET_ID` | `moneyforward-manulife-asset-id` | マニュライフのぶんを書く MF 手入力口座（任意） |
+| `MANULIFE_ACQUISITION_YEN` | `manulife-acquisition-yen` | 一時払で実際に払った円額（任意）|
 | `GMAIL_CREDENTIALS` | `gmail-credentials` | Gmail API のユーザー資格情報 |
 
 **名前の規則は 1 本だけ: 環境変数 = input を大文字にしてハイフンを `_` に。**
 対応表を覚える必要はない。規則を外れた名前はテストが落とす。
+
+**口座 id は「台帳が主語、ソースが修飾語」。** `MONEYFORWARD_<SOURCE>_ASSET_ID`。
+どれも MoneyForward の口座で、違うのは**誰の保有が入るか**だから。
+`MONEYFORWARD_ASSET_ID` は口座が 1 つしかなかった頃の名前で、
+2 つ目ができた時点で意味が定まらなくなった。**改名は非破壊**で、旧名も読み続ける
+——名前を変えるだけのためにメジャーとモジュールパスを上げる価値はない。
+
+**ソースの変数は「全部か、ゼロか」。** 半端はエラー。設定されていないソースは
+**読まれない**が、それは「読んで空だった」とは違う（未読は触られず、空は削除される）。
+変数名を 1 つ打ち間違えたときに、そのソースが黙って読まれなくなるほうが、落ちるより悪い。
+
+**役割は `secret.Provider` のフィールドが持つ**（`Username` / `Password` / `AssetID`
+/ 任意の `AcquisitionYen`）。以前は変数名の接尾辞から推測していたが、
+そのどれでもない変数を足した瞬間に黙って捨てられる。
+
+**`Providers` と `provideBridges` の case は一致していなければならない。**
+片方だけ足すと「設定されているのに読まれないソース」ができる——実行は成功し、
+その口座は触られず、数字だけ静かに古くなる。`bridges_test.go` が両方向を見ている。
 
 必須名の一覧は `domain/secret`。`config_test.go` が domain と `Load` を突き合わせ、
 `actionyml_test.go` が `action.yml` と突き合わせる。**3 者のどれかがずれたら落ちる。**
@@ -331,9 +394,16 @@ GitHub Variables は使わない。
 ## 開発
 
 - Go 1.27+ (go.mod がこれを宣言する。CI も action.yml も `go-version-file` で追随する)
-  - **golangci-lint は go.mod の言語バージョン以上の Go でビルドされたものが要る。**
-    古いと `can't load config` で**何も検査せずに**終わる。CI のピン (`.github/workflows/ci.yml`)
-    と手元を同じ版に揃える
+- **golangci-lint は mise が固定する** (`mise.toml`)。`mise install` して
+  `mise exec -- golangci-lint run ./...`
+  - **go.mod の言語バージョン以上の Go でビルドされたものが要る。** 古いと
+    `can't load config` で止まり、さらに古い版は**何も検査せずに成功を報告した**
+  - **版の宣言は `mise.toml` の 1 箇所だけ。** CI はそこから `sed` で読む
+    (`.github/workflows/ci.yml` の "Read the golangci-lint pin")。手元と CI が
+    別の版で検査する事故が構造的に起きない。番号を 2 箇所に書いていた頃は、
+    手元が 1 世代古いまま「lint が通らない」ではなく**「lint が走っていない」**状態でいられた
+  - Go 自体は mise に載せていない。go.mod が宣言し CI と action.yml が
+    `go-version-file` で追随する形が既にあり、4 つ目の宣言を作らない
 - chromedp 用に Chromium / Google Chrome をローカルにインストール
 - `.envrc` 等の機密ファイルはリポジトリにコミットしない (`.gitignore` 必須)
 - **ローカル開発のための経路をアプリケーションに持たせない**。プログラムは環境変数
@@ -397,7 +467,7 @@ GC されない）。ブランチを置いていないのは、更新される�
 # ゲートを通してから
 gofmt -l . ; go vet ./... && go vet -tags live ./... && go vet -tags wireinject ./...
 go run github.com/google/wire/cmd/wire ./internal/cli/commands/...   # 差分が出ないこと
-golangci-lint run ./... && golangci-lint run --build-tags wireinject ./...
+mise exec -- golangci-lint run ./... && mise exec -- golangci-lint run --build-tags wireinject ./...
 TZ=UTC go test -race ./...
 go run github.com/rhysd/actionlint/cmd/actionlint@latest
 
@@ -419,6 +489,7 @@ SHA が要るときは `git rev-parse --verify vX.Y.Z^{commit}` を使い、40 �
 
 - **DOM 変更耐性**: PayPay 証券・MF のフロントが変わるとセレクタ修正が必要。セレクタは `internal/infra/paypaysec` / `internal/infra/moneyforward` に集約。失敗時は workflow が異常終了 → GitHub の通知メールで気づく運用
 - **PayPay 証券への配慮**: スクレイピングは 1 日 1 回に限定、リトライは最大 1 回。robots.txt / 規約抵触の懸念があれば即停止
+- **ソースの失敗は他を止めない**。読めなかったソースはその対ごと飛ばし、口座は前のまま残る（何も読んでいないので突合しようがない）。実行は最後にソース名を挙げて失敗する。片方が落ちた日に、もう片方まで更新されないのは損
 - **secrets の取り扱い**: chromedp の verbose ログは本番で無効化。OTP・cookies・残高金額はワークフローログで `::add-mask::` を明示適用。エラーメッセージから機密情報を redact
 - **個人情報のハードコード禁止**: メールアドレス・トークン・パスワードはコードにも設定ファイルにも書かない。すべて GitHub Secrets とローカルの gitignore 済みファイルに閉じ込める
 - **実データもハードコード禁止**: 残高・銘柄名・OTP コードも同じ。「CONFIRMED」の根拠として実ページの数字をコメントに写すのは自然だが、それが公開されれば口座の中身そのもの。セレクタと構造だけ残し、数字は合成値に置き換える

@@ -1,6 +1,7 @@
 package manualasset
 
 import (
+	"errors"
 	"fmt"
 	"html"
 	"regexp"
@@ -35,6 +36,18 @@ var (
 		`<input[^>]*value="([^"]*)"[^>]*name="user_asset_det\[([a-z_]+)\]"`)
 	entryFieldAltPattern = regexp.MustCompile(
 		`<input[^>]*name="user_asset_det\[([a-z_]+)\]"[^>]*value="([^"]*)"`)
+
+	// subclassSelectPattern isolates the 資産クラス select inside the create
+	// form, and optionPattern reads the options out of it.
+	//
+	// Two steps rather than one, because the form carries several selects — a
+	// sub-account chooser among them — and a pattern loose enough to find
+	// options anywhere would mix their values into one list. The identifiers
+	// this yields are what an entry is filed under, so a value from the wrong
+	// select would file a holding as something else entirely.
+	subclassSelectPattern = regexp.MustCompile(
+		`(?s)<select[^>]*name="user_asset_det\[asset_subclass_id\]"[^>]*>(.*?)</select>`)
+	optionPattern = regexp.MustCompile(`(?s)<option[^>]*value="(\d+)"[^>]*>(.*?)</option>`)
 
 	// errorPattern finds the message the page shows when it rejects a write.
 	//
@@ -149,4 +162,43 @@ func parseEntryForm(hash, body string) (Entry, error) {
 		HasAcquisition: hasAcquisition,
 		Subclass:       AssetSubclass(subclass),
 	}, nil
+}
+
+// SubclassOption is one entry in the create form's 資産クラス select.
+//
+// Read from the page rather than written down from memory. The identifiers in
+// [SubclassFor] were established this way, and the only honest way to add
+// another is to look again — a guessed one files a holding under the wrong
+// 資産クラス with no error anywhere, which is a number in the right place and
+// the wrong category.
+type SubclassOption struct {
+	ID    AssetSubclass
+	Label string
+}
+
+// subclasses reads the 資産クラス options the create form offers.
+func (p accountPage) subclasses() ([]SubclassOption, error) {
+	createForm := createFormPattern.FindStringSubmatch(string(p))
+	if createForm == nil {
+		return nil, errors.New("the create form is not on the page; the session is " +
+			"probably not authenticated")
+	}
+	sel := subclassSelectPattern.FindStringSubmatch(createForm[1])
+	if sel == nil {
+		return nil, errors.New("the create form has no " + fieldSubclass + " select")
+	}
+
+	var out []SubclassOption
+	for _, m := range optionPattern.FindAllStringSubmatch(sel[1], -1) {
+		id, err := strconv.Atoi(m[1])
+		if err != nil {
+			return nil, fmt.Errorf("option value %q is not a number", m[1])
+		}
+		label := strings.TrimSpace(html.UnescapeString(tagPattern.ReplaceAllString(m[2], "")))
+		out = append(out, SubclassOption{ID: AssetSubclass(id), Label: label})
+	}
+	if len(out) == 0 {
+		return nil, errors.New("the 資産クラス select is present but offers no options")
+	}
+	return out, nil
 }

@@ -10,10 +10,12 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/asset"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/assetname"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/portfolio"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/port"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/usecase/syncassets"
 )
 
-type stubBroker struct {
+type stubSource struct {
+	id     string
 	assets []asset.Asset
 
 	// categories overrides what the broker says it covered. Nil means "derive
@@ -24,9 +26,18 @@ type stubBroker struct {
 	signed     int
 }
 
-func (s *stubBroker) SignIn(context.Context) error { s.signed++; return s.signIn }
+// ID names the source in every line and error about it. The stub defaults to
+// one rather than making every test spell it out.
+func (s *stubSource) ID() string {
+	if s.id == "" {
+		return "test-source"
+	}
+	return s.id
+}
 
-func (s *stubBroker) Holdings(context.Context) (asset.Holdings, error) {
+func (s *stubSource) SignIn(context.Context) error { s.signed++; return s.signIn }
+
+func (s *stubSource) Holdings(context.Context) (asset.Holdings, error) {
 	if s.categories != nil {
 		return asset.Holdings{Assets: s.assets, Categories: s.categories}, s.err
 	}
@@ -67,9 +78,19 @@ type stubLedger struct {
 	signed  int
 	readErr error
 	failOn  string
+
+	// onSignIn runs when this account is signed in to, for asserting that
+	// nothing is written before every source has been read.
+	onSignIn func()
 }
 
-func (s *stubLedger) SignIn(context.Context) error { s.signed++; return nil }
+func (s *stubLedger) SignIn(context.Context) error {
+	s.signed++
+	if s.onSignIn != nil {
+		s.onSignIn()
+	}
+	return nil
+}
 
 func (s *stubLedger) Recorded(context.Context) ([]asset.Asset, error) {
 	if s.readErr != nil {
@@ -133,12 +154,34 @@ type recordingReporter struct {
 	// plans, because a run refused between the two reports one and not the
 	// other — which is the whole point of there being two.
 	applied int
+
+	// sources and failed record which source each call was about, because with
+	// more than one bridge a count alone cannot say that.
+	sources  []string
+	failed   []string
+	failures []error
 }
 
-func (r *recordingReporter) Phase(name string)        { r.phases = append(r.phases, name) }
-func (r *recordingReporter) ReadResult([]asset.Asset) { r.read++ }
-func (r *recordingReporter) Planned(portfolio.Plan)   { r.plans++ }
-func (r *recordingReporter) Applied(portfolio.Plan)   { r.applied++ }
+func (r *recordingReporter) Phase(name string) { r.phases = append(r.phases, name) }
+
+func (r *recordingReporter) ReadResult(source string, _ []asset.Asset) {
+	r.read++
+	r.sources = append(r.sources, source)
+}
+func (r *recordingReporter) Planned(string, portfolio.Plan) { r.plans++ }
+func (r *recordingReporter) Applied(string, portfolio.Plan) { r.applied++ }
+func (r *recordingReporter) Failed(source string, err error) {
+	r.failed = append(r.failed, source)
+	r.failures = append(r.failures, err)
+}
+
+// one is a single-bridge Sync, which is what almost every test here wants: the
+// behaviours being pinned are per-bridge, and a second bridge would only make
+// the assertions harder to read. The cases that are actually about there being
+// more than one say so.
+func one(src port.Source, ledger port.Ledger) []syncassets.Bridge {
+	return []syncassets.Bridge{{Source: src, Ledger: ledger}}
+}
 
 func oneAsset() []asset.Asset {
 	return []asset.Asset{{Name: "[米国株] テスト電機", Yen: 456789}}
@@ -149,13 +192,13 @@ func TestRun(t *testing.T) {
 	reporter := &recordingReporter{}
 
 	result, err := syncassets.Sync{
-		Broker: &stubBroker{assets: oneAsset()}, Ledger: ledger, Reporter: reporter,
+		Bridges: one(&stubSource{assets: oneAsset()}, ledger), Reporter: reporter,
 	}.Run(t.Context())
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
 
-	if len(result.Assets) != 1 || len(result.Plan.Steps) != 1 {
+	if len(result.Bridges[0].Assets) != 1 || len(result.Bridges[0].Plan.Steps) != 1 {
 		t.Errorf("Result = %+v", result)
 	}
 	if len(ledger.held) != 1 || ledger.held[0].Name != "[米国株] テスト電機" {
@@ -181,17 +224,16 @@ func TestRunCreatesUpdatesAndDeletes(t *testing.T) {
 	}}
 
 	result, err := syncassets.Sync{
-		Broker: &stubBroker{assets: []asset.Asset{
+		Bridges: one(&stubSource{assets: []asset.Asset{
 			{Name: "変わる", Yen: 456789, AcquisitionYen: 400000, HasAcquisition: true},
 			{Name: "増える", Yen: 5432},
-		}},
-		Ledger: ledger,
+		}}, ledger),
 	}.Run(t.Context())
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
 
-	counts := result.Plan.Counts()
+	counts := result.Bridges[0].Plan.Counts()
 	if counts[portfolio.ActionCreate] != 1 || counts[portfolio.ActionUpdate] != 1 ||
 		counts[portfolio.ActionDelete] != 1 {
 		t.Errorf("plan = %+v, want one of each", counts)
@@ -213,8 +255,7 @@ func TestRunCatchesAWriteThatWasNotApplied(t *testing.T) {
 	ledger := &stubLedger{ignore: "落ちる", rejection: "名称は20文字以内でお願いします"}
 
 	_, err := syncassets.Sync{
-		Broker: &stubBroker{assets: []asset.Asset{{Name: "落ちる", Yen: 5432}}},
-		Ledger: ledger,
+		Bridges: one(&stubSource{assets: []asset.Asset{{Name: "落ちる", Yen: 5432}}}, ledger),
 	}.Run(t.Context())
 	if err == nil {
 		t.Fatal("Run() reported success for a write the ledger discarded")
@@ -231,10 +272,9 @@ func TestRunCatchesAWriteThatWasNotApplied(t *testing.T) {
 // exactly zero — plausible, and unquestionable downstream.
 func TestRunCatchesALostAcquisitionCost(t *testing.T) {
 	_, err := syncassets.Sync{
-		Broker: &stubBroker{assets: []asset.Asset{
+		Bridges: one(&stubSource{assets: []asset.Asset{
 			{Name: "テスト電機", Yen: 456789, AcquisitionYen: 400000, HasAcquisition: true},
-		}},
-		Ledger: &stubLedger{dropCost: true},
+		}}, &stubLedger{dropCost: true}),
 	}.Run(t.Context())
 
 	if err == nil {
@@ -252,8 +292,7 @@ func TestRunRefusesDuplicateNamesInTheLedger(t *testing.T) {
 	ledger := &stubLedger{held: []asset.Asset{{Name: "同名", Yen: 1}, {Name: "同名", Yen: 1}}}
 
 	_, err := syncassets.Sync{
-		Broker: &stubBroker{assets: []asset.Asset{{Name: "同名", Yen: 1}}},
-		Ledger: ledger,
+		Bridges: one(&stubSource{assets: []asset.Asset{{Name: "同名", Yen: 1}}}, ledger),
 	}.Run(t.Context())
 	if err == nil {
 		t.Fatal("Run() accepted a ledger holding two entries with one name")
@@ -267,10 +306,10 @@ func TestRunRefusesDuplicateNamesInTheLedger(t *testing.T) {
 // services mail a one-time code, and a code stamped before its own request
 // belongs to a previous attempt.
 func TestRunSignsInToBothBeforeWriting(t *testing.T) {
-	broker := &stubBroker{assets: oneAsset()}
+	broker := &stubSource{assets: oneAsset()}
 	ledger := &stubLedger{}
 
-	if _, err := (syncassets.Sync{Broker: broker, Ledger: ledger}).Run(t.Context()); err != nil {
+	if _, err := (syncassets.Sync{Bridges: one(broker, ledger)}).Run(t.Context()); err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
 	if broker.signed != 1 || ledger.signed != 1 {
@@ -280,19 +319,26 @@ func TestRunSignsInToBothBeforeWriting(t *testing.T) {
 
 // TestRunRefusesAnEmptyRead is the guard that matters most here. Reconciliation
 // deletes what is no longer held, so a scrape that silently returned nothing
-// would empty the ledger — and look like a clean run against an empty account.
+// would empty the account — and look like a clean run against an empty one.
 func TestRunRefusesAnEmptyRead(t *testing.T) {
 	ledger := &stubLedger{held: oneAsset()}
-	_, err := syncassets.Sync{Broker: &stubBroker{}, Ledger: ledger}.Run(t.Context())
+	_, err := syncassets.Sync{
+		Bridges: one(&stubSource{id: "みなと証券"}, ledger),
+	}.Run(t.Context())
 
 	if err == nil {
 		t.Fatal("Run() accepted an empty read")
 	}
-	if !strings.Contains(err.Error(), "empty the ledger") {
+	if !strings.Contains(err.Error(), "empty the account") {
 		t.Errorf("error = %v, want it to say why it refused", err)
 	}
+	// Which source: with several of them reading independently, an error that
+	// does not name one leaves the reader to guess which account is at risk.
+	if !strings.Contains(err.Error(), "みなと証券") {
+		t.Errorf("error = %v, want it to name the source", err)
+	}
 	if len(ledger.writes) != 0 {
-		t.Error("the ledger was written to despite the refusal")
+		t.Error("the account was written to despite the refusal")
 	}
 }
 
@@ -301,7 +347,7 @@ func TestRunRefusesAnEmptyRead(t *testing.T) {
 // job.
 func TestRunAllowsAnEmptyReadWhenAskedTo(t *testing.T) {
 	ledger := &stubLedger{held: oneAsset()}
-	_, err := syncassets.Sync{Broker: &stubBroker{}, Ledger: ledger, AllowEmpty: true}.Run(t.Context())
+	_, err := syncassets.Sync{Bridges: one(&stubSource{}, ledger), AllowEmpty: true}.Run(t.Context())
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
@@ -313,7 +359,7 @@ func TestRunAllowsAnEmptyReadWhenAskedTo(t *testing.T) {
 func TestRunStopsOnAReadFailure(t *testing.T) {
 	ledger := &stubLedger{}
 	_, err := syncassets.Sync{
-		Broker: &stubBroker{err: errors.New("login failed")}, Ledger: ledger,
+		Bridges: one(&stubSource{err: errors.New("login failed")}, ledger),
 	}.Run(t.Context())
 
 	if err == nil {
@@ -329,22 +375,21 @@ func TestRunStopsOnAReadFailure(t *testing.T) {
 // halfway.
 func TestRunReturnsThePlanEvenOnFailure(t *testing.T) {
 	result, err := syncassets.Sync{
-		Broker: &stubBroker{assets: []asset.Asset{{Name: "だめ", Yen: 1}}},
-		Ledger: &stubLedger{failOn: "だめ"},
+		Bridges: one(&stubSource{assets: []asset.Asset{{Name: "だめ", Yen: 1}}}, &stubLedger{failOn: "だめ"}),
 	}.Run(t.Context())
 
 	if err == nil {
 		t.Fatal("Run() succeeded despite a write failure")
 	}
-	if len(result.Plan.Steps) != 1 {
-		t.Errorf("Result.Plan = %+v, want the attempted plan", result.Plan)
+	if len(result.Bridges[0].Plan.Steps) != 1 {
+		t.Errorf("Result.Plan = %+v, want the attempted plan", result.Bridges[0].Plan)
 	}
 }
 
 // TestRunWithoutAReporterIsSilent keeps the dependency optional.
 func TestRunWithoutAReporterIsSilent(t *testing.T) {
 	_, err := syncassets.Sync{
-		Broker: &stubBroker{assets: oneAsset()}, Ledger: &stubLedger{},
+		Bridges: one(&stubSource{assets: oneAsset()}, &stubLedger{}),
 	}.Run(t.Context())
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
@@ -370,12 +415,11 @@ func TestRunRefusesDeletesFromAnUnreadCategory(t *testing.T) {
 	}}
 
 	_, err := syncassets.Sync{
-		Broker: &stubBroker{
+		Bridges: one(&stubSource{
 			assets: []asset.Asset{{Name: "[米国株] テスト電機", Yen: 1}, {Name: "[米国株] テスト商事", Yen: 1}},
 			// 投信ミ produced nothing at all — not an empty reading, no reading.
 			categories: []string{"米国株"},
-		},
-		Ledger: ledger,
+		}, ledger),
 	}.Run(t.Context())
 
 	if err == nil {
@@ -403,14 +447,13 @@ func TestRunAllowsSellingWithinACategory(t *testing.T) {
 	}}
 
 	_, err := syncassets.Sync{
-		Broker: &stubBroker{
+		Bridges: one(&stubSource{
 			assets: []asset.Asset{
 				{Name: "[米国株] A", Yen: 1}, {Name: "[ミニ] D", Yen: 1},
 				{Name: "[投信ミ] E", Yen: 1},
 			},
 			categories: []string{"米国株", "ミニ", "投信ミ"},
-		},
-		Ledger: ledger,
+		}, ledger),
 	}.Run(t.Context())
 	if err != nil {
 		t.Fatalf("Run() refused a sale within categories it had read: %v", err)
@@ -437,11 +480,10 @@ func TestRunDeletesRowsItDidNotWrite(t *testing.T) {
 	}}
 
 	_, err := syncassets.Sync{
-		Broker: &stubBroker{
+		Bridges: one(&stubSource{
 			assets:     []asset.Asset{{Name: "[米国株] テスト電機", Yen: 1}},
 			categories: []string{"米国株"},
-		},
-		Ledger: ledger,
+		}, ledger),
 	}.Run(t.Context())
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
@@ -466,11 +508,10 @@ func TestRunReportsAPlanItRefusesAsAPlanOnly(t *testing.T) {
 	ledger := &stubLedger{held: []asset.Asset{{Name: "[投信ミ] テスト・ファンド", Yen: 1}}}
 
 	_, err := syncassets.Sync{
-		Broker: &stubBroker{
+		Bridges: one(&stubSource{
 			assets:     []asset.Asset{{Name: "[米国株] テスト電機", Yen: 1}},
 			categories: []string{"米国株"},
-		},
-		Ledger:   ledger,
+		}, ledger),
 		Reporter: reporter,
 	}.Run(t.Context())
 
@@ -501,12 +542,11 @@ func TestRunRefusesToEmptyACategory(t *testing.T) {
 	}}
 
 	_, err := syncassets.Sync{
-		Broker: &stubBroker{
+		Bridges: one(&stubSource{
 			assets: []asset.Asset{{Name: "[米国株] テスト電機", Yen: 1}},
 			// 投信ミ was read — coverage is satisfied. It just came back empty.
 			categories: []string{"米国株", "投信ミ"},
-		},
-		Ledger: ledger,
+		}, ledger),
 	}.Run(t.Context())
 
 	if err == nil {
@@ -533,11 +573,10 @@ func TestRunEmptiesACategoryWhenAsked(t *testing.T) {
 	}}
 
 	_, err := syncassets.Sync{
-		Broker: &stubBroker{
+		Bridges: one(&stubSource{
 			assets:     []asset.Asset{{Name: "[米国株] テスト電機", Yen: 1}},
 			categories: []string{"米国株", "投信ミ"},
-		},
-		Ledger:                  ledger,
+		}, ledger),
 		AllowEmptyingCategories: true,
 	}.Run(t.Context())
 	if err != nil {
@@ -545,5 +584,112 @@ func TestRunEmptiesACategoryWhenAsked(t *testing.T) {
 	}
 	if len(ledger.held) != 1 {
 		t.Errorf("the ledger holds %+v, want only the 米国株 row", ledger.held)
+	}
+}
+
+// What having more than one bridge is for. Everything above pins per-bridge
+// behaviour with a single one; these are about the arrangement itself.
+
+// TestRunKeepsGoingWhenOneSourceCannotBeRead is the reason a run is not one
+// transaction.
+//
+// PayPay 証券 moves every weekday and an insurance contract's surrender value
+// monthly. Stopping everything because one site was down would mean the other
+// account going stale for as long as that lasted — for no reason, since nothing
+// was read from the failing source and so nothing can be reconciled against its
+// account.
+func TestRunKeepsGoingWhenOneSourceCannotBeRead(t *testing.T) {
+	broken := &stubSource{id: "こわれた", signIn: errors.New("the site is down")}
+	working := &stubSource{id: "うごく", assets: oneAsset()}
+	brokenLedger, workingLedger := &stubLedger{held: oneAsset()}, &stubLedger{}
+	reporter := &recordingReporter{}
+
+	result, err := syncassets.Sync{
+		Bridges: []syncassets.Bridge{
+			{Source: broken, Ledger: brokenLedger},
+			{Source: working, Ledger: workingLedger},
+		},
+		Reporter: reporter,
+	}.Run(t.Context())
+
+	// The run still fails: a stale figure nobody is told about is worse than a
+	// failure, because a failure sends mail.
+	if err == nil {
+		t.Fatal("Run() succeeded with a source it could not read")
+	}
+	if !strings.Contains(err.Error(), "こわれた") {
+		t.Errorf("error = %v, want it to name the source that failed", err)
+	}
+	if strings.Contains(err.Error(), "うごく") {
+		t.Errorf("error = %v names a source that succeeded", err)
+	}
+
+	if got := result.Failed(); !slices.Equal(got, []string{"こわれた"}) {
+		t.Errorf("Failed() = %v, want just the broken one", got)
+	}
+	if len(workingLedger.writes) == 0 {
+		t.Error("the working source's account was not written to")
+	}
+	// The one that matters: its account was left exactly as it was.
+	if len(brokenLedger.writes) != 0 {
+		t.Errorf("the failed source's account was written to: %v", brokenLedger.writes)
+	}
+	if brokenLedger.signed != 0 {
+		t.Error("the failed source's account was signed in to, which spends a one-time code")
+	}
+	if !slices.Equal(reporter.failed, []string{"こわれた"}) {
+		t.Errorf("reporter.failed = %v — a failure has to be said when it happens, "+
+			"not only in the error at the end", reporter.failed)
+	}
+}
+
+// TestRunReadsEverySourceBeforeWritingAnything pins the order.
+//
+// Every service here mails a one-time code in response to a sign-in.
+// Interleaving reads with writes would spread those over a longer window for no
+// benefit, and it would mean discovering a source cannot be read after another
+// source's account had already been changed.
+func TestRunReadsEverySourceBeforeWritingAnything(t *testing.T) {
+	first := &stubSource{id: "ひとつめ", assets: oneAsset()}
+	second := &stubSource{id: "ふたつめ", assets: []asset.Asset{{Name: "[投信] テスト", Yen: 1000}}}
+	firstLedger := &stubLedger{onSignIn: func() {
+		if second.signed == 0 {
+			t.Error("an account was signed in to before every source had been read")
+		}
+	}}
+
+	if _, err := (syncassets.Sync{
+		Bridges: []syncassets.Bridge{
+			{Source: first, Ledger: firstLedger},
+			{Source: second, Ledger: &stubLedger{}},
+		},
+	}).Run(t.Context()); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+}
+
+// TestRunReportsEverySourceByName: two bridges, two of everything, each said to
+// belong to one of them.
+func TestRunReportsEverySourceByName(t *testing.T) {
+	reporter := &recordingReporter{}
+	_, err := syncassets.Sync{
+		Bridges: []syncassets.Bridge{
+			{Source: &stubSource{id: "あ", assets: oneAsset()}, Ledger: &stubLedger{}},
+			{Source: &stubSource{id: "い", assets: oneAsset()}, Ledger: &stubLedger{}},
+		},
+		Reporter: reporter,
+	}.Run(t.Context())
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if !slices.Equal(reporter.sources, []string{"あ", "い"}) {
+		t.Errorf("reported sources = %v, want both named in order", reporter.sources)
+	}
+	if reporter.applied != 2 {
+		t.Errorf("applied = %d, want one per bridge", reporter.applied)
+	}
+	// Two bridges, but the phases are the run's and are announced once each.
+	if got := len(reporter.phases); got != 2 {
+		t.Errorf("phases = %v, want the two the run has", reporter.phases)
 	}
 }

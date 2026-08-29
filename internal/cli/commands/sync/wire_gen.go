@@ -38,15 +38,19 @@ func newSync(ctx context.Context) (syncassets.Sync, func(), error) {
 	if err != nil {
 		return syncassets.Sync{}, nil, err
 	}
-	syncPayPaySecCodes := providePayPaySecCodes(mailSearcher, masker)
-	broker := provideBroker(config, syncBrowserContext, syncPayPaySecCodes, masker)
 	syncMoneyForwardCodes := provideMoneyForwardCodes(mailSearcher, masker)
-	ledger := provideLedger(config, syncBrowserContext, syncMoneyForwardCodes, masker)
+	moneyForwardSession := provideMoneyForwardSession(config, syncBrowserContext, syncMoneyForwardCodes)
+	syncPayPaySecCodes := providePayPaySecCodes(mailSearcher, masker)
+	syncManulifeCodes := provideManulifeCodes(mailSearcher, masker)
+	v, err := provideBridges(config, syncBrowserContext, moneyForwardSession, syncPayPaySecCodes, syncManulifeCodes, masker)
+	if err != nil {
+		cleanup()
+		return syncassets.Sync{}, nil, err
+	}
 	portReporter := provideReporter(masker)
 	bool2 := provideAllowEmptyingCategories(config)
 	sync := syncassets.Sync{
-		Broker:                  broker,
-		Ledger:                  ledger,
+		Bridges:                 v,
 		Reporter:                portReporter,
 		AllowEmptyingCategories: bool2,
 	}

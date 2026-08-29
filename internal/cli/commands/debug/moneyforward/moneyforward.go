@@ -21,6 +21,7 @@ func Command() *cli.Command {
 			addCommand(),
 			syncCommand(),
 			listCommand(),
+			subclassesCommand(),
 			fetchCommand(),
 			probeCommand(),
 		},

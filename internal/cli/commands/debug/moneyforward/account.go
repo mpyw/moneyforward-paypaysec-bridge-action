@@ -16,7 +16,7 @@ import (
 // Shared by every subcommand that reads or writes entries, which is why it is
 // here rather than in any one of them.
 func account(opts *session.Options) (manualasset.Account, error) {
-	if missing := config.Missing(string(secret.AssetID)); len(missing) > 0 {
+	if missing := config.MissingCredentials(secret.PayPaySecAssetID); len(missing) > 0 {
 		return manualasset.Account{}, opts.Missing(missing)
 	}
 	client, err := cookiestore.Store{Path: opts.CookieFile()}.HTTPClient()
@@ -28,11 +28,18 @@ func account(opts *session.Options) (manualasset.Account, error) {
 
 // accountURL is the page a subcommand defaults to when given no --url.
 func accountURL(opts *session.Options) (string, error) {
-	if missing := config.Missing(string(secret.AssetID)); len(missing) > 0 {
+	if missing := config.MissingCredentials(secret.PayPaySecAssetID); len(missing) > 0 {
 		return "", opts.Missing(missing)
 	}
 	return manualasset.Account{AssetID: assetID()}.URL(), nil
 }
 
 // assetID is the manual account these commands address.
-func assetID() string { return config.Value(secret.AssetID) }
+//
+// Resolved rather than read, so a local .envrc still carrying the retired name
+// works here exactly as it does in the scheduled job. An error can only be the
+// two names disagreeing, which the callers above have already reported.
+func assetID() string {
+	res, _ := config.Resolve(secret.PayPaySecAssetID)
+	return res.Value
+}

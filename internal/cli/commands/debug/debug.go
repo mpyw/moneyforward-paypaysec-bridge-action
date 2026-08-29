@@ -5,17 +5,23 @@
 // end-to-end makes every failure look the same. These subcommands take them
 // apart:
 //
+//	mfpp debug probe                open any URL and report what it offers (knows no site)
 //	mfpp debug paypaysec selectors  check the login-page selectors (no credentials)
 //	mfpp debug paypaysec login      log in, persisting the session to the profile
 //	mfpp debug paypaysec balance    read every target using that session
 //	mfpp debug paypaysec probe      inspect one URL in detail
+//	mfpp debug manulife login       log in to マニュライフ生命
+//	mfpp debug manulife read        read every contract in the list
 //	mfpp debug mf login             log in to MoneyForward
 //	mfpp debug mf portfolio         show what the account page reveals about writing
 //	mfpp debug mf list              list the entries currently recorded
 //	mfpp debug mf add               create one entry
 //	mfpp debug mf sync              reconcile the entries against name=yen pairs
 //
-// One directory per group, under this one, matching the command tree.
+// One directory per group, under this one, matching the command tree. `probe`
+// is the exception and sits beside them rather than in one: it belongs to no
+// site, and the first thing it is ever pointed at is a service with no group
+// yet.
 //
 // `gmail` is not here. Obtaining a credential is the one thing every user has
 // to do — step C of the setup — and burying the only command a non-developer
@@ -30,12 +36,19 @@
 //   - The Chrome profile persists between runs (--profile), so you log in once
 //     and then iterate on the scrape without burning a one-time code per
 //     attempt.
+//
+// A service with no site package yet has neither: there is nothing to drive the
+// login with, because the selectors that would drive it are what is being
+// looked for. `probe --manual --save-session` is the way in — a person signs in
+// by hand once, and every run after that starts already signed in.
 
 package debug
 
 import (
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug/manulife"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug/moneyforward"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug/paypaysec"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug/probe"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug/session"
 	"github.com/urfave/cli/v3"
 )
@@ -49,7 +62,9 @@ func Command() *cli.Command {
 		// holds a pointer to a struct the parser writes into.
 		Flags: session.Flags(),
 		Commands: []*cli.Command{
+			probe.Command(),
 			paypaysec.Command(),
+			manulife.Command(),
 			moneyforward.Command(),
 		},
 	}

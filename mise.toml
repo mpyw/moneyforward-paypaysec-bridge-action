@@ -1,0 +1,18 @@
+# Development tools for this repository.
+#
+# One entry, and it is here rather than left to whatever is on PATH because of
+# how golangci-lint fails when it is too old: it refuses to run at all when the
+# Go it was built with is older than the language version go.mod targets, and
+# older versions of it did something worse — loaded no config and reported
+# success, having checked nothing.
+#
+# The version is also the single declaration of it. .github/workflows/ci.yml
+# reads it from this file rather than repeating it, because two pins kept in
+# step by care is how a local run and CI come to check different things.
+#
+# Go itself is deliberately not pinned here. go.mod declares it, and CI and
+# action.yml follow with go-version-file; a fourth statement of the same number
+# is one more thing that can disagree.
+
+[tools]
+golangci-lint = "2.13.1"

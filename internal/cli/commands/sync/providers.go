@@ -8,11 +8,14 @@ import (
 	"log"
 
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/port"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/usecase/syncassets"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/credentials"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/config"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/actionslog"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/adapter"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/chrome/browser"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/manulife"
+	mlsel "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/manulife/selector"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward"
 	mfsel "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward/selector"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/otp"
@@ -34,9 +37,10 @@ var providerSet = wire.NewSet(
 	provideMailbox,
 	provideBrowserContext,
 	providePayPaySecCodes,
+	provideManulifeCodes,
 	provideMoneyForwardCodes,
-	provideBroker,
-	provideLedger,
+	provideMoneyForwardSession,
+	provideBridges,
 	provideReporter,
 	provideAllowEmptyingCategories,
 )
@@ -55,11 +59,11 @@ var providerSet = wire.NewSet(
 // first CDP call with nothing to say about why.
 type browserContext context.Context
 
-// payPaySecCodes and moneyForwardCodes are each service's OTP source. Same
-// interface, different mailbox query and different code pattern; crossing them
-// would wait for mail that is not coming.
+// Each service's OTP source. Same interface, different mailbox query and
+// different code pattern; crossing them would wait for mail that is not coming.
 type (
 	payPaySecCodes    otp.Source
+	manulifeCodes     otp.Source
 	moneyForwardCodes otp.Source
 )
 
@@ -78,7 +82,19 @@ func provideConfig(masker actionslog.Masker) (config.Config, error) {
 	// The passwords are not registered: GitHub masks the secrets it injected
 	// itself, and registering one here would print its length to anyone reading
 	// the directive stream. The rest are values this program derives or echoes.
-	masker.MaskAll(c.PayPaySec.Username, c.MoneyForward.Username, c.AssetID)
+	masker.Mask(c.MoneyForward.Username)
+	for _, source := range c.Sources {
+		masker.MaskAll(source.Login.Username, source.AssetID)
+		masker.MaskAmount(source.AcquisitionYen)
+	}
+
+	// Said once, here, because this is where it is known. Nothing changes
+	// because of it — the value was read — but a name that still works and will
+	// not forever is only worth mentioning while there is time to act on it.
+	for _, name := range c.Deprecated {
+		log.Printf("→ %s is the old name for this value; it still works, but "+
+			"rename it when convenient", name)
+	}
 	return c, nil
 }
 
@@ -117,35 +133,102 @@ func providePayPaySecCodes(mailbox otp.MailSearcher, masker actionslog.Masker) p
 	return codeSource(mailbox, ppsel.OTPMail, masker)
 }
 
+func provideManulifeCodes(mailbox otp.MailSearcher, masker actionslog.Masker) manulifeCodes {
+	return codeSource(mailbox, mlsel.OTPMail, masker)
+}
+
 func provideMoneyForwardCodes(mailbox otp.MailSearcher, masker actionslog.Masker) moneyForwardCodes {
 	return codeSource(mailbox, mfsel.OTPMail, masker)
 }
 
-func provideBroker(c config.Config, bctx browserContext, codes payPaySecCodes, masker actionslog.Masker) port.Broker {
-	return adapter.PayPaySecBroker{
-		Client: &paypaysec.Client{
-			Username: c.PayPaySec.Username,
-			Password: c.PayPaySec.Password,
-			OnRead:   maskFigures(masker),
-			OnSkip:   reportSkip,
-		},
-		Browser: bctx,
-		Codes:   codes,
-		OnLogin: logChallenge("PayPay 証券"),
-	}
-}
-
-func provideLedger(c config.Config, bctx browserContext, codes moneyForwardCodes, masker actionslog.Masker) port.Ledger {
-	return &adapter.MoneyForwardLedger{
+// provideMoneyForwardSession is the one sign-in every account is written
+// through.
+//
+// One, not one per account: each source records into its own manual account,
+// and a login per account would mail a one-time code per account — same person,
+// same mailbox, seconds apart, on a service that stops sending them after a
+// handful.
+func provideMoneyForwardSession(c config.Config, bctx browserContext, codes moneyForwardCodes) *adapter.MoneyForwardSession {
+	return &adapter.MoneyForwardSession{
 		Client: &moneyforward.Client{
 			Email:    c.MoneyForward.Username,
 			Password: c.MoneyForward.Password,
-			AssetID:  c.AssetID,
 		},
 		Browser: bctx,
-		AssetID: c.AssetID,
 		Codes:   codes,
 		OnLogin: logChallenge("MoneyForward"),
+	}
+}
+
+// provideBridges pairs each configured source with the account it records into.
+//
+// The list is built here rather than as separate providers because wire matches
+// by type and every source satisfies the same interface. Assembling them in one
+// place also puts "which sources does this run have" in one place, which is the
+// question a reader of a log line will be asking.
+func provideBridges(
+	c config.Config,
+	bctx browserContext,
+	session *adapter.MoneyForwardSession,
+	ppCodes payPaySecCodes,
+	mlCodes manulifeCodes,
+	masker actionslog.Masker,
+) ([]syncassets.Bridge, error) {
+	// Only what is configured. Absent means not read, which is not the same as
+	// read and found empty: an unread category's entries are left alone where an
+	// empty one's are deleted. A caller with one account has one bridge.
+	var bridges []syncassets.Bridge
+	for _, source := range c.Sources {
+		switch source.ID {
+		case adapter.PayPaySecID:
+			bridges = append(bridges, syncassets.Bridge{
+				Source: adapter.PayPaySecSource{
+					Client: &paypaysec.Client{
+						Username: source.Login.Username,
+						Password: source.Login.Password,
+						OnRead:   maskFigures(masker),
+						OnSkip:   reportSkip,
+					},
+					Browser: bctx,
+					Codes:   ppCodes,
+					OnLogin: logChallenge("PayPay 証券"),
+				},
+				Ledger: ledgerFor(session, source.AssetID, masker),
+			})
+		case adapter.ManulifeID:
+			bridges = append(bridges, syncassets.Bridge{
+				Source: adapter.ManulifeSource{
+					Client: &manulife.Client{
+						Username: source.Login.Username,
+						Password: source.Login.Password,
+					},
+					Browser:        bctx,
+					Codes:          mlCodes,
+					AcquisitionYen: source.AcquisitionYen,
+					OnLogin:        logChallenge("マニュライフ生命"),
+					OnRead:         maskContract(masker),
+					OnSkip:         reportContractSkip,
+				},
+				Ledger: ledgerFor(session, source.AssetID, masker),
+			})
+		default:
+			// Not skipped. A source the environment configured and this switch
+			// does not know about is one that would be silently unread — the
+			// run would succeed, its account would never be touched, and its
+			// figure would quietly stop being updated. That is the failure this
+			// whole arrangement is built to avoid, so it stops here instead.
+			return nil, fmt.Errorf("the %s source is configured but this build has no "+
+				"reader for it; every entry in secret.Providers needs one", source.ID)
+		}
+	}
+	return bridges, nil
+}
+
+// ledgerFor is one manual account, written through the shared sign-in.
+func ledgerFor(session *adapter.MoneyForwardSession, assetID string, masker actionslog.Masker) port.Ledger {
+	return &adapter.MoneyForwardLedger{
+		Session: session,
+		AssetID: assetID,
 		OnRead:  maskEntries(masker),
 	}
 }

@@ -9,8 +9,12 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec"
 )
 
-// PayPaySecBroker reads holdings from PayPay 証券.
-type PayPaySecBroker struct {
+// PayPaySecID names this source in logs, in errors, and in the input names its
+// credentials arrive under.
+const PayPaySecID = "paypaysec"
+
+// PayPaySecSource reads holdings from PayPay 証券.
+type PayPaySecSource struct {
 	Client *paypaysec.Client
 
 	// Browser is the chromedp context the site is driven through.
@@ -23,14 +27,17 @@ type PayPaySecBroker struct {
 	OnLogin func(challenged bool)
 }
 
+// ID names this source.
+func (b PayPaySecSource) ID() string { return PayPaySecID }
+
 // SignIn logs in, obtaining a one-time code if the site asks for one.
-func (b PayPaySecBroker) SignIn(context.Context) error {
+func (b PayPaySecSource) SignIn(context.Context) error {
 	result, err := b.Client.Login(b.Browser, b.Codes)
 	if err != nil {
 		if step := paypaysec.StepOf(err); step != "" {
-			return fmt.Errorf("paypaysec: login failed at %s: %w", step, err)
+			return fmt.Errorf("login failed at %s: %w", step, err)
 		}
-		return fmt.Errorf("paypaysec: login: %w", err)
+		return fmt.Errorf("login: %w", err)
 	}
 	if b.OnLogin != nil {
 		b.OnLogin(result.OTPRequired)
@@ -39,14 +46,14 @@ func (b PayPaySecBroker) SignIn(context.Context) error {
 }
 
 // Holdings reads every target and returns one entry per 銘柄.
-func (b PayPaySecBroker) Holdings(context.Context) (asset.Holdings, error) {
+func (b PayPaySecSource) Holdings(context.Context) (asset.Holdings, error) {
 	balances, err := b.Client.GetBalances(b.Browser)
 	if err != nil {
-		return asset.Holdings{}, fmt.Errorf("paypaysec: %w", err)
+		return asset.Holdings{}, err
 	}
 	assets, err := balances.Assets()
 	if err != nil {
-		return asset.Holdings{}, fmt.Errorf("paypaysec: %w", err)
+		return asset.Holdings{}, err
 	}
 	// Every target that produced a reading, not every target configured:
 	// GetBalances fails the whole read rather than skipping one, so these are

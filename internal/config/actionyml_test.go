@@ -31,6 +31,23 @@ var (
 var optional = map[string]bool{
 	"go-version-file":           true,
 	"allow-emptying-categories": true,
+
+	// One of these two has to be supplied and neither can be marked required:
+	// the second is the first's former name, kept so existing callers keep
+	// working. Which one is present is checked at load, by name.
+	"moneyforward-paypaysec-asset-id": true,
+	"moneyforward-asset-id":           true,
+
+	// Every source is optional, and a source is all of its inputs or none of
+	// them — checked at load rather than by the action, because "some of them"
+	// is a misconfiguration and not a smaller job. A run with no source at all
+	// is refused there too.
+	"paypaysec-username":             true,
+	"paypaysec-password":             true,
+	"moneyforward-manulife-asset-id": true,
+	"manulife-username":              true,
+	"manulife-password":              true,
+	"manulife-acquisition-yen":       true,
 }
 
 // notEnvironment are inputs that never reach the environment.

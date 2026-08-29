@@ -23,6 +23,17 @@ const (
 	USStock
 	OtherStock
 	MutualFund
+
+	// SavingsInsurance is an insurance contract held for the value it
+	// accumulates.
+	//
+	// Named for the contract rather than for what backs it. The position this
+	// exists for is a foreign-currency single-premium whole life policy whose
+	// value tracks US treasuries, so 外債 would describe the exposure — but the
+	// thing owned is a policy, the figure recorded is its surrender value, and
+	// the surrender charge that figure is net of belongs to the contract and not
+	// to any bond.
+	SavingsInsurance
 )
 
 // String names the kind in the words both sites use for it.
@@ -36,6 +47,8 @@ func (k Kind) String() string {
 		return "その他株式"
 	case MutualFund:
 		return "投資信託"
+	case SavingsInsurance:
+		return "積立型保険"
 	default:
 		return fmt.Sprintf("Kind(%d)", int(k))
 	}
@@ -48,11 +61,21 @@ func (k Kind) String() string {
 // the wrong instrument type with no error anywhere.
 func (k Kind) Valid() bool {
 	switch k {
-	case DomesticStock, USStock, OtherStock, MutualFund:
+	case DomesticStock, USStock, OtherStock, MutualFund, SavingsInsurance:
 		return true
 	default:
 		return false
 	}
+}
+
+// Kinds is every kind this program knows how to file.
+//
+// A list rather than a range over the constants, so that adding one to the
+// block above without adding it here is a gap something can notice: the
+// MoneyForward side uses this to report which of its 資産クラス options nothing
+// maps to, and a kind missing from it is simply invisible there.
+func Kinds() []Kind {
+	return []Kind{DomesticStock, USStock, OtherStock, MutualFund, SavingsInsurance}
 }
 
 // Asset is one 銘柄 as it should be recorded.

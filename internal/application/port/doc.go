@@ -19,7 +19,7 @@
 // interfaces: what an implementer has to provide is what a whole file says,
 // and which use case wants it follows from that.
 //
-//	broker.go      the account holdings are read from
+//	source.go      an account holdings are read from, of which there are several
 //	ledger.go      the account they are recorded in
 //	secret.go      where the scheduled job's credentials are kept
 //	credential.go  granting and keeping a credential to read mail with
