@@ -112,6 +112,19 @@ func (a Account) load(ctx context.Context) (accountPage, error) {
 	return accountPage(body), nil
 }
 
+// Subclasses reports the 資産クラス options the create form offers.
+//
+// A read, for finding out what an instrument kind has to be mapped to. The
+// numbering is MoneyForward's and appears nowhere in their documentation, so
+// the form is the only statement of it there is.
+func (a Account) Subclasses(ctx context.Context) ([]SubclassOption, error) {
+	page, err := a.load(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return page.subclasses()
+}
+
 // EntryNamed finds one current row by name.
 //
 // Exported because a write needs the identifiers and the per-form token the

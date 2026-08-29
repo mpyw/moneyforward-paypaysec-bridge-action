@@ -20,6 +20,7 @@
 | 資産 | 漏洩した場合の影響 |
 |---|---|
 | PayPay 証券ログイン認証情報 | 他人が口座に直接アクセスし得る。最重要 |
+| マニュライフ生命ログイン認証情報 | 契約内容と個人情報が見える。解約等の手続き画面にも到達し得る。最重要 |
 | MoneyForward ログイン認証情報 | 全資産情報、生活パターンが見える。極めて重要 |
 | `GMAIL_CREDENTIALS` | 受信箱を読める。OTP を含むため各サービスのパスワードリセットに連鎖し得る |
 | OTP メール本文 | 単独では失効するが、複数集まると挙動分析に使われる |
@@ -75,7 +76,7 @@
 
 | ファイル | 中身 |
 |---|---|
-| `.envrc` | 各サービスの認証情報 (direnv が環境に置く) |
+| `.envrc` | 各サービスの認証情報と払込額 (direnv が環境に置く) |
 | `client_secret.json` | OAuth クライアント。同意フローの一度きりにしか使わない |
 | `gmail-credentials.json` | Gmail のユーザー資格情報 (refresh token) |
 
@@ -87,9 +88,13 @@
 | Secret | ローテ頻度 | 手順 |
 |---|---|---|
 | `PAYPAYSEC_PASSWORD` | 半年 / 漏洩疑い時即 | PayPay 証券の Web でパスワード変更 → `gh secret set PAYPAYSEC_PASSWORD` |
+| `MANULIFE_PASSWORD` | 半年 / 漏洩疑い時即 | マイページでパスワード変更 → `gh secret set MANULIFE_PASSWORD` |
 | `MONEYFORWARD_PASSWORD` | 半年 / 漏洩疑い時即 | MF でパスワード変更 → `gh secret set MONEYFORWARD_PASSWORD` |
-| `MONEYFORWARD_ASSET_ID` | 資産削除/再作成時のみ | 新 ID をメモして `gh secret set MONEYFORWARD_ASSET_ID` |
-| `PAYPAYSEC_USERNAME` / `MONEYFORWARD_EMAIL` | アドレス変更時のみ | `gh secret set <name>` |
+| `MONEYFORWARD_*_ASSET_ID` | 資産削除/再作成時のみ | 新 ID をメモして `gh secret set <name>` |
+| `PAYPAYSEC_USERNAME` / `MANULIFE_USERNAME` / `MONEYFORWARD_EMAIL` | アドレス変更時のみ | `gh secret set <name>` |
+
+`MANULIFE_ACQUISITION_YEN` は資格情報ではないが**口座の中身そのもの**なので、
+他の金額と同じくマスク対象で、リポジトリにも文書にも書かない。
 
 ## OTP の取り扱い
 
@@ -170,15 +175,16 @@ Workspace ドメイン専用で、個人アカウントには適用できない�
 スコープもこれ以上絞れない。`gmail.metadata` は本文を返さず 6 桁が読めないため、
 `gmail.readonly` が機能する最小になる。
 
-残る緩和策は **OTP 専用の Google アカウントを作り、PayPay 証券と MoneyForward の
-登録アドレスをそちらに移すこと**。refresh token が漏れたときに読まれる範囲が
+残る緩和策は **OTP 専用の Google アカウントを作り、各サービスの登録アドレスを
+そちらに移すこと**。マニュライフ生命は OTP の送信先だけをログイン ID と別に
+設定できるので、ここは移しやすい。refresh token が漏れたときに読まれる範囲が
 「全メール」から「OTP メールだけ」になる。無料で、Workspace も要らない。未実施。
 
 ## 漏洩時のリボーク手順
 
-### PayPay / MF 認証情報が漏洩した疑い
+### 各サービスの認証情報が漏洩した疑い
 
-1. PayPay 証券 / MF 上でパスワード変更 (それぞれ Web から)
+1. 該当サービス上でパスワード変更 (それぞれ Web から)
 2. `gh secret set <name>` で新値を Secrets に反映
 3. 当該日の workflow を `gh workflow run sync.yml` で再実行して動作確認
 4. Audit log で漏洩源を特定
@@ -255,4 +261,7 @@ force push や `git filter-repo` では到達不能コミットが API から読
 - [ ] **実行ログに銘柄名が出る。** 金額と secret はマスクされるが銘柄名はされない。
       public fork で動かすと保有銘柄が公開される（template の README に記載）
 - [ ] `@v3` は動くタグで、固定したいなら SHA-1（同上）
-- [ ] `MONEYFORWARD_ASSET_ID` の口座の中身はジョブが管理し、対応しない行は削除される（同上）
+- [ ] **ソースごとに指定した口座の中身はジョブが管理し、対応しない行は削除される**（同上）。
+      手で作った行も消えるので、**ソースごとに新しい空の口座を作る**こと
+- [ ] **1 実行あたり OTP がソース数 + 1 通飛ぶ。** 短時間に繰り返すと送信自体を
+      止められることがある

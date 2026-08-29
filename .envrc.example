@@ -12,14 +12,37 @@
 # .envrc is gitignored. Keep it that way — every value below is a live
 # credential for a real brokerage or aggregator account.
 
-export PAYPAYSEC_USERNAME=
-export PAYPAYSEC_PASSWORD=
+# The ledger. Required whatever a run is reading.
 export MONEYFORWARD_EMAIL=
 export MONEYFORWARD_PASSWORD=
 
-# The manual account the holdings are written into: the account_id_hash from
-# its MoneyForward URL.
-export MONEYFORWARD_ASSET_ID=
+# PayPay 証券. Optional as a set, with MONEYFORWARD_PAYPAYSEC_ASSET_ID below.
+export PAYPAYSEC_USERNAME=
+export PAYPAYSEC_PASSWORD=
+
+# マニュライフ生命 マイページ. Optional, like every source: set all three of
+# username, password and MONEYFORWARD_MANULIFE_ASSET_ID below, or none of them.
+# Half a set is an error rather than a source that quietly gets skipped.
+export MANULIFE_USERNAME=
+export MANULIFE_PASSWORD=
+
+# What was actually paid, in yen, for the single-premium contract — digits only,
+# e.g. 4000000. The site states the premium in US dollars and nothing on it
+# converts that at the rate it was struck at, so this is the only place the real
+# cost basis can come from. Without it MoneyForward takes cost to equal value
+# and reports a profit of exactly zero.
+export MANULIFE_ACQUISITION_YEN=
+
+# The manual accounts the holdings are written into: the account_id_hash from
+# each one's MoneyForward URL. One per source, so a run that cannot read one
+# source leaves the other's account untouched.
+#
+# MONEYFORWARD_ASSET_ID was the name of the first of these while there was only
+# one. It is still read — an .envrc or a repository secret carrying it keeps
+# working — but setting both names to different values is an error rather than
+# a preference.
+export MONEYFORWARD_PAYPAYSEC_ASSET_ID=
+export MONEYFORWARD_MANULIFE_ASSET_ID=
 
 # Only needed to exercise the CI path locally. `mfpp debug gmail authorize`
 # writes gmail-credentials.json, and the commands read that file when this is

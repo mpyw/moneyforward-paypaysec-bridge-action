@@ -12,7 +12,7 @@ gofmt -l .                                              # 出力が空である�
 go vet ./... && go vet -tags live ./... && go vet -tags wireinject ./...
 go run github.com/google/wire/cmd/wire ./internal/cli/commands/...
 git diff --quiet -- '*wire_gen.go' || echo "★ wire_gen.go が古い"
-golangci-lint run ./... && golangci-lint run --build-tags wireinject ./...  # ★ 版に下限あり
+mise exec -- golangci-lint run ./... && mise exec -- golangci-lint run --build-tags wireinject ./...
 TZ=UTC go test -race ./...
 go run github.com/rhysd/actionlint/cmd/actionlint@latest
 ```
@@ -28,11 +28,15 @@ go run github.com/rhysd/actionlint/cmd/actionlint@latest
   パッケージ全体を覆えない**
 - **golangci-lint の版** — go.mod の言語バージョンより古い Go でビルドされた
   golangci-lint は `can't load config` で止まる。**検査 0 件で赤くなるだけ**なので，
-  「lint が通らない」ではなく「lint が走っていない」。CI のピン
-  (`.github/workflows/ci.yml` の `version:`) と手元を揃える:
+  「lint が通らない」ではなく「lint が走っていない」。
+
+  **だから `mise exec --` を付ける。** 版は `mise.toml` が唯一の宣言で，CI もそこから
+  読む。素の `golangci-lint` を叩くと PATH 上の別の版が走り，手元と CI が別のものを
+  検査する — 実際 PATH には 2.12.2 が居て，1 世代古いまま気づけなかった:
 
   ```bash
-  golangci-lint --version   # built with go1.XX が go.mod の go 行以上か
+  mise install
+  mise exec -- golangci-lint version   # built with go1.XX が go.mod の go 行以上か
   ```
 - **`TZ=UTC`** — 壁時計に依存したテストが JST の夕方に通り UTC の朝に落ちた
 - **actionlint** — ステップ名に `::` を書いて YAML を壊したことがある。**有効な YAML で

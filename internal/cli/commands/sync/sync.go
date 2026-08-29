@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/urfave/cli/v3"
@@ -26,7 +27,8 @@ const (
 	otpInterval = 5 * time.Second
 )
 
-// requiredEnv are the credentials the job cannot run without.
+// requiredEnv are the credentials the job cannot run without, and sourceEnv
+// what each optional source needs.
 //
 // From the domain rather than listed again here: this and `secrets setup` were
 // two copies of one set, kept in step by nothing but care, and a credential in
@@ -36,14 +38,33 @@ const (
 // can read the process list.
 var requiredEnv = secret.RequiredNames()
 
+// sourceEnv describes each source, for the help text.
+//
+// Listed because "optional" on its own is not usable: a reader needs to know
+// that a source is all of its variables or none, and which those are.
+func sourceEnv() string {
+	var parts []string
+	for _, provider := range secret.Providers {
+		names := make([]string, 0, 3)
+		for _, n := range provider.Names() {
+			names = append(names, string(n))
+		}
+		parts = append(parts, provider.ID+" ("+strings.Join(names, ", ")+")")
+	}
+	return strings.Join(parts, "; ")
+}
+
 // Command builds the sync subcommand.
 func Command() *cli.Command {
 	return &cli.Command{
 		Name:  "sync",
-		Usage: "read the PayPay 証券 holdings and record them on the MoneyForward account",
+		Usage: "read every configured source and record it in its MoneyForward account",
 		Description: "Credentials come from the environment (GitHub Secrets in CI). They are\n" +
 			"deliberately not flags: a value on the command line is visible in the\n" +
-			"process list. Required: " + fmt.Sprint(requiredEnv) + ".",
+			"process list.\n\n" +
+			"Always required: " + fmt.Sprint(requiredEnv) + ".\n\n" +
+			"Sources, each all-or-nothing and at least one of them needed:\n  " +
+			sourceEnv() + ".",
 		Action: func(ctx context.Context, _ *cli.Command) error {
 			log.SetFlags(log.Ltime)
 			return run(ctx)

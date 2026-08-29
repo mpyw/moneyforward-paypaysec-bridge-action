@@ -26,13 +26,11 @@ import (
 // with extra steps. Named for what it builds rather than left as a second
 // newSync, since the two mean different things.
 func newSyncFromEntries(desired []asset.Asset, acct manualasset.Account) syncassets.Sync {
-	broker := provideBroker(desired)
-	ledger := provideLedger(acct)
+	v := provideBridges(desired, acct)
 	reporter := provideReporter()
 	bool2 := provideAllowEmpty(desired)
 	sync := syncassets.Sync{
-		Broker:     broker,
-		Ledger:     ledger,
+		Bridges:    v,
 		Reporter:   reporter,
 		AllowEmpty: bool2,
 	}

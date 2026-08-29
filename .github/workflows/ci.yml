@@ -96,13 +96,30 @@ jobs:
         # compile error in them is otherwise invisible until someone runs them.
         run: go vet -tags live ./...
 
-      - name: golangci-lint
-        # Pinned, and the pin has a floor: golangci-lint refuses to run when the
-        # Go version it was built with is older than the one go.mod targets, so
-        # raising the language version means raising this too. It fails loudly —
-        # "can't load config" naming both versions — rather than silently
-        # checking less.
+      - name: Read the golangci-lint pin
+        # mise.toml is the single declaration of it, and this reads that rather
+        # than repeating the number.
         #
+        # The pin has a floor: golangci-lint refuses to run when the Go it was
+        # built with is older than the version go.mod targets, so raising the
+        # language version means raising this too. It fails loudly — "can't load
+        # config", naming both versions — where older ones did something worse
+        # and reported success having checked nothing.
+        #
+        # Two pins kept in step by care is exactly how a local run and CI come to
+        # check different things, and that is the failure this repository keeps
+        # closing with a test. There is no test for a workflow file, so the
+        # duplicate is removed instead.
+        id: lint-version
+        run: |
+          version=$(sed -n 's/^golangci-lint = "\(.*\)"$/\1/p' mise.toml)
+          if [ -z "$version" ]; then
+            echo "::error::no golangci-lint pin found in mise.toml"
+            exit 1
+          fi
+          echo "version=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: golangci-lint
         # Two passes because the build tags select disjoint files. The default
         # one never sees wire.go, so every wire.NewSet in it reads as unused;
         # the wireinject one never sees wire_gen.go. Neither alone covers the
@@ -113,12 +130,12 @@ jobs:
         # could not fail — that nothing in this file would have.
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          version: v2.13.1
+          version: ${{ steps.lint-version.outputs.version }}
 
       - name: golangci-lint (wireinject tags)
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          version: v2.13.1
+          version: ${{ steps.lint-version.outputs.version }}
           args: --build-tags wireinject
 
       - name: Check Chrome is available

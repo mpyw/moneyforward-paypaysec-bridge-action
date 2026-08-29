@@ -12,21 +12,26 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/assetname"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/portfolio"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/port"
+	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/usecase/syncassets"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/adapter"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward/manualasset"
 )
 
 // providerSet is what `debug mf sync` is built from.
 var providerSet = wire.NewSet(
-	provideBroker,
-	provideLedger,
+	provideBridges,
 	provideReporter,
 	provideAllowEmpty,
 )
 
-func provideBroker(desired []asset.Asset) port.Broker { return typedHoldings(desired) }
-
-func provideLedger(acct manualasset.Account) port.Ledger { return &ledgerOn{account: acct} }
+// provideBridges is the one bridge this command has: what was typed, against
+// the account the flags named.
+func provideBridges(desired []asset.Asset, acct manualasset.Account) []syncassets.Bridge {
+	return []syncassets.Bridge{{
+		Source: typedHoldings(desired),
+		Ledger: &ledgerOn{account: acct},
+	}}
+}
 
 func provideReporter() port.Reporter { return planPrinter{} }
 
@@ -36,8 +41,12 @@ func provideReporter() port.Reporter { return planPrinter{} }
 // acting on it empties the account. Here it is what was asked for.
 func provideAllowEmpty(desired []asset.Asset) bool { return len(desired) == 0 }
 
-// typedHoldings is a broker that reports what the command line said.
+// typedHoldings is a source that reports what the command line said.
 type typedHoldings []asset.Asset
+
+// ID names it as what it is, so a plan printed by this command cannot be
+// mistaken for one produced by reading a site.
+func (t typedHoldings) ID() string { return "typed" }
 
 func (t typedHoldings) SignIn(context.Context) error { return nil }
 
@@ -76,15 +85,19 @@ func (l *ledgerOn) SignIn(context.Context) error {
 // planPrinter shows what the run decided.
 type planPrinter struct{}
 
-func (planPrinter) Phase(string)             {}
-func (planPrinter) ReadResult([]asset.Asset) {}
+func (planPrinter) Phase(string)                     {}
+func (planPrinter) ReadResult(string, []asset.Asset) {}
 
 // Applied says nothing: this command already prints the whole plan, and the
 // table is the useful output. What it must not do is print a second summary
 // that looks like the first.
-func (planPrinter) Applied(portfolio.Plan) {}
+func (planPrinter) Applied(string, portfolio.Plan) {}
 
-func (planPrinter) Planned(plan portfolio.Plan) {
+// Failed is likewise silent. This command has one bridge, so a failure is the
+// error the command returns — printing it here would say it twice.
+func (planPrinter) Failed(string, error) {}
+
+func (planPrinter) Planned(_ string, plan portfolio.Plan) {
 	w := tabwriter.NewWriter(os.Stderr, 0, 0, 2, ' ', 0)
 	_, _ = fmt.Fprintln(w, "\nACTION\tNAME\tWAS\tNOW")
 	for _, step := range plan.Steps {

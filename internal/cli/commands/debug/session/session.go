@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/chromedp/chromedp"
@@ -77,26 +78,141 @@ func (s *Session) SaveSession() {
 	_, _ = fmt.Fprintf(os.Stderr, "  ⚠ that file is a live session for the account — delete it when done\n")
 }
 
+// RecordNetwork starts recording the page's own XHR and fetch traffic, and
+// returns the function that stops it.
+//
+// Separate from the page dumps because it answers a different question. A dump
+// says what the page ended up showing; this says where those figures came from,
+// and whether there is an address that could be asked directly. On a site whose
+// elements are numbered by position in a component tree — nothing addressable,
+// nothing stable — that is not a nicety, it is the only lead there is.
+//
+// The recording holds whatever the responses held, so it is personal data in the
+// same way a dump is.
+func (s *Session) RecordNetwork(label string) (stop func(), err error) {
+	rec, err := browser.Record(s.ctx, s.opts.debugDir, label)
+	if err != nil {
+		return nil, err
+	}
+	_, _ = fmt.Fprintf(os.Stderr, "→ recording XHR/fetch to %s\n", rec.Path())
+	return func() {
+		n, err := rec.Stop()
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "  (network log: %v)\n", err)
+		}
+		_, _ = fmt.Fprintf(os.Stderr, "\nnetwork: %d exchanges in %s\n", n, rec.Path())
+		if n > 0 {
+			_, _ = fmt.Fprintf(os.Stderr, "  ⚠ holds whatever the responses held — delete it when done\n")
+		}
+	}, nil
+}
+
+// holdInterval is how often a held session is written back.
+//
+// Short enough that forgetting the terminal costs at most this much of a login,
+// long enough not to churn the file while somebody reads a page.
+const holdInterval = 10 * time.Second
+
+// HoldSession keeps writing the captured session out while a person works in
+// the browser, and returns the function that stops it.
+//
+// The session is the expensive thing in a manual run: it costs a one-time code,
+// and both services already known here stop mailing those after about five
+// attempts in quick succession. Saving only at the end makes the whole run
+// all-or-nothing on somebody remembering to come back to the terminal — which
+// is exactly how the first Manulife attempt was lost, the deadline expiring
+// while the browser sat there signed in.
+//
+// So it is written repeatedly, from the first moment there is anything to
+// write. Whatever ends the run — a forgotten terminal, an expired deadline, a
+// Ctrl-C — the next one starts from the last snapshot instead of from another
+// code.
+//
+// The returned stop waits for the writer to finish, so no CDP call from here
+// overlaps whatever the caller does next.
+func (s *Session) HoldSession() (stop func()) {
+	done := make(chan struct{})
+	stopped := make(chan struct{})
+
+	go func() {
+		defer close(stopped)
+		ticker := time.NewTicker(holdInterval)
+		defer ticker.Stop()
+
+		announced := false
+		for {
+			select {
+			case <-done:
+				return
+			case <-s.ctx.Done():
+				return
+			case <-ticker.C:
+			}
+			n, err := cookiestore.Store{Path: s.opts.CookieFile()}.Save(s.ctx)
+			// Silent about failures and about every repeat. A page mid-navigation
+			// answers badly and the next tick gets it right, so a line per attempt
+			// would be noise over the one thing worth saying: that there is now a
+			// session on disk, and that it is a live one.
+			if err != nil || n == 0 || announced {
+				continue
+			}
+			announced = true
+			_, _ = fmt.Fprintf(os.Stderr, "  session captured to %s and kept current — "+
+				"a lost run will not cost another one-time code\n", s.opts.CookieFile())
+			_, _ = fmt.Fprintf(os.Stderr, "  ⚠ that file is a live session for the account — delete it when done\n")
+		}
+	}()
+
+	return func() {
+		close(done)
+		<-stopped
+	}
+}
+
 // Finish honours --keep-open, then shuts Chrome down.
 func (s *Session) Finish() {
 	if s.opts.keepOpen && !s.opts.headless {
-		s.waitForEnter()
+		_, _ = s.waitForEnter("\nChrome is still open. Press Enter to close it.\n")
 	}
 	s.close()
 }
 
-// waitForEnter parks so the browser stays inspectable in DevTools.
-func (s *Session) waitForEnter() {
-	_, _ = fmt.Fprintf(os.Stderr, "\nChrome is still open. Press Enter to close it.\n")
+// Pause hands the browser to whoever is at the terminal and waits, reporting
+// what they typed and whether anyone was actually waited for.
+//
+// For a service this program has no selectors for yet. Reaching an
+// authenticated page needs a sign-in, and writing one needs the selectors that
+// are the thing being looked for — so the first pass is a person signing in by
+// hand, and everything after it inspects what they landed on.
+//
+// waited is false when nobody could have answered: headless, or a deadline that
+// expired while waiting. A caller looping on this needs to know the difference,
+// because a Pause that returns instantly and reports nothing is otherwise
+// indistinguishable from an empty line, and the loop spins.
+func (s *Session) Pause(what string) (typed string, waited bool) {
+	if s.opts.headless {
+		_, _ = fmt.Fprintf(os.Stderr, "  (headless — not pausing for: %s)\n", what)
+		return "", false
+	}
+	return s.waitForEnter("\n" + what + "\n")
+}
+
+// waitForEnter parks so the browser stays usable and inspectable in DevTools.
+func (s *Session) waitForEnter(prompt string) (typed string, waited bool) {
+	_, _ = fmt.Fprint(os.Stderr, prompt)
 	done := make(chan struct{})
+	var line string
 	go func() {
 		defer close(done)
-		var discard string
-		_, _ = fmt.Scanln(&discard)
+		// Scanln reports an error for a bare newline, which is the ordinary case
+		// here: line stays empty and that is the answer.
+		_, _ = fmt.Scanln(&line)
 	}()
 	select {
 	case <-done:
+		return strings.TrimSpace(line), true
 	case <-s.ctx.Done():
+		return "", false
 	}
 }
 

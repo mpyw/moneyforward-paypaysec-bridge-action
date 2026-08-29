@@ -108,13 +108,12 @@ func (g *Gmail) Fetch(ctx context.Context, since time.Time) (string, error) {
 			g.warn("WARN: %s: %v", g.Describe(), serr)
 			return "", nil
 		}
-		found, ok := g.extract(msgs, since)
-		if !ok {
-			g.warn("  %s: %d recent message(s), none at or after %s yet",
-				g.Describe(), len(msgs), since.Format("15:04:05"))
+		seen := g.extract(msgs, since)
+		if !seen.found {
+			g.warn("  %s: %s", g.Describe(), seen.why(len(msgs), since, g.Spec))
 			return "", nil
 		}
-		return found, nil
+		return seen.code, nil
 	})
 	if errors.Is(err, errWaitedTooLong) {
 		return "", fmt.Errorf("%s: no message at or after %s matching %q within %s",
@@ -123,19 +122,48 @@ func (g *Gmail) Fetch(ctx context.Context, since time.Time) (string, error) {
 	return code, err
 }
 
+// attempt is what one poll saw.
+//
+// The counts exist so a wait that is getting nowhere can say which kind of
+// nowhere it is. They were not there, and the one line that stood in for them —
+// "N recent message(s), none at or after T yet" — is true whether the mail has
+// not arrived or has arrived and the pattern does not fit it. Those need
+// opposite responses: wait, or go and fix the pattern. Reading the first when it
+// was the second cost an afternoon and a one-time code, on a pattern that failed
+// only because Go's \s does not match an ideographic space.
+type attempt struct {
+	code  string
+	found bool
+
+	// fresh is how many messages were at or after the cutoff — the ones the
+	// pattern actually got to see.
+	fresh int
+}
+
+// why words a poll that produced nothing, in terms of which half failed.
+func (a attempt) why(total int, since time.Time, spec MailSpec) string {
+	if a.fresh == 0 {
+		return fmt.Sprintf("%d recent message(s), none at or after %s yet",
+			total, since.Format("15:04:05"))
+	}
+	return fmt.Sprintf("%d message(s) at or after %s, but none carried a %d-digit code "+
+		"matching %s — waiting will not fix this if the pattern no longer fits the mail",
+		a.fresh, since.Format("15:04:05"), spec.Digits, spec.pattern())
+}
+
 // extract returns the code from the newest qualifying message. since must
 // already be floored to the second.
-func (g *Gmail) extract(msgs []gmail.Message, since time.Time) (string, bool) {
+func (g *Gmail) extract(msgs []gmail.Message, since time.Time) attempt {
 	pattern := g.Spec.pattern()
+	var out attempt
 	var best gmail.Message
-	var bestCode string
-	var found bool
 
 	for _, m := range msgs {
 		// since has already been floored to the second by Fetch; see there.
 		if m.Received.Before(since) {
 			continue
 		}
+		out.fresh++
 		match := pattern.FindStringSubmatch(m.Body)
 		if len(match) < 2 {
 			continue
@@ -145,9 +173,9 @@ func (g *Gmail) extract(msgs []gmail.Message, since time.Time) (string, bool) {
 			g.warn("WARN: %s: message %s: %v", g.Describe(), m.ID, err)
 			continue
 		}
-		if !found || m.Received.After(best.Received) {
-			best, bestCode, found = m, code, true
+		if !out.found || m.Received.After(best.Received) {
+			best, out.code, out.found = m, code, true
 		}
 	}
-	return bestCode, found
+	return out
 }
