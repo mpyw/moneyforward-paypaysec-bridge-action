@@ -36,36 +36,13 @@ import (
 // says so rather than looking complete.
 const maxRecordedBody = 512 << 10
 
-// Exchange is one request and what came back.
-//
-// Flat and JSON, one per line, because the consumer is a person with jq and a
-// question — "which call carries the number on the screen".
-type Exchange struct {
-	Time        string `json:"time"`
-	Method      string `json:"method"`
-	URL         string `json:"url"`
-	Type        string `json:"type"`
-	Status      int64  `json:"status,omitempty"`
-	MIME        string `json:"mime,omitempty"`
-	RequestBody string `json:"requestBody,omitempty"`
-	Body        string `json:"body,omitempty"`
-
-	// Note carries what went wrong, when something did. A recorded exchange
-	// with no body and no explanation is indistinguishable from an empty one.
-	Note string `json:"note,omitempty"`
-
-	// fetchPostData asks for the request body over CDP because the event did
-	// not carry it. Not serialised; it is a note to this package.
-	fetchPostData bool `json:"-"`
-}
-
-// postDataOf reassembles a request body from the event.
+// recordedPostData reassembles a request body from the event.
 //
 // The entries are base64, and there can be more than one — Chrome splits a body
 // it received in pieces. An entry that will not decode is left out rather than
 // guessed at, the same rule the rest of this project applies to a figure it
 // cannot read.
-func postDataOf(req *network.Request) string {
+func recordedPostData(req *network.Request) string {
 	var out []byte
 	for _, entry := range req.PostDataEntries {
 		if entry == nil || entry.Bytes == "" {
@@ -148,7 +125,7 @@ func (r *Recorder) handle(ev any) {
 		// The request body matters as much as the reply: an endpoint that takes
 		// a token or a sequence number cannot be called again without knowing
 		// what it was given.
-		x.RequestBody = truncate(postDataOf(e.Request))
+		x.RequestBody = truncateRecorded(recordedPostData(e.Request))
 		if x.RequestBody == "" && e.Request.HasPostData {
 			// Chrome omits the entries when the body is large. Asked for
 			// separately in [Recorder.finish], where a round trip is allowed.
@@ -207,7 +184,7 @@ func (r *Recorder) finish(id network.RequestID, x *Exchange) {
 			post = p
 			return e
 		})); err == nil {
-			x.RequestBody = truncate(string(post))
+			x.RequestBody = truncateRecorded(string(post))
 		}
 	}
 
@@ -224,7 +201,7 @@ func (r *Recorder) finish(id network.RequestID, x *Exchange) {
 		// body are most of the answer.
 		x.Note = "body unavailable: " + err.Error()
 	default:
-		x.Body = truncate(string(body))
+		x.Body = truncateRecorded(string(body))
 	}
 	r.write(x)
 }
@@ -270,8 +247,8 @@ func recordable(t network.ResourceType) bool {
 	}
 }
 
-// truncate caps a body and says so when it had to.
-func truncate(s string) string {
+// truncateRecorded caps a body and says so when it had to.
+func truncateRecorded(s string) string {
 	if len(s) <= maxRecordedBody {
 		return s
 	}

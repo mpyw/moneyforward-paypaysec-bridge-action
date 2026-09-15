@@ -1,6 +1,10 @@
 // Package browser wraps chromedp launch options for this project. Both the
 // sync workflow (headless, CI) and the local debugging commands (headed) come
 // through here so flag drift is impossible.
+// The Chrome lifecycle and the Page handle are the unit the package is named
+// for; every exported name here is read as browser.X.
+//
+//declscope:core
 package browser
 
 import (
@@ -109,6 +113,7 @@ const probeInterval = 300 * time.Millisecond
 // context through argument lists said nothing while letting any of them be
 // called with the wrong one.
 type Page struct {
+	//declscope:package // element.go's discovery method drives the same page
 	ctx context.Context
 }
 

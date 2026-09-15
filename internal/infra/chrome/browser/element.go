@@ -24,13 +24,13 @@ type Element struct {
 	Visible bool `json:"visible"`
 }
 
-// FindInteractive lists the tab-like and button-like controls on the current
+// FindInteractiveElements lists the tab-like and button-like controls on the current
 // page.
 //
 // This is discovery tooling for the debug command: when a selector constant is
 // still a guess, the fastest way to replace it with a real one is to ask the
 // page what it actually has, rather than reading a 20,000-line HTML dump.
-func (p Page) FindInteractive() ([]Element, error) {
+func (p Page) FindInteractiveElements() ([]Element, error) {
 	ctx := p.ctx
 	js, err := pageScripts.Call("find_interactive.js")
 	if err != nil {

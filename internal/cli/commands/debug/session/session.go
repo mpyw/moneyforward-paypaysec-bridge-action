@@ -255,7 +255,7 @@ func (s *Session) Report() {
 // reason both site commands have a probe. It lived in each of them, down to a
 // column width that differed between the two for no reason.
 func (s *Session) ReportInteractive() error {
-	els, err := browser.PageOf(s.ctx).FindInteractive()
+	els, err := browser.PageOf(s.ctx).FindInteractiveElements()
 	if err != nil {
 		return err
 	}
