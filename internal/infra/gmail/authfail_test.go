@@ -21,7 +21,7 @@ func TestExplainDeadCredentialOffersEveryCause(t *testing.T) {
 	// As the token endpoint words it.
 	cause := errors.New(`auth: "invalid_grant" "Token has been expired or revoked."`)
 
-	got := explainDeadCredential(cause)
+	got := explainAuthFailure(cause)
 	if !errors.Is(got, cause) {
 		t.Error("the original error was not wrapped, so callers lose it")
 	}
@@ -41,12 +41,12 @@ func TestExplainDeadCredentialOffersEveryCause(t *testing.T) {
 // TestExplainDeadCredentialLeavesEverythingElseAlone keeps the annotation from
 // attaching itself to unrelated failures, where it would be a wrong lead.
 func TestExplainDeadCredentialLeavesEverythingElseAlone(t *testing.T) {
-	if got := explainDeadCredential(nil); got != nil {
-		t.Errorf("explainDeadCredential(nil) = %v, want nil", got)
+	if got := explainAuthFailure(nil); got != nil {
+		t.Errorf("explainAuthFailure(nil) = %v, want nil", got)
 	}
 
 	other := fmt.Errorf("googleapi: Error 503: backend error")
-	if got := explainDeadCredential(other); got != other {
-		t.Errorf("explainDeadCredential() = %v, want the error unchanged", got)
+	if got := explainAuthFailure(other); got != other {
+		t.Errorf("explainAuthFailure() = %v, want the error unchanged", got)
 	}
 }

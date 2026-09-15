@@ -1,3 +1,6 @@
+// Exercises the core's message parsing, so it joins the core namespace.
+//
+//declscope:core
 package gmail
 
 import (

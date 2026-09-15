@@ -75,7 +75,7 @@ func (f *File) Fetch(ctx context.Context, since time.Time) (string, error) {
 		}
 		return found, nil
 	})
-	if errors.Is(err, errWaitedTooLong) {
+	if errors.Is(err, errPolledTooLong) {
 		return "", fmt.Errorf("no code written to %s within %s", f.Path, p.timeout)
 	}
 	return code, err
