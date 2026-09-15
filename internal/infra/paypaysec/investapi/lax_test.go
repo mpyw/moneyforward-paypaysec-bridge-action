@@ -17,7 +17,7 @@ import (
 // BRAND_ID. Both stub responses use the array form here, which is what makes that
 // fallback the thing under test.
 func TestReadAcceptsTheArrayShape(t *testing.T) {
-	got, err := serve(t, &stub{asArray: true}).Read(t.Context(), App)
+	got, err := serveStub(t, &stub{asArray: true}).Read(t.Context(), App)
 	if err != nil {
 		t.Fatalf("Read() error = %v", err)
 	}
@@ -43,7 +43,7 @@ func TestReadAcceptsTheArrayShape(t *testing.T) {
 // is caught by the envelope, and one that is actually a mis-read is caught by the
 // ledger's own refusal to empty a category.
 func TestReadAcceptsAnEmptyBucket(t *testing.T) {
-	got, err := serve(t, &stub{noHoldings: true}).Read(t.Context(), App)
+	got, err := serveStub(t, &stub{noHoldings: true}).Read(t.Context(), App)
 	if err != nil {
 		t.Fatalf("Read() error = %v", err)
 	}
@@ -64,7 +64,7 @@ func TestReadAcceptsAnEmptyBucket(t *testing.T) {
 // on the far side, not what it means. Every number this package reads is parsed
 // from either form, so finding out costs a test rather than a failed sync.
 func TestReadAcceptsQuotedNumbers(t *testing.T) {
-	got, err := serve(t, &stub{quoted: true}).Read(t.Context(), MiniApp)
+	got, err := serveStub(t, &stub{quoted: true}).Read(t.Context(), MiniApp)
 	if err != nil {
 		t.Fatalf("Read() error = %v", err)
 	}
@@ -88,7 +88,7 @@ func TestReadAcceptsQuotedNumbers(t *testing.T) {
 // scalar that is neither a number nor a number in quotes is refused, not zeroed.
 // A zero here would be an amount, and this program acts on amounts.
 func TestReadRefusesANumberItCannotParse(t *testing.T) {
-	_, err := serve(t, &stub{brokenTotal: true}).Read(t.Context(), App)
+	_, err := serveStub(t, &stub{brokenTotal: true}).Read(t.Context(), App)
 	if err == nil {
 		t.Fatal("Read() accepted a total that is not a number")
 	}

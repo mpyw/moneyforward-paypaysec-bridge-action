@@ -26,6 +26,8 @@ import (
 // laxInt64 is a number sent either as a JSON number or as a decimal string.
 //
 // A missing field stays zero, as it would without this.
+//
+//declscope:package // the response shapes opt into lax decoding
 type laxInt64 int64
 
 func (n *laxInt64) UnmarshalJSON(data []byte) error {
@@ -53,6 +55,8 @@ func (n *laxInt64) UnmarshalJSON(data []byte) error {
 // The digits are kept exactly as they arrived rather than parsed and reprinted:
 // this is a name for something, not a quantity, and a round trip through an
 // integer is a chance to lose a leading zero or overflow a width nobody promised.
+//
+//declscope:package // the response shapes opt into lax decoding
 type laxString string
 
 func (l *laxString) UnmarshalJSON(data []byte) error {
@@ -72,29 +76,31 @@ func (l *laxString) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// keyed is one entry of a [brandList], with the key it arrived under.
+// laxKeyed is one entry of a [laxBrandList], with the key it arrived under.
 //
 // Key is empty for the array form, which carries none. Nothing here decides what a
 // key means; see [nameHoldings] for how one is joined to a name.
-type keyed[T any] struct {
+type laxKeyed[T any] struct {
 	Key  string
 	Item T
 }
 
-// brandList is INVEST_BRAND_ARRAY, which arrives in either of two shapes.
+// laxBrandList is INVEST_BRAND_ARRAY, which arrives in either of two shapes.
 //
-// Observed live within one run: the ミニアプリ bucket answered with an object keyed
+// Observed live within one run: the ミニアプリ bucket answered with an object laxKeyed
 // by brand id, and the アプリ bucket with a bare array. Both are one PHP array on
 // the far side, so which one arrives is a property of the account's holdings rather
 // than of the endpoint, and neither can be assumed even once.
 //
 // An empty bucket is `[]` — the array shape again — so refusing to decode it would
 // turn every genuinely empty category into a failed run.
-type brandList[T any] struct {
-	Entries []keyed[T]
+//
+//declscope:package // the response shapes opt into lax decoding
+type laxBrandList[T any] struct {
+	Entries []laxKeyed[T]
 }
 
-func (b *brandList[T]) UnmarshalJSON(data []byte) error {
+func (b *laxBrandList[T]) UnmarshalJSON(data []byte) error {
 	text := strings.TrimSpace(string(data))
 	if text == "" || text == "null" {
 		return nil
@@ -105,8 +111,8 @@ func (b *brandList[T]) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &items); err != nil {
 			return err
 		}
-		b.Entries = lo.Map(items, func(item T, _ int) keyed[T] {
-			return keyed[T]{Item: item}
+		b.Entries = lo.Map(items, func(item T, _ int) laxKeyed[T] {
+			return laxKeyed[T]{Item: item}
 		})
 		return nil
 	}
@@ -119,8 +125,8 @@ func (b *brandList[T]) UnmarshalJSON(data []byte) error {
 	// twice running. Map order would be a new order every run.
 	keys := lo.Keys(byKey)
 	sort.Strings(keys)
-	b.Entries = lo.Map(keys, func(key string, _ int) keyed[T] {
-		return keyed[T]{Key: key, Item: byKey[key]}
+	b.Entries = lo.Map(keys, func(key string, _ int) laxKeyed[T] {
+		return laxKeyed[T]{Key: key, Item: byKey[key]}
 	})
 	return nil
 }

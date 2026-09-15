@@ -14,9 +14,9 @@ import (
 // credentials arrive under.
 const ManulifeID = "manulife"
 
-// acquisitionVariable is what supplies [ManulifeSource.AcquisitionYen], named
+// manulifeAcquisitionVariable is what supplies [ManulifeSource.AcquisitionYen], named
 // here only so a refusal can tell somebody which one to look at.
-const acquisitionVariable = "MANULIFE_ACQUISITION_YEN"
+const manulifeAcquisitionVariable = "MANULIFE_ACQUISITION_YEN"
 
 // ManulifeCategory is what マニュライフ生命's holdings are recorded under.
 //
@@ -205,7 +205,7 @@ func (m ManulifeSource) Holdings(context.Context) (asset.Holdings, error) {
 		if m.AcquisitionYen != 0 && len(holdings.Assets) > 0 {
 			return asset.Holdings{}, fmt.Errorf("%s names one contract's "+
 				"premium and this account has more than one in force; there is no way "+
-				"to say which it belongs to", acquisitionVariable)
+				"to say which it belongs to", manulifeAcquisitionVariable)
 		}
 
 		a := asset.Asset{

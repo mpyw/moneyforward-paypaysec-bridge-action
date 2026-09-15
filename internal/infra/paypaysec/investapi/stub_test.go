@@ -1,3 +1,7 @@
+// The fixture speaks the core's endpoint contract, so it joins the core;
+// the stub itself stays package-wide for the other test namespaces.
+//
+//declscope:core
 package investapi
 
 import (
@@ -17,6 +21,8 @@ import (
 // sent. That is the point of the flags below.
 
 // stub answers the three endpoints and records what it was asked.
+//
+//declscope:package // the shared fixture every endpoint test drives
 type stub struct {
 	mu       []string // paths, in order
 	referers map[string]string
@@ -56,7 +62,7 @@ func (s *stub) handler(t *testing.T) http.Handler {
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.mu = append(s.mu, r.URL.Path)
-		s.fields[r.URL.Path] = readFields(t, r)
+		s.fields[r.URL.Path] = readStubFields(t, r)
 		if s.referers == nil {
 			s.referers = map[string]string{}
 		}
@@ -129,7 +135,7 @@ func (s *stub) handler(t *testing.T) http.Handler {
 	})
 }
 
-func readFields(t *testing.T, r *http.Request) map[string]string {
+func readStubFields(t *testing.T, r *http.Request) map[string]string {
 	t.Helper()
 	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
@@ -150,7 +156,8 @@ func readFields(t *testing.T, r *http.Request) map[string]string {
 	}
 }
 
-func serve(t *testing.T, s *stub) *Client {
+//declscope:package // how every test hands its stub to a Client
+func serveStub(t *testing.T, s *stub) *Client {
 	t.Helper()
 	// The package addresses the real host and keeps addressing it: on the
 	// in-memory network the client sends every request here whatever host it

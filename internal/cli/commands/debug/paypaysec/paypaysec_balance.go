@@ -49,7 +49,7 @@ func runBalance(ctx context.Context, opts *session.Options) error {
 		// Not a failure: the account is not offered this bucket, so there was
 		// nothing to read. Counted nowhere and summed nowhere, which is what the
 		// job does with it too.
-		if errors.Is(rerr, investapi.ErrNoMiniApp) {
+		if errors.Is(rerr, investapi.ErrNoMiniAppAccount) {
 			_, _ = fmt.Fprintf(w, "%s\t%s\t\t\t\t\tNOT OFFERED\n", target.Key, target.Bucket)
 			continue
 		}

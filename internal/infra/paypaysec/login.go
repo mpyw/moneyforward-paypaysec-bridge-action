@@ -13,32 +13,32 @@ import (
 )
 
 const (
-	// formTimeout covers ordinary page transitions.
-	formTimeout = 30 * time.Second
+	// loginFormTimeout covers ordinary page transitions.
+	loginFormTimeout = 30 * time.Second
 
-	// challengeTimeout covers the fork after submitting credentials: the OTP
+	// loginChallengeTimeout covers the fork after submitting credentials: the OTP
 	// page on an unrecognised device, or straight to the dashboard.
 	//
 	// Generous because it also has to cover the debug flow, where the OTP
 	// selectors are not yet confirmed and a human types the code into the
 	// visible window — the dashboard is then what this ends up waiting for.
-	challengeTimeout = 3 * time.Minute
+	loginChallengeTimeout = 3 * time.Minute
 
-	// digitInterval paces the six single-digit key events.
-	digitInterval = 120 * time.Millisecond
+	// loginDigitInterval paces the six single-digit key events.
+	loginDigitInterval = 120 * time.Millisecond
 
-	// otpSubmitTimeout is how long the real submit anchor gets to appear once
+	// loginOTPSubmitTimeout is how long the real submit anchor gets to appear once
 	// the digits are in.
-	otpSubmitTimeout = 15 * time.Second
+	loginOTPSubmitTimeout = 15 * time.Second
 
-	// dashboardTimeout allows for the post-OTP redirect chain.
-	dashboardTimeout = 60 * time.Second
+	// loginDashboardTimeout allows for the post-OTP redirect chain.
+	loginDashboardTimeout = 60 * time.Second
 )
 
 // Keys for the challenge-vs-dashboard race.
 const (
-	otpCandidateKey       = "otp"
-	dashboardCandidateKey = "dashboard"
+	loginOTPCandidateKey       = "otp"
+	loginDashboardCandidateKey = "dashboard"
 )
 
 // LoginResult reports what actually happened during a sign-in.
@@ -67,14 +67,14 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 		return res, err
 	}
 
-	if err := runWithTimeout(ctx, formTimeout,
+	if err := runWithLoginTimeout(ctx, loginFormTimeout,
 		chromedp.Navigate(selector.LoginURL),
 		chromedp.WaitVisible(selector.MemberIDInput, chromedp.ByQuery),
 	); err != nil {
 		return res, stepErr(StepNavigate, err)
 	}
 
-	if err := runWithTimeout(ctx, formTimeout,
+	if err := runWithLoginTimeout(ctx, loginFormTimeout,
 		chromedp.SendKeys(selector.MemberIDInput, c.Username, chromedp.ByQuery),
 		chromedp.WaitVisible(selector.PasswordInput, chromedp.ByQuery),
 		chromedp.SendKeys(selector.PasswordInput, c.Password, chromedp.ByQuery),
@@ -85,7 +85,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	// Captured before the click: the OTP email is sent in response to it, so any
 	// code stamped earlier belongs to a previous attempt.
 	submittedAt := time.Now()
-	if err := runWithTimeout(ctx, formTimeout,
+	if err := runWithLoginTimeout(ctx, loginFormTimeout,
 		chromedp.Click(selector.LoginSubmit, chromedp.ByQuery),
 	); err != nil {
 		return res, stepErr(StepSubmitCredentials, err)
@@ -94,16 +94,16 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	// Race the OTP challenge against the dashboard: a recognised device skips
 	// the challenge entirely, and waiting on only one of the two would hang for
 	// the full timeout in the other case.
-	hit, err := browser.PageOf(ctx).WaitForAny(challengeTimeout, map[string]string{
-		otpCandidateKey:       selector.OTPFirstDigit,
-		dashboardCandidateKey: selector.PostLoginAnchor,
+	hit, err := browser.PageOf(ctx).WaitForAny(loginChallengeTimeout, map[string]string{
+		loginOTPCandidateKey:       selector.OTPFirstDigit,
+		loginDashboardCandidateKey: selector.PostLoginAnchor,
 	})
 	if err != nil {
 		// Neither appearing usually means the credentials were rejected, which
 		// leaves the browser on the login page and is worth saying.
 		return res, stepErr(StepAwaitChallenge, browser.PageOf(ctx).WithLocation(err))
 	}
-	if hit == dashboardCandidateKey {
+	if hit == loginDashboardCandidateKey {
 		return res, nil
 	}
 
@@ -118,11 +118,11 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 		return res, stepErr(StepFetchOTP, fmt.Errorf("via %s: %w", src.Describe(), err))
 	}
 
-	if err := c.submitOTP(ctx, code); err != nil {
+	if err := c.submitLoginOTP(ctx, code); err != nil {
 		return res, err
 	}
 
-	if err := runWithTimeout(ctx, dashboardTimeout,
+	if err := runWithLoginTimeout(ctx, loginDashboardTimeout,
 		chromedp.WaitVisible(selector.PostLoginAnchor, chromedp.ByQuery),
 	); err != nil {
 		return res, stepErr(StepAwaitDashboard, browser.PageOf(ctx).WithLocation(err))
@@ -130,13 +130,13 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	return res, nil
 }
 
-// submitOTP types the six digits and confirms.
+// submitLoginOTP types the six digits and confirms.
 //
 // The digits go in as individual key events starting from #code1, because the
 // following fields are readonly until the page's own keypress handler unlocks
 // and focuses them. Setting values directly would leave that state machine
 // untouched and the submit button hidden.
-func (c *Client) submitOTP(ctx context.Context, code string) error {
+func (c *Client) submitLoginOTP(ctx context.Context, code string) error {
 	if len(code) != selector.OTPDigits {
 		return stepErr(StepSubmitOTP, fmt.Errorf("expected %d digits, got %d", selector.OTPDigits, len(code)))
 	}
@@ -146,18 +146,18 @@ func (c *Client) submitOTP(ctx context.Context, code string) error {
 		}
 	}
 
-	if err := runWithTimeout(ctx, formTimeout,
+	if err := runWithLoginTimeout(ctx, loginFormTimeout,
 		chromedp.Click(selector.OTPFirstDigit, chromedp.ByQuery),
 	); err != nil {
 		return stepErr(StepSubmitOTP, fmt.Errorf("focus %s: %w", selector.OTPFirstDigit, err))
 	}
 
 	for i, r := range code {
-		if err := runWithTimeout(ctx, formTimeout,
+		if err := runWithLoginTimeout(ctx, loginFormTimeout,
 			chromedp.KeyEvent(string(r)),
 			// The handler that unlocks and focuses the next field runs on
 			// keypress; give it a beat before the next one.
-			chromedp.Sleep(digitInterval),
+			chromedp.Sleep(loginDigitInterval),
 		); err != nil {
 			return stepErr(StepSubmitOTP, fmt.Errorf("type digit %d of %d: %w", i+1, selector.OTPDigits, err))
 		}
@@ -166,7 +166,7 @@ func (c *Client) submitOTP(ctx context.Context, code string) error {
 	// The real anchor is hidden until all six digits are in; the visible
 	// look-alike carries no handler. Waiting for this one to appear doubles as
 	// confirmation that the digits registered.
-	if err := runWithTimeout(ctx, otpSubmitTimeout,
+	if err := runWithLoginTimeout(ctx, loginOTPSubmitTimeout,
 		chromedp.WaitVisible(selector.OTPSubmit, chromedp.ByQuery),
 		chromedp.Click(selector.OTPSubmit, chromedp.ByQuery),
 	); err != nil {
@@ -176,10 +176,10 @@ func (c *Client) submitOTP(ctx context.Context, code string) error {
 	return nil
 }
 
-// runWithTimeout bounds a chromedp action group. Deriving a sub-context cancels
+// runWithLoginTimeout bounds a chromedp action group. Deriving a sub-context cancels
 // the actions, not the browser, so the caller's Chrome stays alive for a page
 // dump afterwards.
-func runWithTimeout(ctx context.Context, d time.Duration, actions ...chromedp.Action) error {
+func runWithLoginTimeout(ctx context.Context, d time.Duration, actions ...chromedp.Action) error {
 	tctx, cancel := context.WithTimeout(ctx, d)
 	defer cancel()
 	return chromedp.Run(tctx, actions...)

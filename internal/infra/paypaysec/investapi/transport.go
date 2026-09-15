@@ -1,3 +1,6 @@
+// The HTTP mechanics of the core Client; see investapi.go.
+//
+//declscope:core
 package investapi
 
 import (
@@ -16,7 +19,9 @@ import (
 // whatever the axios default header says. A form-urlencoded body was never tried —
 // matching the client the server already serves is one fewer thing to be wrong
 // about, and this endpoint has been wrong about enough.
-func (c *Client) post(ctx context.Context, path string, fields map[string]string, out checked) error {
+//
+//declscope:package // the account facet posts through the same transport
+func (c *Client) post(ctx context.Context, path string, fields map[string]string, out checkedResponse) error {
 	body, contentType, err := multipartBody(fields)
 	if err != nil {
 		return fmt.Errorf("build %s body: %w", path, err)

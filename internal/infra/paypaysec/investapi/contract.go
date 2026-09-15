@@ -1,3 +1,6 @@
+// The endpoints and field names the core Client speaks; see investapi.go.
+//
+//declscope:core
 package investapi
 
 import (
@@ -35,9 +38,11 @@ const (
 	// borrowing its session.
 	pagePath = "/investment_trust/"
 
-	appTop   = "/v2/invest/brand/pc_invest_top"
-	appInit  = "/v2/invest/brand/pc_invest_init"
-	appInfo  = "/v2/invest/brand/pc_invest_info"
+	appTop  = "/v2/invest/brand/pc_invest_top"
+	appInit = "/v2/invest/brand/pc_invest_init"
+	//declscope:package // account.go asks the info endpoint directly
+	appInfo = "/v2/invest/brand/pc_invest_info"
+	//declscope:package // account_test drives the gate against this endpoint
 	miniTop  = "/v3/invest/brand/pc_invest_top"
 	miniInit = "/v3/invest/brand/pc_invest_init"
 
@@ -110,6 +115,10 @@ func (c *Client) fieldsFor(ctx context.Context, bucket Bucket) (map[string]strin
 // MINI_CLIENT_SEQ_NO is sent empty because the ミニアプリ defaults declare it, so
 // every ミニアプリ call carries it, including the call that exists to find out what
 // it is.
+//
+// account.go asks the info endpoint directly with this body.
+//
+//declscope:package
 func miniInfoFields() map[string]string {
 	return lo.Assign(commonFields, map[string]string{
 		"APP_ID":             strconv.Itoa(appIDMiniApp),

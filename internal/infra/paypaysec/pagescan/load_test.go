@@ -1,3 +1,6 @@
+// Exercises the loading core against a served fake.
+//
+//declscope:core
 package pagescan
 
 import (

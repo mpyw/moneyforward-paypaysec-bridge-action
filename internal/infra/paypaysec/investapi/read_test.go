@@ -1,3 +1,6 @@
+// Exercises the core read flow.
+//
+//declscope:core
 package investapi
 
 import (
@@ -7,7 +10,7 @@ import (
 
 func TestReadApp(t *testing.T) {
 	s := &stub{}
-	got, err := serve(t, s).Read(t.Context(), App)
+	got, err := serveStub(t, s).Read(t.Context(), App)
 	if err != nil {
 		t.Fatalf("Read() error = %v", err)
 	}
@@ -44,7 +47,7 @@ func TestReadApp(t *testing.T) {
 // the page's order once.
 func TestReadAsksForTheCatalogueFirst(t *testing.T) {
 	s := &stub{}
-	if _, err := serve(t, s).Read(t.Context(), App); err != nil {
+	if _, err := serveStub(t, s).Read(t.Context(), App); err != nil {
 		t.Fatalf("Read() error = %v", err)
 	}
 	var init, top int
@@ -64,7 +67,7 @@ func TestReadAsksForTheCatalogueFirst(t *testing.T) {
 // TestReadRefusesAHoldingItCannotName guards the ledger's key. An entry recorded
 // under an empty name cannot be matched again, so the next run creates another.
 func TestReadRefusesAHoldingItCannotName(t *testing.T) {
-	_, err := serve(t, &stub{noName: true}).Read(t.Context(), App)
+	_, err := serveStub(t, &stub{noName: true}).Read(t.Context(), App)
 	if err == nil {
 		t.Fatal("Read() returned a holding with no name")
 	}
@@ -83,7 +86,7 @@ func TestReadRefusesAHoldingItCannotName(t *testing.T) {
 // no difference; this header is the whole of it.
 func TestReadSaysWhichPageItIsOn(t *testing.T) {
 	s := &stub{}
-	if _, err := serve(t, s).Read(t.Context(), MiniApp); err != nil {
+	if _, err := serveStub(t, s).Read(t.Context(), MiniApp); err != nil {
 		t.Fatalf("Read() error = %v", err)
 	}
 	// Every call, not only the ミニアプリ ones: the v2 endpoints do not ask, and an

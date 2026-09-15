@@ -7,7 +7,7 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/pagescan"
 )
 
-// fillAcquisition looks up each holding's acquisition cost.
+// fillHoldingAcquisition looks up each holding's acquisition cost.
 //
 // MoneyForward derives 評価損益 from the acquisition price, and treats a blank
 // one as "cost equals current value" — every holding then reports a profit of
@@ -17,7 +17,9 @@ import (
 // which states the acquisition amount outright; the list would only allow it to
 // be derived from a rounded profit figure. A 投資信託 row has no such link, but
 // its profit is not rounded, so the subtraction is exact there.
-func (r *Reading) fillAcquisition(ctx context.Context) error {
+//
+//declscope:package // Read completes every reading with the costs found here
+func (r *Reading) fillHoldingAcquisition(ctx context.Context) error {
 	for i := range r.Holdings {
 		h := &r.Holdings[i]
 		if !h.HasYen {
@@ -50,15 +52,15 @@ func (r *Reading) fillHolding(ctx context.Context, h *Holding) error {
 	if err != nil {
 		return err
 	}
-	return h.applyDetail(detail)
+	return h.applyHoldingDetail(detail)
 }
 
-// applyDetail is what the 銘柄's own page means, separated from fetching it.
+// applyHoldingDetail is what the 銘柄's own page means, separated from fetching it.
 //
 // A method on the holding rather than inline in the caller because this is
 // where every silent skip in the acquisition path lived, and none of it was
 // reachable by a test while it sat behind a browser.
-func (h *Holding) applyDetail(detail pagescan.Detail) error {
+func (h *Holding) applyHoldingDetail(detail pagescan.HoldingDetail) error {
 	// Am I on the page I asked for? That is what this check is for, and until
 	// 2026-08-04 it asked instead whether the two pages agreed on the valuation.
 	//

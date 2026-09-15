@@ -20,14 +20,7 @@ var scriptFS embed.FS
 // cannot collide with the browser layer's generic probes.
 var siteScripts = pagescript.Load(scriptFS, "js")
 
-// extractBalanceJS is read once: a missing file is a build mistake, so it should
-// surface at init rather than on the first scrape.
-const extractBalanceScript = "extract_balance.js"
-
-// pageStateJS is read once, for the same reason as extractBalanceJS.
-const pageStateScript = "page_state.js"
-
-// PageState renders the load-state probe, watching the element that carries the
+// PageStateScript renders the load-state probe, watching the element that carries the
 // figure the caller is about to read.
 //
 // Which element that is differs by page, and this used to be hard-coded to
@@ -37,29 +30,26 @@ const pageStateScript = "page_state.js"
 // followed had no settle guarantee at all. Which is where it was needed: a
 // placeholder gain there becomes an acquisition cost equal to the valuation,
 // and 評価損益 of exactly zero.
-func PageState(value string) (string, error) {
-	return siteScripts.Call(pageStateScript, map[string]string{
+func PageStateScript(value string) (string, error) {
+	return siteScripts.Call("page_state.js", map[string]string{
 		"loading": LoadingOverlay,
 		"total":   value,
 	})
 }
 
-// extractHoldingJS is read once, for the same reason as extractBalanceJS.
-const extractHoldingScript = "extract_holding.js"
-
-// ExtractHolding renders the per-銘柄 detail extraction call.
-func ExtractHolding() (string, error) {
-	return siteScripts.Call(extractHoldingScript, map[string]string{
+// ExtractHoldingScript renders the per-銘柄 detail extraction call.
+func ExtractHoldingScript() (string, error) {
+	return siteScripts.Call("extract_holding.js", map[string]string{
 		"value":       HoldingValue,
 		"acquisition": HoldingAcquisition,
 		"gain":        HoldingGain,
 	})
 }
 
-// ExtractBalance renders the extraction call, passing the current cell
+// ExtractBalanceScript renders the extraction call, passing the current cell
 // selectors across as JSON.
-func ExtractBalance() (string, error) {
-	return siteScripts.Call(extractBalanceScript, map[string]string{
+func ExtractBalanceScript() (string, error) {
+	return siteScripts.Call("extract_balance.js", map[string]string{
 		"total":       ValueTotal,
 		"acquisition": Acquisition,
 		"gain":        GrossProfit,

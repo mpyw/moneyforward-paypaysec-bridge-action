@@ -17,8 +17,10 @@
 //     them by suffix — the page runs `$('[id$=theForm]')`. That is the site
 //     saying which half of its ids is stable, so the selectors below match the
 //     same way.
+//
 // Selectors, URLs, labels and the OTP mail spec are the vocabulary the
 // package is named for; each name is read as selector.X.
+//
 //declscope:core
 package selector
 

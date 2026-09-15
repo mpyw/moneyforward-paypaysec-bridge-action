@@ -5,6 +5,10 @@
 // logic: each was confirmed against the live pages on a particular day, and each
 // is what breaks when the front end changes. Keeping them in one package makes
 // that blast radius a directory rather than a grep.
+// Selectors, URLs, targets and the OTP mail spec are the vocabulary the
+// package is named for; each name is read as selector.X.
+//
+//declscope:core
 package selector
 
 import (

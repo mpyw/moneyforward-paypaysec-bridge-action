@@ -19,8 +19,8 @@ import (
 // in for here; what the pages themselves say is covered against a browser in
 // internal/infra/manulife.
 
-// card builds a list entry, punctuated the way the live list punctuates it.
-func card(title, number, status string) manulife.Card {
+// manulifeCard builds a list entry, punctuated the way the live list punctuates it.
+func manulifeCard(title, number, status string) manulife.Card {
 	return manulife.Card{
 		Title: title,
 		Fields: []manulife.Pair{
@@ -30,8 +30,8 @@ func card(title, number, status string) manulife.Card {
 	}
 }
 
-// reading is a contract page that agrees with itself: 10,000.00 at 150.00.
-func reading(number string) manulife.Reading {
+// manulifeReading is a contract page that agrees with itself: 10,000.00 at 150.00.
+func manulifeReading(number string) manulife.Reading {
 	return manulife.Reading{
 		Number:         number,
 		PolicyType:     "通貨選択型一時払終身保険",
@@ -44,14 +44,14 @@ func reading(number string) manulife.Reading {
 	}
 }
 
-// recorder stands in for the site and records what the loop asked it to do.
-type recorder struct {
+// manulifeRecorder stands in for the site and records what the loop asked it to do.
+type manulifeRecorder struct {
 	cards []manulife.Card
 	calls []string
 	back  error
 }
 
-func (r *recorder) pages() *manulifePages {
+func (r *manulifeRecorder) pages() *manulifePages {
 	return &manulifePages{
 		cards: func(context.Context) ([]manulife.Card, error) {
 			r.calls = append(r.calls, "list")
@@ -60,7 +60,7 @@ func (r *recorder) pages() *manulifePages {
 		readCard: func(_ context.Context, c manulife.Card) (manulife.Reading, error) {
 			number, _ := c.Number()
 			r.calls = append(r.calls, "read:"+number)
-			return reading(number), nil
+			return manulifeReading(number), nil
 		},
 		backToList: func(context.Context) error {
 			r.calls = append(r.calls, "back")
@@ -76,9 +76,9 @@ func (r *recorder) pages() *manulifePages {
 // lands on whatever preceded it — the sign-in flow — and the run then waits out
 // the navigation budget for cards that are not coming, every weekday.
 func TestHoldingsGoesBackOnlyAfterLeavingTheList(t *testing.T) {
-	site := &recorder{cards: []manulife.Card{
-		card("失効した契約", "000-0000001", "消滅"),
-		card("生きている契約", "000-0000002", selector.StatusInForce),
+	site := &manulifeRecorder{cards: []manulife.Card{
+		manulifeCard("失効した契約", "000-0000001", "消滅"),
+		manulifeCard("生きている契約", "000-0000002", selector.StatusInForce),
 	}}
 	src := ManulifeSource{testPages: site.pages()}
 
@@ -99,9 +99,9 @@ func TestHoldingsGoesBackOnlyAfterLeavingTheList(t *testing.T) {
 // TestHoldingsGoesBackBetweenContracts is the other half: two live contracts
 // means one navigation away from the list, and one return to it.
 func TestHoldingsGoesBackBetweenContracts(t *testing.T) {
-	site := &recorder{cards: []manulife.Card{
-		card("契約A", "000-0000001", selector.StatusInForce),
-		card("契約B", "000-0000002", selector.StatusInForce),
+	site := &manulifeRecorder{cards: []manulife.Card{
+		manulifeCard("契約A", "000-0000001", selector.StatusInForce),
+		manulifeCard("契約B", "000-0000002", selector.StatusInForce),
 	}}
 	src := ManulifeSource{testPages: site.pages()}
 
@@ -121,9 +121,9 @@ func TestHoldingsGoesBackBetweenContracts(t *testing.T) {
 // profit that nothing downstream can question — the read-back confirms the
 // figure that was sent, not the figure that was right.
 func TestHoldingsRefusesToShareOnePremiumBetweenContracts(t *testing.T) {
-	site := &recorder{cards: []manulife.Card{
-		card("契約A", "000-0000001", selector.StatusInForce),
-		card("契約B", "000-0000002", selector.StatusInForce),
+	site := &manulifeRecorder{cards: []manulife.Card{
+		manulifeCard("契約A", "000-0000001", selector.StatusInForce),
+		manulifeCard("契約B", "000-0000002", selector.StatusInForce),
 	}}
 	src := ManulifeSource{testPages: site.pages(), AcquisitionYen: 4000000}
 
@@ -131,16 +131,16 @@ func TestHoldingsRefusesToShareOnePremiumBetweenContracts(t *testing.T) {
 	if err == nil {
 		t.Fatal("Holdings() recorded one premium against two contracts")
 	}
-	if !strings.Contains(err.Error(), acquisitionVariable) {
+	if !strings.Contains(err.Error(), manulifeAcquisitionVariable) {
 		t.Errorf("error = %v, want it to name the variable to look at", err)
 	}
 }
 
 // TestHoldingsCarriesThePremiumForASingleContract: the case it is for.
 func TestHoldingsCarriesThePremiumForASingleContract(t *testing.T) {
-	site := &recorder{cards: []manulife.Card{
-		card("契約A", "000-0000001", selector.StatusInForce),
-		card("失効した契約", "000-0000002", "消滅"),
+	site := &manulifeRecorder{cards: []manulife.Card{
+		manulifeCard("契約A", "000-0000001", selector.StatusInForce),
+		manulifeCard("失効した契約", "000-0000002", "消滅"),
 	}}
 	src := ManulifeSource{testPages: site.pages(), AcquisitionYen: 4000000}
 
@@ -168,9 +168,9 @@ func TestHoldingsCarriesThePremiumForASingleContract(t *testing.T) {
 // rather than left alone. A deletion nobody was told about is the failure this
 // project keeps closing.
 func TestHoldingsSaysWhenItSkipsAContract(t *testing.T) {
-	site := &recorder{cards: []manulife.Card{
-		card("失効した契約", "000-0000001", "消滅"),
-		card("生きている契約", "000-0000002", selector.StatusInForce),
+	site := &manulifeRecorder{cards: []manulife.Card{
+		manulifeCard("失効した契約", "000-0000001", "消滅"),
+		manulifeCard("生きている契約", "000-0000002", selector.StatusInForce),
 	}}
 	var skipped []string
 	src := ManulifeSource{
@@ -192,7 +192,7 @@ func TestHoldingsSaysWhenItSkipsAContract(t *testing.T) {
 // contract was skipped — otherwise the rows under it are unverified rather than
 // stale, and the coverage check refuses to remove them.
 func TestHoldingsCoversItsCategory(t *testing.T) {
-	site := &recorder{cards: []manulife.Card{card("失効した契約", "000-0000001", "消滅")}}
+	site := &manulifeRecorder{cards: []manulife.Card{manulifeCard("失効した契約", "000-0000001", "消滅")}}
 	src := ManulifeSource{testPages: site.pages()}
 
 	held, err := src.Holdings(t.Context())
@@ -211,10 +211,10 @@ func TestHoldingsCoversItsCategory(t *testing.T) {
 // something to carry on past — the next click would be aimed at whatever page
 // this one left behind.
 func TestHoldingsFailsWhenItCannotGetBack(t *testing.T) {
-	site := &recorder{
+	site := &manulifeRecorder{
 		cards: []manulife.Card{
-			card("契約A", "000-0000001", selector.StatusInForce),
-			card("契約B", "000-0000002", selector.StatusInForce),
+			manulifeCard("契約A", "000-0000001", selector.StatusInForce),
+			manulifeCard("契約B", "000-0000002", selector.StatusInForce),
 		},
 		back: errors.New("the list did not come back"),
 	}

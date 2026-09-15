@@ -23,6 +23,8 @@ import (
 // The result is shaped as a [Reading] so that everything downstream — the
 // three-route reconciliation, the masker, the per-target log line — is unchanged.
 // What changes is where the numbers came from.
+//
+//declscope:package // Read routes 投資信託 targets here instead of the page
 func readInvestmentTrust(ctx context.Context, t selector.Target) (Reading, error) {
 	bucket := investapi.App
 	if t.Bucket == selector.BucketMiniApp {
@@ -55,11 +57,11 @@ func readInvestmentTrust(ctx context.Context, t selector.Target) (Reading, error
 	// every form it can appear in.
 	reading.Figures = pagescan.Figures{
 		TotalPresent:       true,
-		TotalRaw:           yen(figures.Total),
+		TotalRaw:           investYen(figures.Total),
 		AcquisitionPresent: true,
-		AcquisitionRaw:     yen(figures.Acquisition),
+		AcquisitionRaw:     investYen(figures.Acquisition),
 		GainPresent:        true,
-		GainRaw:            yen(figures.Gain),
+		GainRaw:            investYen(figures.Gain),
 		HoldingsSection:    true,
 	}
 
@@ -75,7 +77,7 @@ func readInvestmentTrust(ctx context.Context, t selector.Target) (Reading, error
 
 		reading.Holdings = append(reading.Holdings, Holding{
 			Name:           h.Name,
-			InvestText:     yen(h.Yen),
+			InvestText:     investYen(h.Yen),
 			Yen:            h.Yen,
 			HasYen:         true,
 			AcquisitionYen: h.Acquisition,
@@ -88,7 +90,7 @@ func readInvestmentTrust(ctx context.Context, t selector.Target) (Reading, error
 }
 
 // yen renders an amount as the raw text of a figure that had none.
-func yen(n int64) string { return strconv.FormatInt(n, 10) + "円" }
+func investYen(n int64) string { return strconv.FormatInt(n, 10) + "円" }
 
 // investAPIFor borrows the browser's session for the HTTP calls.
 //

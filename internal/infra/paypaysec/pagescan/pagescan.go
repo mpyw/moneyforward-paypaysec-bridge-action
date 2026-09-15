@@ -12,6 +12,10 @@
 // renamed "name" or "ref" — and it is not.
 //
 // Everything here was CONFIRMED against the live site on 2026-08-01.
+// The page walk and its results — pagescan.Load, pagescan.Row,
+// pagescan.Figures — are the unit the package is named for.
+//
+//declscope:core
 package pagescan
 
 import (
@@ -114,7 +118,7 @@ func Load(ctx context.Context, t selector.Target) (Figures, error) {
 		return figures, fmt.Errorf("%s: %w", t.Key, err)
 	}
 
-	expr, err := selector.ExtractBalance()
+	expr, err := selector.ExtractBalanceScript()
 	if err != nil {
 		return figures, fmt.Errorf("%s: build extraction script: %w", t.Key, err)
 	}
@@ -150,8 +154,10 @@ type pageState struct {
 func (p targetPage) settle() error { return settle(p.ctx, selector.ValueTotal) }
 
 // settle is the wait itself, told which element carries the figure to wait for.
+//
+//declscope:package // the holding page settles with the same wait
 func settle(ctx context.Context, value string) error {
-	expr, err := selector.PageState(value)
+	expr, err := selector.PageStateScript(value)
 	if err != nil {
 		return fmt.Errorf("build page-state script: %w", err)
 	}

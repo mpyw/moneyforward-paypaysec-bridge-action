@@ -33,6 +33,11 @@
 //	decode.go     the service's refusal to commit to any JSON type
 //	account.go    whether a bucket is there to read at all
 //	holdings.go   joining what is held to what it is called
+//
+// The Client, its buckets and its figures are the unit the package is named
+// for; every exported name here is read as investapi.X.
+//
+//declscope:core
 package investapi
 
 import (
@@ -81,7 +86,7 @@ type Figures struct {
 
 // Read returns one bucket's holdings and totals.
 //
-// Returns [ErrNoMiniApp] when the account has no ミニアプリ bucket, which callers
+// Returns [ErrNoMiniAppAccount] when the account has no ミニアプリ bucket, which callers
 // must tell apart from a failure: it is not one.
 func (c *Client) Read(ctx context.Context, bucket Bucket) (Figures, error) {
 	fields, err := c.fieldsFor(ctx, bucket)
@@ -113,4 +118,28 @@ func (c *Client) Read(ctx context.Context, bucket Bucket) (Figures, error) {
 		Gain:        int64(top.SumGrossProfitTotal),
 		Holdings:    holdings,
 	}, nil
+}
+
+// miniClientSeqNo is the account's ミニアプリ client number, asked for once.
+//
+// The page's own availability test is applied here rather than by the caller,
+// because this is the only place the answer is known and the only place a caller
+// could act on it too late. What the ミニアプリ endpoints do for an account without
+// the bucket is not known — this account has it, and the other case cannot be
+// observed from here — so the site's judgement is used as the judgement and the
+// bucket is not asked about at all.
+func (c *Client) miniClientSeqNo(ctx context.Context) (string, error) {
+	if c.miniSeqNo != "" {
+		return c.miniSeqNo, nil
+	}
+
+	account, err := c.ReadAccountInfo(ctx)
+	if err != nil {
+		return "", err
+	}
+	if !account.HasMiniApp() {
+		return "", ErrNoMiniAppAccount
+	}
+	c.miniSeqNo = account.MiniClientSeqNo
+	return c.miniSeqNo, nil
 }

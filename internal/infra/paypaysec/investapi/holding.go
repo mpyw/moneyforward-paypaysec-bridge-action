@@ -26,8 +26,10 @@ type Holding struct {
 // A holding the catalogue cannot name is refused rather than recorded under a
 // blank. The ledger keys on the name, so an entry written without one cannot be
 // matched again and the next run creates another.
+//
+//declscope:package // Read hands the two replies here to become holdings
 func nameHoldings(top topResponse, catalogue initResponse, initPath string) ([]Holding, error) {
-	names := catalogueNames(catalogue)
+	names := holdingNameIndex(catalogue)
 
 	holdings := make([]Holding, 0, len(top.InvestBrandArray.Entries))
 	for _, held := range top.InvestBrandArray.Entries {
@@ -49,14 +51,14 @@ func nameHoldings(top topResponse, catalogue initResponse, initPath string) ([]H
 	return holdings, nil
 }
 
-// catalogueNames indexes the catalogue under both the key an entry arrived with
+// holdingNameIndex indexes the catalogue under both the key an entry arrived with
 // and its BRAND_ID.
 //
 // Both, because a holding can arrive with either — the object shape carries a key
 // and the array shape does not — and they agree wherever both are present. Keying
 // on one alone works until the account's holdings change shape, which is a thing
 // they do.
-func catalogueNames(catalogue initResponse) map[string]string {
+func holdingNameIndex(catalogue initResponse) map[string]string {
 	names := make(map[string]string, len(catalogue.InvestBrandArray.Entries)*2)
 	for _, entry := range catalogue.InvestBrandArray.Entries {
 		if entry.Key != "" {

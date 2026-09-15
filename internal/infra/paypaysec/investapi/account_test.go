@@ -9,7 +9,7 @@ import (
 // need, and where it comes from.
 func TestReadMiniAppFetchesItsClientNumber(t *testing.T) {
 	s := &stub{}
-	c := serve(t, s)
+	c := serveStub(t, s)
 	if _, err := c.Read(t.Context(), MiniApp); err != nil {
 		t.Fatalf("Read() error = %v", err)
 	}
@@ -69,9 +69,9 @@ func TestReadReportsAnAbsentMiniBucketAsAbsent(t *testing.T) {
 		{"not on offer", &stub{miniNotUsable: true}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := serve(t, tc.stub).Read(t.Context(), MiniApp)
-			if !errors.Is(err, ErrNoMiniApp) {
-				t.Errorf("Read() error = %v, want ErrNoMiniApp", err)
+			_, err := serveStub(t, tc.stub).Read(t.Context(), MiniApp)
+			if !errors.Is(err, ErrNoMiniAppAccount) {
+				t.Errorf("Read() error = %v, want ErrNoMiniAppAccount", err)
 			}
 		})
 	}

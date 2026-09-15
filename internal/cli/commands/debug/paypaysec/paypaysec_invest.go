@@ -79,7 +79,7 @@ func runInvest(ctx context.Context, opts *session.Options, trace, viaPage bool) 
 	// number and INV_TRUST_USABLE are both set, so an account failing that has no
 	// ミニアプリ 投資信託 at all — which is a different thing from a read that
 	// failed, and looks identical from the job's side.
-	info, ierr := client.ReadInfo(ctx)
+	info, ierr := client.ReadAccountInfo(ctx)
 	if ierr != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "  ! info: %v\n", ierr)
 	} else {
