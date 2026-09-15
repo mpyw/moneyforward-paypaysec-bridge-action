@@ -15,32 +15,32 @@ import (
 )
 
 const (
-	// formTimeout covers ordinary page transitions.
-	formTimeout = 30 * time.Second
+	// loginFormTimeout covers ordinary page transitions.
+	loginFormTimeout = 30 * time.Second
 
-	// challengeTimeout covers the fork after submitting credentials: MF either
+	// loginChallengeTimeout covers the fork after submitting credentials: MF either
 	// shows the OTP challenge or drops straight to the home page.
-	challengeTimeout = 45 * time.Second
+	loginChallengeTimeout = 45 * time.Second
 
-	// submitProbeTimeout is short on purpose — the OTP button either is already
+	// loginSubmitProbeTimeout is short on purpose — the OTP button either is already
 	// on the page or we fall back to pressing Enter.
-	submitProbeTimeout = 3 * time.Second
+	loginSubmitProbeTimeout = 3 * time.Second
 
-	// homeTimeout is generous because the post-OTP SSO round-trip between
+	// loginHomeTimeout is generous because the post-OTP SSO round-trip between
 	// id.moneyforward.com and moneyforward.com involves several redirects.
-	homeTimeout = 60 * time.Second
+	loginHomeTimeout = 60 * time.Second
 
-	// settleTimeout is how long the redirect chain gets to finish on its own
+	// loginSettleTimeout is how long the redirect chain gets to finish on its own
 	// before the app is opened explicitly.
-	settleTimeout = 25 * time.Second
+	loginSettleTimeout = 25 * time.Second
 )
 
 // Keys mixed into the OTP candidate probe. They must not collide with a key in
 // [selector.OTPInputCandidates].
 const (
-	homeCandidateKey       = "__home__"
-	idPortalCandidateKey   = "__id_portal__"
-	signInFormCandidateKey = "__sign_in_form__"
+	loginHomeCandidateKey       = "__home__"
+	loginIDPortalCandidateKey   = "__id_portal__"
+	loginSignInFormCandidateKey = "__sign_in_form__"
 )
 
 // LoginResult reports what actually happened, so callers can log it and so the
@@ -73,7 +73,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 		return res, err
 	}
 
-	if err := runWithTimeout(ctx, formTimeout, chromedp.Navigate(selector.SignInURL)); err != nil {
+	if err := runWithLoginTimeout(ctx, loginFormTimeout, chromedp.Navigate(selector.SignInURL)); err != nil {
 		return res, stepErr(StepNavigate, err)
 	}
 
@@ -81,23 +81,23 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	// redirects straight past it, and then waiting for the email field times out
 	// on a page that is perfectly fine — a confusing failure for the most benign
 	// possible state.
-	landing, err := browser.PageOf(ctx).WaitForAny(formTimeout, map[string]string{
-		signInFormCandidateKey: selector.EmailInput,
-		homeCandidateKey:       selector.HomeAnchor,
-		idPortalCandidateKey:   selector.IDPortalMarker,
+	landing, err := browser.PageOf(ctx).WaitForAny(loginFormTimeout, map[string]string{
+		loginSignInFormCandidateKey: selector.EmailInput,
+		loginHomeCandidateKey:       selector.HomeAnchor,
+		loginIDPortalCandidateKey:   selector.IDPortalMarker,
 	})
 	if err != nil {
 		return res, stepErr(StepNavigate, browser.PageOf(ctx).WithLocation(err))
 	}
-	if landing != signInFormCandidateKey {
+	if landing != loginSignInFormCandidateKey {
 		res.AlreadyAuthenticated = true
-		return res, c.enterApp(ctx)
+		return res, c.enterAppAfterLogin(ctx)
 	}
 
 	// WaitVisible on the password field rather than assuming it renders with the
 	// email field: if MF has since split this into two steps, the failure names
 	// the password field instead of silently typing into nothing.
-	if err := runWithTimeout(ctx, formTimeout,
+	if err := runWithLoginTimeout(ctx, loginFormTimeout,
 		chromedp.SendKeys(selector.EmailInput, c.Email, chromedp.ByQuery),
 		chromedp.WaitVisible(selector.PasswordInput, chromedp.ByQuery),
 		chromedp.SendKeys(selector.PasswordInput, c.Password, chromedp.ByQuery),
@@ -108,7 +108,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	// Capture the instant before the click: MF sends the OTP email in response
 	// to it, so any code stamped earlier belongs to a previous attempt.
 	submittedAt := time.Now()
-	if err := runWithTimeout(ctx, formTimeout,
+	if err := runWithLoginTimeout(ctx, loginFormTimeout,
 		chromedp.Click(selector.SignInSubmit, chromedp.ByQuery),
 	); err != nil {
 		return res, stepErr(StepSubmitCredentials, err)
@@ -121,10 +121,10 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	// cases and look like a broken selector.
 	probe := make(map[string]string, len(selector.OTPInputCandidates)+2)
 	maps.Copy(probe, selector.OTPInputCandidates)
-	probe[homeCandidateKey] = selector.HomeAnchor
-	probe[idPortalCandidateKey] = selector.IDPortalMarker
+	probe[loginHomeCandidateKey] = selector.HomeAnchor
+	probe[loginIDPortalCandidateKey] = selector.IDPortalMarker
 
-	hit, err = browser.PageOf(ctx).WaitForAny(challengeTimeout, probe)
+	hit, err = browser.PageOf(ctx).WaitForAny(loginChallengeTimeout, probe)
 	if err != nil {
 		// None of the three appearing usually means the credentials were
 		// rejected, which leaves the browser on the sign-in page.
@@ -132,7 +132,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	}
 
 	// Anything that is not one of those two landings is the challenge.
-	if hit != homeCandidateKey && hit != idPortalCandidateKey {
+	if hit != loginHomeCandidateKey && hit != loginIDPortalCandidateKey {
 		res.OTPRequired = true
 		res.OTPInputKey = hit
 
@@ -140,15 +140,15 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 		if err != nil {
 			return res, stepErr(StepFetchOTP, fmt.Errorf("via %s: %w", src.Describe(), err))
 		}
-		if err := c.submitOTP(ctx, selector.OTPInputCandidates[hit], code, &res); err != nil {
+		if err := c.submitLoginOTP(ctx, selector.OTPInputCandidates[hit], code, &res); err != nil {
 			return res, err
 		}
 	}
 
-	return res, c.enterApp(ctx)
+	return res, c.enterAppAfterLogin(ctx)
 }
 
-// enterApp opens moneyforward.com and confirms the session reached it.
+// enterAppAfterLogin opens moneyforward.com and confirms the session reached it.
 //
 // Signing in at id.moneyforward.com authenticates the account but leaves the
 // browser on the ID portal, which links nowhere into the app and carries none of
@@ -158,18 +158,18 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 //
 // Harmless when already in the app: the navigation is a no-op and the marker is
 // already present.
-func (c *Client) enterApp(ctx context.Context) error {
+func (c *Client) enterAppAfterLogin(ctx context.Context) error {
 	// Signing in through the app's own entry point already lands in the app, via
 	// a redirect chain that may still be in flight. Navigating on top of that
 	// cancels it — ERR_ABORTED — so wait for the marker first and only steer if
 	// it never arrives.
-	if err := runWithTimeout(ctx, settleTimeout,
+	if err := runWithLoginTimeout(ctx, loginSettleTimeout,
 		chromedp.WaitVisible(selector.HomeAnchor, chromedp.ByQuery),
 	); err == nil {
 		return nil
 	}
 
-	if err := runWithTimeout(ctx, homeTimeout,
+	if err := runWithLoginTimeout(ctx, loginHomeTimeout,
 		chromedp.Navigate(selector.HomeURL),
 		chromedp.WaitVisible(selector.HomeAnchor, chromedp.ByQuery),
 	); err != nil {
@@ -179,35 +179,35 @@ func (c *Client) enterApp(ctx context.Context) error {
 	return nil
 }
 
-// runWithTimeout bounds a chromedp action group. Deriving a sub-context is the
+// runWithLoginTimeout bounds a chromedp action group. Deriving a sub-context is the
 // supported way to time-box actions: it cancels the actions, not the browser, so
 // the caller's Chrome stays alive for a page dump afterwards.
-func runWithTimeout(ctx context.Context, d time.Duration, actions ...chromedp.Action) error {
+func runWithLoginTimeout(ctx context.Context, d time.Duration, actions ...chromedp.Action) error {
 	tctx, cancel := context.WithTimeout(ctx, d)
 	defer cancel()
 	return chromedp.Run(tctx, actions...)
 }
 
-// submitOTP types the code and confirms it, preferring a real button and
+// submitLoginOTP types the code and confirms it, preferring a real button and
 // falling back to Enter. The fallback matters because one-time-code forms
 // frequently auto-submit and may render no button at all.
-func (c *Client) submitOTP(ctx context.Context, otpSelector, code string, res *LoginResult) error {
-	if err := runWithTimeout(ctx, formTimeout,
+func (c *Client) submitLoginOTP(ctx context.Context, otpSelector, code string, res *LoginResult) error {
+	if err := runWithLoginTimeout(ctx, loginFormTimeout,
 		chromedp.SendKeys(otpSelector, code, chromedp.ByQuery),
 	); err != nil {
 		return stepErr(StepSubmitOTP, fmt.Errorf("type code into %s: %w", otpSelector, err))
 	}
 
-	buttonKey, err := browser.PageOf(ctx).WaitForAny(submitProbeTimeout, selector.OTPSubmitCandidates)
+	buttonKey, err := browser.PageOf(ctx).WaitForAny(loginSubmitProbeTimeout, selector.OTPSubmitCandidates)
 	if err != nil {
-		if err := runWithTimeout(ctx, formTimeout, chromedp.KeyEvent(kb.Enter)); err != nil {
+		if err := runWithLoginTimeout(ctx, loginFormTimeout, chromedp.KeyEvent(kb.Enter)); err != nil {
 			return stepErr(StepSubmitOTP, fmt.Errorf("no submit button matched and Enter failed: %w", err))
 		}
 		return nil
 	}
 
 	res.OTPSubmitKey = buttonKey
-	if err := runWithTimeout(ctx, formTimeout,
+	if err := runWithLoginTimeout(ctx, loginFormTimeout,
 		chromedp.Click(selector.OTPSubmitCandidates[buttonKey], chromedp.ByQuery),
 	); err != nil {
 		return stepErr(StepSubmitOTP, fmt.Errorf("click %s: %w", selector.OTPSubmitCandidates[buttonKey], err))

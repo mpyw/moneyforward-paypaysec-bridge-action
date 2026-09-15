@@ -63,7 +63,7 @@ func runSync(ctx context.Context, opts *session.Options, pairs []string, subclas
 		desired = append(desired, asset.Asset{
 			Name:   strings.TrimSpace(name),
 			Yen:    yen,
-			Kind:   manualasset.KindOf(manualasset.AssetSubclass(subclass)),
+			Kind:   manualasset.KindOfSubclass(manualasset.AssetSubclass(subclass)),
 			Source: "debug mf sync",
 		})
 	}

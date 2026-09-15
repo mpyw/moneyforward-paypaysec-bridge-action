@@ -1,3 +1,6 @@
+// Shared fixtures for the core; joins its namespace.
+//
+//declscope:core
 package manualasset
 
 import (

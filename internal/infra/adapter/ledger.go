@@ -111,7 +111,7 @@ func (l *MoneyForwardLedger) Recorded(ctx context.Context) ([]asset.Asset, error
 			Yen:            e.Yen,
 			AcquisitionYen: e.AcquisitionYen,
 			HasAcquisition: e.HasAcquisition,
-			Kind:           manualasset.KindOf(e.Subclass),
+			Kind:           manualasset.KindOfSubclass(e.Subclass),
 		})
 	}
 	return out, nil

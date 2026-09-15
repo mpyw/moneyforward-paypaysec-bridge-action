@@ -1,3 +1,6 @@
+// Exercises the writing core.
+//
+//declscope:core
 package manualasset
 
 import (

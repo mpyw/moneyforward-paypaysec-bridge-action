@@ -1,3 +1,8 @@
+// The reading flow and its result types are the package's public face —
+// manulife.Cards, manulife.Card, manulife.Pair, manulife.Reading — so this
+// file is the core namespace.
+//
+//declscope:core
 package manulife
 
 import (
@@ -103,7 +108,7 @@ type policyPage struct {
 // screen. Fetching a URL directly was the one place that rule was broken, and
 // it broke immediately.
 func Cards(ctx context.Context) ([]Card, error) {
-	js, err := selector.ExtractContracts()
+	js, err := selector.ExtractContractsScript()
 	if err != nil {
 		return nil, stepErr(StepReadList, err)
 	}
@@ -255,7 +260,7 @@ func ReadCard(ctx context.Context, card Card) (Reading, error) {
 		return reading, stepErr(StepOpenContract, fmt.Errorf("the list card for %q: %w", card.Title, err))
 	}
 
-	js, err := selector.ExtractPolicy()
+	js, err := selector.ExtractPolicyScript()
 	if err != nil {
 		return reading, stepErr(StepReadContract, err)
 	}
@@ -435,7 +440,7 @@ func withTimeout(ctx context.Context, d time.Duration, fn func(context.Context) 
 // wait it was in and the page the browser was on, so the next one will not have
 // to be reasoned about at all.
 func clickCardFor(ctx context.Context, number string) error {
-	js, err := selector.MarkContract(number)
+	js, err := selector.MarkContractScript(number)
 	if err != nil {
 		return err
 	}

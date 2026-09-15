@@ -21,39 +21,31 @@ var scriptFS embed.FS
 // probes.
 var siteScripts = pagescript.Load(scriptFS, "js")
 
-// Read once: a missing file is a build mistake, so it surfaces at init rather
-// than on the first scrape.
-const (
-	extractContractsScript = "extract_contracts.js"
-	extractPolicyScript    = "extract_policy.js"
-	markContractScript     = "mark_contract.js"
-)
-
-// MarkContract renders the call that finds one contract's card by its number,
+// MarkContractScript renders the call that finds one contract's card by its number,
 // marks it and clicks it.
 //
 // The number crosses into the page as a JSON argument rather than spliced into
 // the source; see [pagescript.Apply].
-func MarkContract(number string) (string, error) {
-	return siteScripts.Call(markContractScript, map[string]string{
+func MarkContractScript(number string) (string, error) {
+	return siteScripts.Call("mark_contract.js", map[string]string{
 		"card":  ContractCard,
 		"table": ContractCardTable,
 		"mark":  ContractMarkAttr,
 	}, number)
 }
 
-// ExtractContracts renders the call that reads the contract list.
-func ExtractContracts() (string, error) {
-	return siteScripts.Call(extractContractsScript, map[string]string{
+// ExtractContractsScript renders the call that reads the contract list.
+func ExtractContractsScript() (string, error) {
+	return siteScripts.Call("extract_contracts.js", map[string]string{
 		"card":  ContractCard,
 		"title": ContractCardTitle,
 		"table": ContractCardTable,
 	})
 }
 
-// ExtractPolicy renders the call that reads one contract's detail page.
-func ExtractPolicy() (string, error) {
-	return siteScripts.Call(extractPolicyScript, map[string]string{
+// ExtractPolicyScript renders the call that reads one contract's detail page.
+func ExtractPolicyScript() (string, error) {
+	return siteScripts.Call("extract_policy.js", map[string]string{
 		"summary":     PolicySummary,
 		"summaryRow":  SummaryRow,
 		"valueMarker": SummaryValueMarker,

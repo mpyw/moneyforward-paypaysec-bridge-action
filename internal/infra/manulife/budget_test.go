@@ -1,3 +1,6 @@
+// Exercises the reading core's timeout budget.
+//
+//declscope:core
 package manulife
 
 import "testing"

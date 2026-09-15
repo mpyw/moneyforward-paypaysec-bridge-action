@@ -1,3 +1,6 @@
+// Exercises the extraction scripts against the reading core.
+//
+//declscope:core
 package manulife
 
 import (
@@ -204,7 +207,7 @@ func TestExtractPolicyRefusesTwoVisibleRowsUnderOneLabel(t *testing.T) {
 func TestMarkContractPicksTheRightCard(t *testing.T) {
 	twoCards := strings.Replace(listHTML, `style="display:none"`, "", 1)
 
-	expr, err := selector.MarkContract("999-9999999")
+	expr, err := selector.MarkContractScript("999-9999999")
 	if err != nil {
 		t.Fatalf("build the marking script: %v", err)
 	}
@@ -221,7 +224,7 @@ func TestMarkContractPicksTheRightCard(t *testing.T) {
 // every visit, so a contract can be gone by the time it is opened. That has to
 // be a refusal, not a click on whatever is nearest.
 func TestMarkContractFindsNothingForAnUnknownNumber(t *testing.T) {
-	expr, err := selector.MarkContract("111-1111111")
+	expr, err := selector.MarkContractScript("111-1111111")
 	if err != nil {
 		t.Fatalf("build the marking script: %v", err)
 	}
@@ -236,7 +239,7 @@ func TestMarkContractFindsNothingForAnUnknownNumber(t *testing.T) {
 
 func mustExtractContracts(t *testing.T) string {
 	t.Helper()
-	expr, err := selector.ExtractContracts()
+	expr, err := selector.ExtractContractsScript()
 	if err != nil {
 		t.Fatalf("build the contracts script: %v", err)
 	}
@@ -245,7 +248,7 @@ func mustExtractContracts(t *testing.T) string {
 
 func mustExtractPolicy(t *testing.T) string {
 	t.Helper()
-	expr, err := selector.ExtractPolicy()
+	expr, err := selector.ExtractPolicyScript()
 	if err != nil {
 		t.Fatalf("build the policy script: %v", err)
 	}
