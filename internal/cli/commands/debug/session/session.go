@@ -1,3 +1,7 @@
+// The session lifecycle and its options are one unit split over two files:
+// flags.go declares Options, this file drives it. Both are the core.
+//
+//declscope:core
 package session
 
 import (

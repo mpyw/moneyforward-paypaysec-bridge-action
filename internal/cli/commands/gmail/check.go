@@ -12,6 +12,7 @@ import (
 	gmailapi "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/gmail"
 )
 
+//declscope:package // registered by the parent command
 func checkCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "check",

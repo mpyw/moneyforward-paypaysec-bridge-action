@@ -11,6 +11,7 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug/session"
 )
 
+//declscope:package // registered by the parent command
 func listCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "list",

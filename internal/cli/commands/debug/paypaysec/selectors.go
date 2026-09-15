@@ -13,6 +13,7 @@ import (
 	ppsel "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector"
 )
 
+//declscope:package // registered by the parent command
 func selectorsCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "selectors",
@@ -24,9 +25,9 @@ func selectorsCommand() *cli.Command {
 }
 
 // runSelectors verifies the login form without credentials.
-// selectorProbeTimeout is how long one selector gets to appear when checking
+// selectorsProbeTimeout is how long one selector gets to appear when checking
 // that the confirmed ones still resolve.
-const selectorProbeTimeout = 15 * time.Second
+const selectorsProbeTimeout = 15 * time.Second
 
 func runSelectors(ctx context.Context, opts *session.Options) error {
 	s, err := opts.Start(ctx)
@@ -45,7 +46,7 @@ func runSelectors(ctx context.Context, opts *session.Options) error {
 		"SelectorPasswordInput": ppsel.PasswordInput,
 		"SelectorLoginSubmit":   ppsel.LoginSubmit,
 	} {
-		if _, err := browser.PageOf(s.Context()).WaitForAny(selectorProbeTimeout, map[string]string{name: selector}); err != nil {
+		if _, err := browser.PageOf(s.Context()).WaitForAny(selectorsProbeTimeout, map[string]string{name: selector}); err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "  ✗ %-24s %s\n", name, selector)
 			continue
 		}

@@ -10,6 +10,10 @@
 // one — which is what [session.Session.ReportStepFailure] is for. The page dump
 // from a failed run is how the challenge step's real selectors were found,
 // after a set of guesses had matched the wrong element and reported success.
+// The parent command and the wire assembly in providers.go are the package
+// trunk; each subcommand file is a leaf namespace.
+//
+//declscope:core
 package manulife
 
 import (

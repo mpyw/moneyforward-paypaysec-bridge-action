@@ -11,6 +11,7 @@ import (
 	mlsite "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/manulife"
 )
 
+//declscope:package // registered by the parent command
 func loginCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "login",
@@ -48,12 +49,12 @@ func runLogin(ctx context.Context, opts *session.Options) error {
 	_, _ = fmt.Fprintf(os.Stderr, "\n✓ login OK\n")
 	s.Report()
 	s.SaveSession()
-	report(result)
+	reportLogin(result)
 	return nil
 }
 
-// report says whether a code was needed.
-func report(r mlsite.LoginResult) {
+// reportLogin says whether a code was needed.
+func reportLogin(r mlsite.LoginResult) {
 	if r.OTPRequired {
 		_, _ = fmt.Fprintf(os.Stderr, "  OTP challenge completed\n")
 		return

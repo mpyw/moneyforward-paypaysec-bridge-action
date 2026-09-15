@@ -4,6 +4,10 @@
 // what it does. They shared a var block before, and two of them shared a
 // --subclass destination: harmless while only one runs per invocation, and
 // exactly the kind of thing that stops being harmless quietly.
+// The parent command and the wire assembly in providers.go are the package
+// trunk; each subcommand file is a leaf namespace.
+//
+//declscope:core
 package moneyforward
 
 import (

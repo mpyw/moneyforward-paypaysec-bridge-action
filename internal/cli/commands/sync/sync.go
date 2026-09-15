@@ -2,6 +2,9 @@
 //
 // What is left here after the work moved to the use case is what a command is
 // actually for: reading configuration, wiring dependencies, and reporting.
+// Part of the core namespace; see providers.go.
+//
+//declscope:core
 package sync
 
 import (

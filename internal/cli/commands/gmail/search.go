@@ -12,6 +12,7 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/credentials"
 )
 
+//declscope:package // registered by the parent command
 func searchCommand() *cli.Command {
 	var query string
 	var showBody bool

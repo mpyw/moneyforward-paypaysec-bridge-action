@@ -4,7 +4,6 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/actionslog"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/manulife"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward/manualasset"
-	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/otp"
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec"
 )
 
@@ -21,6 +20,8 @@ import (
 //
 // What counts as a figure is [paypaysec.Reading]'s own business — including the
 // sums it computes only to report a disagreement, which exist nowhere else.
+//
+//declscope:package // the providers register every reading through this
 func maskFigures(masker actionslog.Masker) func(paypaysec.Reading) {
 	return func(r paypaysec.Reading) {
 		for _, yen := range r.Amounts() {
@@ -38,6 +39,8 @@ func maskFigures(masker actionslog.Masker) func(paypaysec.Reading) {
 // The same reason as [maskFigures]: the reconciliation error names the yen
 // figure, the contract-currency amount and the range they were checked against,
 // and it fires before any reporting happens.
+//
+//declscope:package // the providers register every contract reading through this
 func maskContract(masker actionslog.Masker) func(manulife.Reading) {
 	return func(r manulife.Reading) {
 		for _, yen := range r.Amounts() {
@@ -54,6 +57,8 @@ func maskContract(masker actionslog.Masker) func(manulife.Reading) {
 // The other half of [maskFigures]. These balances did not come from PayPay, so
 // nothing has masked them, and the verification failure names one of them
 // exactly when it differs from the figure that was sent.
+//
+//declscope:package // the providers register the recorded entries through this
 func maskEntries(masker actionslog.Masker) func([]manualasset.Entry) {
 	return func(entries []manualasset.Entry) {
 		for _, e := range entries {
@@ -61,13 +66,5 @@ func maskEntries(masker actionslog.Masker) func([]manualasset.Entry) {
 				masker.MaskAmount(yen)
 			}
 		}
-	}
-}
-
-// codeSource builds a masked Gmail source for one service.
-func codeSource(mailbox otp.MailSearcher, spec otp.MailSpec, masker actionslog.Masker) otp.Source {
-	return actionslog.CodeSource{
-		Source: &otp.Gmail{Mail: mailbox, Spec: spec, Timeout: otpTimeout, Interval: otpInterval},
-		Masker: masker,
 	}
 }

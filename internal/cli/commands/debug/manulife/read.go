@@ -11,6 +11,7 @@ import (
 	mlsite "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/manulife"
 )
 
+//declscope:package // registered by the parent command
 func readCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "read",

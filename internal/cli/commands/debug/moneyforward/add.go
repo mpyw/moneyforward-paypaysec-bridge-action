@@ -12,6 +12,7 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward/manualasset"
 )
 
+//declscope:package // registered by the parent command
 func addCommand() *cli.Command {
 	var name string
 	var amount, subclass int

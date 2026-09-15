@@ -17,6 +17,7 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/investapi"
 )
 
+//declscope:package // registered by the parent command
 func investCommand() *cli.Command {
 	var trace, viaPage bool
 	return &cli.Command{
@@ -91,7 +92,7 @@ func runInvest(ctx context.Context, opts *session.Options, trace, viaPage bool) 
 	}
 
 	if viaPage {
-		return fetchFromPage(s.Context(), info.MiniClientSeqNo)
+		return investFetchFromPage(s.Context(), info.MiniClientSeqNo)
 	}
 
 	failures := 0
@@ -122,7 +123,7 @@ func runInvest(ctx context.Context, opts *session.Options, trace, viaPage bool) 
 	return nil
 }
 
-// fetchFromPage repeats the ミニアプリ call from inside the document.
+// investFetchFromPage repeats the ミニアプリ call from inside the document.
 //
 // The body Go sends is field-for-field what the page's own transport builds, and
 // the service still refuses it. That leaves everything a request carries besides
@@ -132,7 +133,7 @@ func runInvest(ctx context.Context, opts *session.Options, trace, viaPage bool) 
 // If it is, the difference is a header, and this narrows it from "the endpoint
 // rejects us" to a list that can be tried one at a time. If it is not, the body is
 // wrong after all and the bundle is not the whole contract.
-func fetchFromPage(ctx context.Context, seq string) error {
+func investFetchFromPage(ctx context.Context, seq string) error {
 	const miniInitPath = "/v3/invest/brand/pc_invest_init"
 	const script = `(async () => {
 	  const body = new FormData();

@@ -12,10 +12,7 @@ import (
 	gmailapi "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/gmail"
 )
 
-// DefaultClientFile is the OAuth client downloaded from the Google Cloud
-// console — the "Desktop app" type, whose redirect is a loopback address.
-const DefaultClientFile = "client_secret.json"
-
+//declscope:package // registered by the parent command
 func authorizeCommand() *cli.Command {
 	var clientFile, out string
 	return &cli.Command{

@@ -3,6 +3,9 @@
 //
 // One file per subcommand, each holding its own definition, its own flags and
 // what it does.
+// The parent command; part of the core namespace, see providers.go.
+//
+//declscope:core
 package gmail
 
 import (
