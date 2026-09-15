@@ -1,0 +1,829 @@
+# declscope baseline
+#
+# Violations recorded here are suppressed; new ones are still reported.
+# Regenerate with:
+#
+#     declscope baseline ./...
+#
+# Do not edit by hand. An entry disappears when its violation is fixed, so the
+# diff of a regeneration is the record of what was cleaned up.
+packages:
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/domain/money:
+    boundary:
+      yen:
+        - digitsAcrossASpace
+        - placeholders
+        - signMultiplier
+        - ungroup
+    qualify:
+      decimal:
+        - AgreesWithConversion
+        - ConvertedYenRange
+        - FormatHundredths
+        - ParseHundredths
+        - hundredthsPattern
+        - ungroupBeforeThePoint
+      yen:
+        - ErrNoValue
+        - digitsAcrossASpace
+        - grouped
+        - manPattern
+        - numberRun
+        - placeholders
+        - plainPattern
+        - signMultiplier
+        - ungroup
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/application/port:
+    qualify:
+      credential:
+        - ConsentFlow
+        - MailboxOpener
+      ledger:
+        - Explainer
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug/manulife:
+    boundary:
+      manulifeLogin:
+        - loginCommand
+      manulifeRead:
+        - readCommand
+      providers:
+        - signIn.client
+        - signIn.codes
+    qualify:
+      manulife:
+        - Command
+      manulifeLogin:
+        - loginCommand
+        - report
+        - runLogin
+      manulifeRead:
+        - readCommand
+        - readOne
+        - runRead
+      providers:
+        - credentials
+        - provideClient
+        - provideCodes
+        - provideCredentials
+        - signIn
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug/moneyforward:
+    boundary:
+      account:
+        - account
+        - accountURL
+      moneyforwardAdd:
+        - addCommand
+      moneyforwardFetch:
+        - fetchCommand
+      moneyforwardList:
+        - listCommand
+      moneyforwardLogin:
+        - loginCommand
+      moneyforwardPortfolio:
+        - portfolioCommand
+      moneyforwardProbe:
+        - probeCommand
+      moneyforwardSubclasses:
+        - subclassesCommand
+      moneyforwardSync:
+        - syncCommand
+    qualify:
+      account:
+        - assetID
+      moneyforward:
+        - Command
+      moneyforwardAdd:
+        - addCommand
+        - runAdd
+      moneyforwardFetch:
+        - fetchCommand
+        - runFetch
+      moneyforwardList:
+        - listCommand
+        - runList
+      moneyforwardLogin:
+        - loginCommand
+        - runLogin
+      moneyforwardPortfolio:
+        - portfolioCommand
+        - runPortfolio
+      moneyforwardProbe:
+        - probeCommand
+        - runProbe
+      moneyforwardSubclasses:
+        - runSubclasses
+        - subclassesCommand
+      moneyforwardSync:
+        - runSync
+        - syncCommand
+      providers:
+        - ledgerOn
+        - planPrinter
+        - provideAllowEmpty
+        - provideBridges
+        - provideReporter
+        - typedHoldings
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug/paypaysec:
+    boundary:
+      paypaysecBalance:
+        - balanceCommand
+      paypaysecInvest:
+        - investCommand
+      paypaysecLogin:
+        - loginCommand
+      paypaysecProbe:
+        - probeCommand
+      paypaysecSelectors:
+        - selectorsCommand
+      providers:
+        - signIn.client
+        - signIn.codes
+    qualify:
+      paypaysec:
+        - Command
+      paypaysecBalance:
+        - balanceCommand
+        - runBalance
+      paypaysecInvest:
+        - fetchFromPage
+        - investCommand
+        - runInvest
+      paypaysecLogin:
+        - loginCommand
+        - runLogin
+      paypaysecProbe:
+        - probeCommand
+        - runProbe
+      paypaysecSelectors:
+        - runSelectors
+        - selectorProbeTimeout
+        - selectorsCommand
+      providers:
+        - credentials
+        - provideClient
+        - provideCodes
+        - provideCredentials
+        - signIn
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/debug/session:
+    boundary:
+      flags:
+        - Options.debugDir
+        - Options.headless
+        - Options.keepOpen
+        - Options.timeout
+    qualify:
+      flags:
+        - From
+        - Options
+        - defaultDebugDir
+        - otpModeAuto
+        - otpModeFile
+        - otpModeGmail
+      session:
+        - Start
+        - holdInterval
+        - navigateTimeout
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/gmail:
+    boundary:
+      gmailAuthorize:
+        - authorizeCommand
+      gmailCheck:
+        - checkCommand
+      gmailSearch:
+        - searchCommand
+      providers:
+        - clientFile
+        - credentialFile
+    qualify:
+      gmail:
+        - Command
+      gmailAuthorize:
+        - DefaultClientFile
+        - authorizeCommand
+        - runAuthorize
+      gmailCheck:
+        - checkCommand
+        - runCheck
+      gmailSearch:
+        - runSearch
+        - searchCommand
+      providers:
+        - clientFile
+        - credentialFile
+        - mailboxOpener
+        - provideConsent
+        - provideCredentialStore
+        - provideMailboxOpener
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/cli/commands/sync:
+    boundary:
+      providers:
+        - provideBridges
+      sync:
+        - otpInterval
+        - otpTimeout
+      syncMask:
+        - codeSource
+        - maskContract
+        - maskEntries
+        - maskFigures
+      syncReport:
+        - logChallenge
+        - reportContractSkip
+        - reportSkip
+        - reportTarget
+        - reporter
+        - reporter.masker
+    qualify:
+      providers:
+        - browserContext
+        - ledgerFor
+        - manulifeCodes
+        - moneyForwardCodes
+        - payPaySecCodes
+        - provideAllowEmptyingCategories
+        - provideBridges
+        - provideBrowserContext
+        - provideConfig
+        - provideMailbox
+        - provideManulifeCodes
+        - provideMoneyForwardCodes
+        - provideMoneyForwardSession
+        - providePayPaySecCodes
+        - provideReporter
+      sync:
+        - Command
+        - jobTimeout
+        - otpInterval
+        - otpTimeout
+        - requiredEnv
+        - run
+        - sourceEnv
+      syncMask:
+        - codeSource
+        - maskContract
+        - maskEntries
+        - maskFigures
+      syncReport:
+        - logChallenge
+        - reportContractSkip
+        - reportSkip
+        - reportTarget
+        - reporter
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/adapter:
+    qualify:
+      ledger:
+        - MoneyForwardSession
+        - wrap
+      sourceManulife:
+        - ManulifeCategory
+        - ManulifeID
+        - ManulifeSource
+        - acquisitionVariable
+        - card
+        - manulifePages
+        - reading
+        - recorder
+      sourcePaypaysec:
+        - PayPaySecID
+        - PayPaySecSource
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/chrome/browser:
+    boundary:
+      browser:
+        - Page.ctx
+      js:
+        - pageScripts
+    qualify:
+      browser:
+        - DefaultsFor
+        - New
+        - Options
+        - Page
+        - PageInfo
+        - PageOf
+        - probeInterval
+        - sanitizeDumpLabel
+        - withoutQuery
+      inspect:
+        - Element
+        - FindInteractive
+      js:
+        - pageScripts
+        - scriptFS
+      launch:
+        - chromeInstalled
+      netlog:
+        - Exchange
+        - Record
+        - Recorder
+        - maxRecordedBody
+        - postDataOf
+        - recordable
+        - truncate
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/chrome/cookiestore:
+    boundary:
+      store:
+        - cookieSetFromChrome
+        - decodeCookieSet
+    qualify:
+      httpclient:
+        - HTTPSessionTimeout
+      store:
+        - CookieSet
+        - SessionCookie
+        - cookieSetFromChrome
+        - decodeCookieSet
+        - mustParseURL
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/gmail:
+    boundary:
+      authfail:
+        - explainDeadCredential
+      gmail:
+        - decodeBase64URL
+        - messagePayload
+        - messagePayload.header
+        - messagePayload.message
+        - messagePayload.text
+    qualify:
+      authfail:
+        - explainDeadCredential
+        - invalidGrant
+      gmail:
+        - Client
+        - Message
+        - NewFromCredential
+        - NewFromJSON
+        - Scope
+        - decodeBase64URL
+        - mailbox
+        - messagePayload
+      message:
+        - part
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/manulife:
+    boundary:
+      client:
+        - stepErr
+      read:
+        - clickTimeout
+        - contractList
+        - extractTimeout
+        - field
+        - navigateTimeout
+        - optionalField
+        - policyPage
+        - readyTimeout
+      script:
+        - chromeAvailable
+    qualify:
+      client:
+        - StepAwaitChallenge
+        - StepAwaitHome
+        - StepFetchOTP
+        - StepFillCredentials
+        - StepNavigate
+        - StepOf
+        - StepOpenContract
+        - StepReadContract
+        - StepReadList
+        - StepSubmitCredentials
+        - StepSubmitOTP
+        - stepErr
+      login:
+        - challengeTimeout
+        - digitInterval
+        - formTimeout
+        - homeTimeout
+        - otpCandidateKey
+        - runWithTimeout
+        - submitOTP
+      navigate:
+        - detailPage
+        - listPage
+        - openList
+        - servingSite
+      read:
+        - BackToList
+        - Card
+        - Cards
+        - Pair
+        - clickCardFor
+        - clickTimeout
+        - contractList
+        - extractTimeout
+        - field
+        - listTimeout
+        - navigateTimeout
+        - optionalField
+        - parseForeignAmount
+        - parseRate
+        - policyPage
+        - withTimeout
+      script:
+        - chromeAvailable
+        - listHTML
+        - mustExtractContracts
+        - mustExtractPolicy
+        - policyHTML
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/manulife/selector:
+    qualify:
+      script:
+        - ExtractContracts
+        - ExtractPolicy
+        - MarkContract
+      selector:
+        - ContractCard
+        - ContractCardTable
+        - ContractCardTitle
+        - ContractMarkAttr
+        - ContractOpenerReady
+        - DetailPolicyType
+        - HomeCandidates
+        - LabelAccountValue
+        - LabelAccountValueDate
+        - LabelPolicyNumber
+        - LabelPremiumPaid
+        - LabelProductName
+        - LabelRate
+        - LabelRateDate
+        - LabelStatus
+        - LabelSurrenderFCY
+        - LabelSurrenderYen
+        - LoginSubmit
+        - LoginURL
+        - MarkedContract
+        - OTPDigits
+        - OTPInput
+        - OTPMail
+        - OTPSubmit
+        - Origin
+        - PasswordInput
+        - PolicyPathPrefix
+        - PolicySummary
+        - Row
+        - RowLabel
+        - RowValue
+        - StatusInForce
+        - SummaryRow
+        - SummaryValueMarker
+        - TrimLabel
+        - UsernameInput
+        - ValueText
+        - otpCodePattern
+        - otpMailQuery
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward:
+    boundary:
+      client:
+        - stepErr
+    qualify:
+      client:
+        - StepAwaitChallenge
+        - StepAwaitHome
+        - StepFetchOTP
+        - StepFillCredentials
+        - StepNavigate
+        - StepOf
+        - StepSubmitCredentials
+        - StepSubmitOTP
+        - stepErr
+      login:
+        - challengeTimeout
+        - enterApp
+        - formTimeout
+        - homeCandidateKey
+        - homeTimeout
+        - idPortalCandidateKey
+        - runWithTimeout
+        - settleTimeout
+        - signInFormCandidateKey
+        - submitOTP
+        - submitProbeTimeout
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward/manualasset:
+    boundary:
+      account:
+        - origin
+      entry:
+        - Entry.entriedPrice
+      manualasset:
+        - accountPageHTML
+        - entryRowHTML
+      scrape:
+        - accountPage
+        - accountPage.entries
+        - accountPage.subclasses
+        - accountPage.writerFor
+        - errorPattern
+        - tagPattern
+      writer:
+        - commitCreateText
+        - createPath
+        - editPath
+        - entryPath
+        - fieldCommit
+        - fieldEntriedPrice
+        - fieldID
+        - fieldMethod
+        - fieldName
+        - fieldSubclass
+        - fieldToken
+        - fieldValue
+    qualify:
+      account:
+        - FromBrowser
+        - origin
+      entry:
+        - AssetSubclass
+        - KindOf
+        - SubclassDomesticStock
+        - SubclassFor
+        - SubclassMutualFund
+        - SubclassOtherStock
+        - SubclassSavingsInsurance
+        - SubclassUSStock
+      manualasset:
+        - accountPageHTML
+        - accountServing
+        - entryRowHTML
+      scrape:
+        - SubclassOption
+        - accountPage
+        - createFormPattern
+        - entryFieldAltPattern
+        - entryFieldPattern
+        - entryFormPattern
+        - errorPattern
+        - metaTokenPattern
+        - optionPattern
+        - parseEntryForm
+        - subAccountPattern
+        - subclassSelectPattern
+        - tagPattern
+        - tokenPattern
+      write:
+        - accountBackedBy
+        - atoi64
+        - fakeAccount
+        - tokenFor
+      writer:
+        - Response
+        - commitCreateText
+        - createPath
+        - editPath
+        - entryPath
+        - fieldCommit
+        - fieldEntriedAt
+        - fieldEntriedPrice
+        - fieldID
+        - fieldMethod
+        - fieldName
+        - fieldSubAccount
+        - fieldSubclass
+        - fieldToken
+        - fieldValue
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/otp:
+    boundary:
+      otp:
+        - MailSpec.pattern
+        - MailSpec.service
+        - validateDigits
+      poll:
+        - errWaitedTooLong
+        - newPoller
+        - poller.run
+        - poller.timeout
+    qualify:
+      gmail:
+        - attempt
+        - fakeMailbox
+        - maxMessages
+        - quiet
+        - recencyBound
+      otp:
+        - DefaultCodePattern
+        - MailSearcher
+        - MailSpec
+        - Source
+        - validateDigits
+      poll:
+        - defaultTimeout
+        - errWaitedTooLong
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec:
+    boundary:
+      balance:
+        - Reading.parse
+        - parseAmountCell
+        - readingOf
+      client:
+        - stepErr
+      holding:
+        - Reading.fillAcquisition
+      investread:
+        - readInvestmentTrust
+    qualify:
+      balance:
+        - Holding
+        - Read
+        - Reading
+        - amountOf
+        - parseAmountCell
+        - readingOf
+      client:
+        - StepAwaitChallenge
+        - StepAwaitDashboard
+        - StepFetchOTP
+        - StepFillCredentials
+        - StepNavigate
+        - StepOf
+        - StepReadBalance
+        - StepSubmitCredentials
+        - StepSubmitOTP
+        - stepErr
+      holding:
+        - applyDetail
+        - fillAcquisition
+      investread:
+        - investAPIFor
+        - readInvestmentTrust
+        - yen
+      login:
+        - challengeTimeout
+        - dashboardCandidateKey
+        - dashboardTimeout
+        - digitInterval
+        - formTimeout
+        - otpCandidateKey
+        - otpSubmitTimeout
+        - runWithTimeout
+        - submitOTP
+      reading:
+        - holdingText
+        - usa
+        - withCosts
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/investapi:
+    boundary:
+      account:
+        - Client.miniClientSeqNo
+      contract:
+        - Client.fieldsFor
+        - appInfo
+        - appInit
+        - appTop
+        - endpoints.init
+        - endpoints.top
+        - endpointsFor
+        - miniInfoFields
+        - miniInit
+        - miniTop
+        - origin
+        - pagePath
+      decode:
+        - brandList
+        - laxInt64
+        - laxString
+      holdings:
+        - nameHoldings
+      investapi:
+        - Client.miniSeqNo
+      response:
+        - checked
+        - checked.check
+        - infoResponse
+        - initResponse
+        - topResponse
+      stub:
+        - serve
+        - stub
+        - stub.asArray
+        - stub.brokenTotal
+        - stub.fields
+        - stub.loginOut
+        - stub.miniNotUsable
+        - stub.mu
+        - stub.noHoldings
+        - stub.noMiniClient
+        - stub.noName
+        - stub.quoted
+        - stub.referers
+        - stub.status
+      transport:
+        - Client.post
+    qualify:
+      account:
+        - ErrNoMiniApp
+        - Info
+        - ReadInfo
+        - miniClientSeqNo
+        - truthy
+      contract:
+        - appIDApp
+        - appIDMiniApp
+        - appInfo
+        - appInit
+        - appTop
+        - commonFields
+        - endpoints
+        - endpointsFor
+        - fieldsFor
+        - miniInfoFields
+        - miniInit
+        - miniTop
+        - origin
+        - pagePath
+      decode:
+        - brandList
+        - keyed
+        - laxInt64
+        - laxString
+      holdings:
+        - Holding
+        - catalogueNames
+      investapi:
+        - App
+        - Bucket
+        - Client
+        - Figures
+        - MiniApp
+      response:
+        - checked
+        - envelope
+      stub:
+        - readFields
+        - serve
+      transport:
+        - multipartBody
+        - post
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/pagescan:
+    boundary:
+      pagescan:
+        - pageState
+        - settle
+        - settleTimedOut
+      script:
+        - chromeAvailable
+    qualify:
+      holding:
+        - Detail
+      load:
+        - serving
+      pagescan:
+        - Figures
+        - Load
+        - Row
+        - pageState
+        - settle
+        - settlePoll
+        - settleTimedOut
+        - settleTimeout
+        - stableReads
+        - targetPage
+        - targetTimeout
+      script:
+        - chromeAvailable
+        - listPageHTML
+        - runExtraction
+      wire:
+        - jsonKeysOf
+  github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/selector:
+    boundary:
+      selector:
+        - Target.scheme
+    qualify:
+      script:
+        - ExtractBalance
+        - ExtractHolding
+        - PageState
+      selector:
+        - Acquisition
+        - BrandGain
+        - BrandInvest
+        - Bucket
+        - BucketApp
+        - BucketMiniApp
+        - GrossProfit
+        - HoldingAcquisition
+        - HoldingGain
+        - HoldingName
+        - HoldingRow
+        - HoldingValue
+        - HoldingsContainer
+        - HoldingsHeading
+        - HoldingsHeadingTag
+        - LoadingOverlay
+        - LoginSubmit
+        - LoginURL
+        - MemberIDInput
+        - OTPDigits
+        - OTPFirstDigit
+        - OTPMail
+        - OTPPrefix
+        - OTPSubmit
+        - Origin
+        - PasswordInput
+        - PostLoginAnchor
+        - Target
+        - Targets
+        - URLInvestmentTrust
+        - URLMiniApp
+        - ValueTotal
+        - otpCodePattern
+        - otpMailQuery
+      target:
+        - expectedPrefix
