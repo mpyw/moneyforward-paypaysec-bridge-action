@@ -1,3 +1,7 @@
+// The session lifecycle and its options are one unit split over two files:
+// flags.go declares Options, this file drives it. Both are the core.
+//
+//declscope:core
 package session
 
 import (
@@ -255,7 +259,7 @@ func (s *Session) Report() {
 // reason both site commands have a probe. It lived in each of them, down to a
 // column width that differed between the two for no reason.
 func (s *Session) ReportInteractive() error {
-	els, err := browser.PageOf(s.ctx).FindInteractive()
+	els, err := browser.PageOf(s.ctx).FindInteractiveElements()
 	if err != nil {
 		return err
 	}

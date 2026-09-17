@@ -1,3 +1,6 @@
+// Exercises the target vocabulary in the core.
+//
+//declscope:core
 package selector
 
 import (

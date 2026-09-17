@@ -15,13 +15,13 @@ import (
 
 func TestApplyDetailPrefersTheStatedCost(t *testing.T) {
 	h := Holding{Name: "テスト電機", Yen: 456789, HasYen: true}
-	err := h.applyDetail(pagescan.Detail{
+	err := h.applyHoldingDetail(pagescan.HoldingDetail{
 		ValuePresent: true, ValueRaw: "45万6789円",
 		AcquisitionPresent: true, AcquisitionRaw: "40万0000円",
 		GainRaw: "+3万7952円",
 	})
 	if err != nil {
-		t.Fatalf("applyDetail() error = %v", err)
+		t.Fatalf("applyHoldingDetail() error = %v", err)
 	}
 	if !h.HasAcquisition || h.AcquisitionYen != 400000 {
 		t.Errorf("cost = %d (known=%v), want the stated 400000", h.AcquisitionYen, h.HasAcquisition)
@@ -36,12 +36,12 @@ func TestApplyDetailPrefersTheStatedCost(t *testing.T) {
 // page is unrounded, so the subtraction is exact.
 func TestApplyDetailSubtractsWhenNoCostIsStated(t *testing.T) {
 	h := Holding{Name: "テスト・グローバル・ファンド", Yen: 345678, HasYen: true}
-	err := h.applyDetail(pagescan.Detail{
+	err := h.applyHoldingDetail(pagescan.HoldingDetail{
 		ValuePresent: true, ValueRaw: "345678円",
 		GainRaw: "+45678円",
 	})
 	if err != nil {
-		t.Fatalf("applyDetail() error = %v", err)
+		t.Fatalf("applyHoldingDetail() error = %v", err)
 	}
 	if !h.HasAcquisition || h.AcquisitionYen != 300000 {
 		t.Errorf("cost = %d (known=%v), want 345678-45678", h.AcquisitionYen, h.HasAcquisition)
@@ -55,14 +55,14 @@ func TestApplyDetailSubtractsWhenNoCostIsStated(t *testing.T) {
 // goes wrong; two pages disagreeing about a valuation is the way a price moves.
 func TestApplyDetailCatchesTheWrongPage(t *testing.T) {
 	h := Holding{Name: "テスト電機", Yen: 456789, HasYen: true}
-	err := h.applyDetail(pagescan.Detail{
+	err := h.applyHoldingDetail(pagescan.HoldingDetail{
 		RequestedURL: "https://example.test/trade/brand/35/0",
 		LandedURL:    "https://example.test/trade/brand/99/0", // somewhere else
 		ValuePresent: true, ValueRaw: "456789円",
 		GainRaw: "+1000円",
 	})
 	if err == nil {
-		t.Fatal("applyDetail() accepted a page it was redirected to")
+		t.Fatal("applyHoldingDetail() accepted a page it was redirected to")
 	}
 }
 
@@ -79,14 +79,14 @@ func TestApplyDetailCatchesTheWrongPage(t *testing.T) {
 // reason to fail on its own.
 func TestApplyDetailToleratesAMovedPrice(t *testing.T) {
 	h := Holding{Name: "テスト電機", Yen: 456789, HasYen: true}
-	err := h.applyDetail(pagescan.Detail{
+	err := h.applyHoldingDetail(pagescan.HoldingDetail{
 		RequestedURL: "https://example.test/trade/brand/35/0",
 		LandedURL:    "https://example.test/trade/brand/35/0",
 		ValuePresent: true, ValueRaw: "456787円", // two yen, a few seconds later
 		GainRaw: "+1000円",
 	})
 	if err != nil {
-		t.Fatalf("applyDetail() failed the run over a moved price: %v", err)
+		t.Fatalf("applyHoldingDetail() failed the run over a moved price: %v", err)
 	}
 	// Recorded even so, so the masker sees it and the routes can be compared.
 	if h.DetailYen != 456787 {
@@ -98,7 +98,7 @@ func TestApplyDetailToleratesAMovedPrice(t *testing.T) {
 // each of these used to be swallowed, leaving a later check disabled or a cost
 // silently taken from the other route.
 func TestApplyDetailRefusesUnreadableFigures(t *testing.T) {
-	tests := map[string]pagescan.Detail{
+	tests := map[string]pagescan.HoldingDetail{
 		"the page's own valuation": {
 			ValuePresent: true, ValueRaw: "評価額 12株", GainRaw: "+1000円",
 		},
@@ -114,8 +114,8 @@ func TestApplyDetailRefusesUnreadableFigures(t *testing.T) {
 	for name, detail := range tests {
 		t.Run(name, func(t *testing.T) {
 			h := Holding{Name: "テスト電機", Yen: 456789, HasYen: true}
-			if err := h.applyDetail(detail); err == nil {
-				t.Errorf("applyDetail() accepted an unreadable figure; cost came back %d (known=%v)",
+			if err := h.applyHoldingDetail(detail); err == nil {
+				t.Errorf("applyHoldingDetail() accepted an unreadable figure; cost came back %d (known=%v)",
 					h.AcquisitionYen, h.HasAcquisition)
 			}
 		})
@@ -126,8 +126,8 @@ func TestApplyDetailRefusesUnreadableFigures(t *testing.T) {
 // failing the run: no figure is not the same as an unreadable one.
 func TestApplyDetailToleratesAPlaceholder(t *testing.T) {
 	h := Holding{Name: "新規", Yen: 1000, HasYen: true}
-	if err := h.applyDetail(pagescan.Detail{ValuePresent: true, ValueRaw: "—", GainRaw: "—"}); err != nil {
-		t.Fatalf("applyDetail() error = %v", err)
+	if err := h.applyHoldingDetail(pagescan.HoldingDetail{ValuePresent: true, ValueRaw: "—", GainRaw: "—"}); err != nil {
+		t.Fatalf("applyHoldingDetail() error = %v", err)
 	}
 	if h.HasAcquisition {
 		t.Errorf("a placeholder produced a cost of %d", h.AcquisitionYen)
@@ -141,7 +141,7 @@ func TestApplyDetailToleratesAPlaceholder(t *testing.T) {
 // log where the raw text is enough to say what went wrong.
 func TestApplyDetailErrorsDoNotQuoteParsedFigures(t *testing.T) {
 	h := Holding{Name: "テスト電機", Yen: 456789, HasYen: true}
-	err := h.applyDetail(pagescan.Detail{ValuePresent: true, ValueRaw: "12株", GainRaw: "+1円"})
+	err := h.applyHoldingDetail(pagescan.HoldingDetail{ValuePresent: true, ValueRaw: "12株", GainRaw: "+1円"})
 	if err == nil {
 		t.Fatal("expected a refusal")
 	}

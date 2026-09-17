@@ -1,3 +1,7 @@
+// The command's public face and its wire assembly are the package trunk;
+// each subcommand file is a leaf namespace. This file is part of the core.
+//
+//declscope:core
 package gmail
 
 import (
@@ -23,9 +27,11 @@ var providerSet = wire.NewSet(
 // by the console, the other is the credential this run produces.
 type (
 	// clientFile is the OAuth client downloaded from the Google Cloud console.
+	//declscope:package // the authorize subcommand hands the flag value to the injector
 	clientFile string
 
 	// credentialFile is where the resulting credential is written.
+	//declscope:package // the authorize subcommand hands the flag value to the injector
 	credentialFile string
 )
 
@@ -52,3 +58,7 @@ func (mailboxOpener) OpenMailbox(ctx context.Context, cred credential.Gmail) (st
 	}
 	return client.Profile(ctx)
 }
+
+// DefaultClientFile is the OAuth client downloaded from the Google Cloud
+// console — the "Desktop app" type, whose redirect is a loopback address.
+const DefaultClientFile = "client_secret.json"

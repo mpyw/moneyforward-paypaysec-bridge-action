@@ -27,8 +27,8 @@ func TestEveryKindMapsBothWays(t *testing.T) {
 		}
 		seen[subclass] = kind
 
-		if back := KindOf(subclass); back != kind {
-			t.Errorf("KindOf(SubclassFor(%v)) = %v — the account cannot be read back "+
+		if back := KindOfSubclass(subclass); back != kind {
+			t.Errorf("KindOfSubclass(SubclassFor(%v)) = %v — the account cannot be read back "+
 				"in the terms it is written in", kind, back)
 		}
 	}
@@ -48,8 +48,8 @@ func TestSubclassForRefusesTheZeroValue(t *testing.T) {
 // created by hand under a 資産クラス this program has no kind for, and the read
 // has to report the rest of the account rather than fail.
 func TestKindOfIsForgiving(t *testing.T) {
-	if got := KindOf(AssetSubclass(9999)); got != asset.KindUnknown {
-		t.Errorf("KindOf(unknown) = %v, want the zero Kind", got)
+	if got := KindOfSubclass(AssetSubclass(9999)); got != asset.KindUnknown {
+		t.Errorf("KindOfSubclass(unknown) = %v, want the zero Kind", got)
 	}
 }
 

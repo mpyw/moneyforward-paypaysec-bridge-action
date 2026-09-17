@@ -6,6 +6,11 @@
 // consumer @gmail.com inbox at all. A long-lived user refresh token is the only
 // way in, which is why [NewFromJSON] takes the authorized_user JSON that
 // `gcloud auth application-default login` produces.
+
+// The client, its message model and its scope are the unit the package is
+// named for, and every exported name here is read as gmail.X.
+//
+//declscope:core
 package gmail
 
 import (
@@ -81,7 +86,7 @@ func NewFromJSON(ctx context.Context, credentialsJSON []byte) (*Client, error) {
 func (c *Client) Profile(ctx context.Context) (string, error) {
 	p, err := c.svc.Users.GetProfile(mailbox).Context(ctx).Do()
 	if err != nil {
-		return "", fmt.Errorf("gmail: get profile: %w", explainDeadCredential(err))
+		return "", fmt.Errorf("gmail: get profile: %w", explainAuthFailure(err))
 	}
 	return p.EmailAddress, nil
 }
@@ -112,7 +117,7 @@ func (c *Client) Search(ctx context.Context, query string, max int64) ([]Message
 		Context(ctx).
 		Do()
 	if err != nil {
-		return nil, fmt.Errorf("gmail: list messages: %w", explainDeadCredential(err))
+		return nil, fmt.Errorf("gmail: list messages: %w", explainAuthFailure(err))
 	}
 
 	out := make([]Message, 0, len(list.Messages))
@@ -122,7 +127,7 @@ func (c *Client) Search(ctx context.Context, query string, max int64) ([]Message
 			Context(ctx).
 			Do()
 		if err != nil {
-			return nil, fmt.Errorf("gmail: get message %s: %w", ref.Id, explainDeadCredential(err))
+			return nil, fmt.Errorf("gmail: get message %s: %w", ref.Id, explainAuthFailure(err))
 		}
 		payload := messagePayload{message: full}
 		out = append(out, Message{

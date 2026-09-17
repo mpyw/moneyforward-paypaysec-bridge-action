@@ -49,14 +49,14 @@ func (g *Gmail) warn(format string, args ...any) {
 }
 
 const (
-	// maxMessages is how many recent matches to examine per poll. The mail we
+	// gmailMaxMessages is how many recent matches to examine per poll. The mail we
 	// want is the newest, but a couple of near-simultaneous messages are
 	// possible.
-	maxMessages = 5
+	gmailMaxMessages = 5
 
-	// recencyBound trims the search. A day rather than an hour because Gmail's
+	// gmailRecencyBound trims the search. A day rather than an hour because Gmail's
 	// unit suffixes are d/m/y — "1h" is not an hour, and "20m" is twenty months.
-	recencyBound = "newer_than:1d"
+	gmailRecencyBound = "newer_than:1d"
 )
 
 // Describe names this source for log lines and failure messages.
@@ -98,11 +98,11 @@ func (g *Gmail) Fetch(ctx context.Context, since time.Time) (string, error) {
 	// returns nothing, which is indistinguishable from "the mail has not arrived
 	// yet" — the poll simply spins until it times out. newer_than is coarse but
 	// it works, and the precise cutoff is enforced on Received below anyway.
-	query := g.Spec.Query + " " + recencyBound
+	query := g.Spec.Query + " " + gmailRecencyBound
 
 	p := newPoller(g.Timeout, g.Interval, 5*time.Second)
 	code, err := p.run(ctx, func() (string, error) {
-		msgs, serr := g.Mail.Search(ctx, query, maxMessages)
+		msgs, serr := g.Mail.Search(ctx, query, gmailMaxMessages)
 		if serr != nil {
 			// One failed request should not waste the whole window.
 			g.warn("WARN: %s: %v", g.Describe(), serr)
@@ -115,14 +115,14 @@ func (g *Gmail) Fetch(ctx context.Context, since time.Time) (string, error) {
 		}
 		return seen.code, nil
 	})
-	if errors.Is(err, errWaitedTooLong) {
+	if errors.Is(err, errPolledTooLong) {
 		return "", fmt.Errorf("%s: no message at or after %s matching %q within %s",
 			g.Describe(), since.Format(time.RFC3339), g.Spec.Query, p.timeout)
 	}
 	return code, err
 }
 
-// attempt is what one poll saw.
+// gmailAttempt is what one poll saw.
 //
 // The counts exist so a wait that is getting nowhere can say which kind of
 // nowhere it is. They were not there, and the one line that stood in for them —
@@ -131,7 +131,7 @@ func (g *Gmail) Fetch(ctx context.Context, since time.Time) (string, error) {
 // opposite responses: wait, or go and fix the pattern. Reading the first when it
 // was the second cost an afternoon and a one-time code, on a pattern that failed
 // only because Go's \s does not match an ideographic space.
-type attempt struct {
+type gmailAttempt struct {
 	code  string
 	found bool
 
@@ -141,7 +141,7 @@ type attempt struct {
 }
 
 // why words a poll that produced nothing, in terms of which half failed.
-func (a attempt) why(total int, since time.Time, spec MailSpec) string {
+func (a gmailAttempt) why(total int, since time.Time, spec MailSpec) string {
 	if a.fresh == 0 {
 		return fmt.Sprintf("%d recent message(s), none at or after %s yet",
 			total, since.Format("15:04:05"))
@@ -153,9 +153,9 @@ func (a attempt) why(total int, since time.Time, spec MailSpec) string {
 
 // extract returns the code from the newest qualifying message. since must
 // already be floored to the second.
-func (g *Gmail) extract(msgs []gmail.Message, since time.Time) attempt {
+func (g *Gmail) extract(msgs []gmail.Message, since time.Time) gmailAttempt {
 	pattern := g.Spec.pattern()
-	var out attempt
+	var out gmailAttempt
 	var best gmail.Message
 
 	for _, m := range msgs {

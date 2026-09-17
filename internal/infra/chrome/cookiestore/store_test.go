@@ -1,3 +1,6 @@
+// Exercises the store itself, so it joins the core namespace.
+//
+//declscope:core
 package cookiestore
 
 import (

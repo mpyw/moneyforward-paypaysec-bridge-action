@@ -10,6 +10,11 @@
 // The split exists so a broken scraper can be debugged without the mail path
 // also being in play: when a run fails with File, the fault is in the browser
 // automation and nowhere else.
+//
+// The spec, the source interface and their shared checks are the unit the
+// package is named for; each implementation lives in its own namespace.
+//
+//declscope:core
 package otp
 
 import (
@@ -66,6 +71,8 @@ type MailSpec struct {
 }
 
 // pattern returns the spec's pattern, or the default.
+//
+//declscope:package // every source reads its spec through this
 func (m MailSpec) pattern() *regexp.Regexp {
 	if m.Pattern != nil {
 		return m.Pattern
@@ -74,6 +81,8 @@ func (m MailSpec) pattern() *regexp.Regexp {
 }
 
 // service names the service, or a placeholder when the spec is bare.
+//
+//declscope:package // every source names itself through this
 func (m MailSpec) service() string {
 	if m.Label != "" {
 		return m.Label
@@ -108,6 +117,8 @@ type Source interface {
 //
 // Shared by every hand-supplied source so a typo is rejected the same way
 // wherever it was typed.
+//
+//declscope:package // shared by every source, as the comment above says
 func validateDigits(code string, digits int) error {
 	if code == "" {
 		return errors.New("empty input")

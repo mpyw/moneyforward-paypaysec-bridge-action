@@ -24,7 +24,7 @@ import (
 // Nothing is fetched over the network — a data: URL is enough to prove Chrome
 // started, attached, and rendered — so this is safe to run on every push.
 func TestNewLaunchesChrome(t *testing.T) {
-	if !chromeInstalled() {
+	if !canLaunchChrome() {
 		t.Skip("no Chrome on PATH")
 	}
 
@@ -62,7 +62,7 @@ func TestNewLaunchesChrome(t *testing.T) {
 // TestPageInfoReportsWhereTheBrowserIs covers the reporting every debug command
 // leans on when a page is not what was expected.
 func TestPageInfoReportsWhereTheBrowserIs(t *testing.T) {
-	if !chromeInstalled() {
+	if !canLaunchChrome() {
 		t.Skip("no Chrome on PATH")
 	}
 
@@ -91,11 +91,11 @@ func TestPageInfoReportsWhereTheBrowserIs(t *testing.T) {
 	}
 }
 
-// chromeInstalled reports whether there is a browser to drive.
+// canLaunchChrome reports whether there is a browser to drive.
 //
 // Skipping rather than failing: this package is also built on machines with no
 // Chrome, and a hard failure there would say nothing about the code.
-func chromeInstalled() bool {
+func canLaunchChrome() bool {
 	for _, name := range []string{
 		"google-chrome", "google-chrome-stable", "chromium", "chromium-browser",
 		"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -112,7 +112,7 @@ func chromeInstalled() bool {
 // tested, and the header — the part that says which page this actually was — was
 // exercised nowhere except a live test against MoneyForward.
 func TestDumpRecordsWhereThePageWas(t *testing.T) {
-	if !chromeInstalled() {
+	if !canLaunchChrome() {
 		t.Skip("no Chrome on PATH")
 	}
 
@@ -176,7 +176,7 @@ func TestDumpRecordsWhereThePageWas(t *testing.T) {
 // part that matters on the scheduled job — that a selector timeout comes back
 // saying which page the selector was missing from.
 func TestWithLocationNamesThePage(t *testing.T) {
-	if !chromeInstalled() {
+	if !canLaunchChrome() {
 		t.Skip("no Chrome on PATH")
 	}
 

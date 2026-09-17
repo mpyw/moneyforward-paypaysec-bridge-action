@@ -1,3 +1,6 @@
+// Part of the one money-parsing unit; see yen.go.
+//
+//declscope:core
 package money
 
 import (

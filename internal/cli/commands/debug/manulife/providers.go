@@ -1,3 +1,6 @@
+// Part of the core namespace; see manulife.go.
+//
+//declscope:core
 package manulife
 
 import (
@@ -53,6 +56,8 @@ func provideClient(c credentials) *mlsite.Client {
 }
 
 // signIn is what a login needs: the site client, and where its code comes from.
+//
+//declscope:package // the login subcommand reads the injector's product
 type signIn struct {
 	client *mlsite.Client
 	codes  otp.Source

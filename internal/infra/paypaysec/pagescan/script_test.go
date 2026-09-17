@@ -1,3 +1,6 @@
+// Exercises the core's extraction scripts.
+//
+//declscope:core
 package pagescan
 
 import (
@@ -163,7 +166,7 @@ func runExtraction(t *testing.T, html string) Figures {
 	}
 	defer closeBrowser()
 
-	expr, err := selector.ExtractBalance()
+	expr, err := selector.ExtractBalanceScript()
 	if err != nil {
 		t.Fatalf("build extraction script: %v", err)
 	}

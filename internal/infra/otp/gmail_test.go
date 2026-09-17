@@ -11,15 +11,15 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/gmail"
 )
 
-// fakeMailbox serves canned results, one batch per poll.
-type fakeMailbox struct {
+// fakeGmailMailbox serves canned results, one batch per poll.
+type fakeGmailMailbox struct {
 	batches [][]gmail.Message
 	err     error
 	calls   int
 	queries []string
 }
 
-func (f *fakeMailbox) Search(_ context.Context, query string, _ int64) ([]gmail.Message, error) {
+func (f *fakeGmailMailbox) Search(_ context.Context, query string, _ int64) ([]gmail.Message, error) {
 	f.queries = append(f.queries, query)
 	f.calls++
 	if f.err != nil {
@@ -35,9 +35,9 @@ func (f *fakeMailbox) Search(_ context.Context, query string, _ int64) ([]gmail.
 	return batch, nil
 }
 
-// quiet keeps a source's transient warnings — a failed search, an unparsable
+// quietGmail keeps a source's transient warnings — a failed search, an unparsable
 // code — out of the test log. They are expected in most of the cases below.
-func quiet(g *Gmail) *Gmail {
+func quietGmail(g *Gmail) *Gmail {
 	g.Warn = func(string, ...any) {}
 	return g
 }
@@ -94,8 +94,8 @@ func TestGmailFetch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			src := quiet(&Gmail{
-				Mail:     &fakeMailbox{batches: [][]gmail.Message{tt.messages}},
+			src := quietGmail(&Gmail{
+				Mail:     &fakeGmailMailbox{batches: [][]gmail.Message{tt.messages}},
 				Spec:     MailSpec{Query: "from:example", Label: "Test", Digits: 6},
 				Timeout:  time.Second,
 				Interval: time.Millisecond,
@@ -113,13 +113,13 @@ func TestGmailFetch(t *testing.T) {
 
 func TestGmailFetchWaitsForArrival(t *testing.T) {
 	since := time.Now()
-	mailbox := &fakeMailbox{batches: [][]gmail.Message{
+	mailbox := &fakeGmailMailbox{batches: [][]gmail.Message{
 		{}, // nothing yet
 		{}, // still nothing
 		{{ID: "a", Received: since.Add(time.Minute), Body: "123456"}},
 	}}
 
-	src := quiet(&Gmail{
+	src := quietGmail(&Gmail{
 		Mail: mailbox, Spec: MailSpec{Query: "from:example", Digits: 6},
 		Timeout: 5 * time.Second, Interval: time.Millisecond,
 	})
@@ -150,8 +150,8 @@ func TestGmailFetchAcceptsMailStampedInTheSameSecond(t *testing.T) {
 	// What Gmail records for a mail that arrives a moment later.
 	stamped := time.Date(2026, 8, 1, 18, 6, 46, 0, time.UTC)
 
-	src := quiet(&Gmail{
-		Mail: &fakeMailbox{batches: [][]gmail.Message{{
+	src := quietGmail(&Gmail{
+		Mail: &fakeGmailMailbox{batches: [][]gmail.Message{{
 			{ID: "otp", Received: stamped, Body: "認証コード: 123456"},
 		}}},
 		Spec:    MailSpec{Query: "from:example", Digits: 6},
@@ -173,8 +173,8 @@ func TestGmailFetchStillRejectsThePreviousSecond(t *testing.T) {
 	since := time.Date(2026, 8, 1, 18, 6, 46, 700_000_000, time.UTC)
 	previous := time.Date(2026, 8, 1, 18, 6, 45, 0, time.UTC)
 
-	src := quiet(&Gmail{
-		Mail: &fakeMailbox{batches: [][]gmail.Message{{
+	src := quietGmail(&Gmail{
+		Mail: &fakeGmailMailbox{batches: [][]gmail.Message{{
 			{ID: "last-run", Received: previous, Body: "認証コード: 999999"},
 		}}},
 		Spec:    MailSpec{Query: "from:example", Digits: 6},
@@ -188,8 +188,8 @@ func TestGmailFetchStillRejectsThePreviousSecond(t *testing.T) {
 
 func TestGmailFetchRejectsStaleOnly(t *testing.T) {
 	since := time.Now()
-	src := quiet(&Gmail{
-		Mail: &fakeMailbox{batches: [][]gmail.Message{{
+	src := quietGmail(&Gmail{
+		Mail: &fakeGmailMailbox{batches: [][]gmail.Message{{
 			{ID: "stale", Received: since.Add(-time.Hour), Body: "999999"},
 		}}},
 		Spec:    MailSpec{Query: "from:example", Digits: 6},
@@ -204,8 +204,8 @@ func TestGmailFetchRejectsStaleOnly(t *testing.T) {
 func TestGmailFetchSurvivesTransientErrors(t *testing.T) {
 	since := time.Now()
 	// A failing mailbox must not end the wait early; the deadline is the backstop.
-	src := quiet(&Gmail{
-		Mail:    &fakeMailbox{err: errors.New("429 rate limited")},
+	src := quietGmail(&Gmail{
+		Mail:    &fakeGmailMailbox{err: errors.New("429 rate limited")},
 		Spec:    MailSpec{Query: "from:example", Digits: 6},
 		Timeout: 30 * time.Millisecond, Interval: time.Millisecond,
 	})
@@ -220,8 +220,8 @@ func TestGmailFetchSurvivesTransientErrors(t *testing.T) {
 
 func TestGmailFetchIgnoresWrongLengthCodes(t *testing.T) {
 	since := time.Now()
-	src := quiet(&Gmail{
-		Mail: &fakeMailbox{batches: [][]gmail.Message{{
+	src := quietGmail(&Gmail{
+		Mail: &fakeGmailMailbox{batches: [][]gmail.Message{{
 			{ID: "a", Received: since.Add(time.Minute), Body: "order 12345678 shipped"},
 		}}},
 		Spec:    MailSpec{Query: "from:example", Digits: 6},
@@ -241,10 +241,10 @@ func TestGmailFetchIgnoresWrongLengthCodes(t *testing.T) {
 // a live run to notice.
 func TestGmailFetchBoundsTheQueryByTime(t *testing.T) {
 	since := time.Now()
-	mailbox := &fakeMailbox{batches: [][]gmail.Message{{
+	mailbox := &fakeGmailMailbox{batches: [][]gmail.Message{{
 		{ID: "a", Received: since.Add(time.Minute), Body: "123456"},
 	}}}
-	src := quiet(&Gmail{
+	src := quietGmail(&Gmail{
 		Mail: mailbox, Spec: MailSpec{Query: "from:noreply@example.com", Digits: 6},
 		Timeout: time.Second, Interval: time.Millisecond,
 	})
@@ -296,7 +296,7 @@ func TestGmailFetchSaysWhenThePatternIsWhatFailed(t *testing.T) {
 
 	var lines []string
 	g := &Gmail{
-		Mail: &fakeMailbox{batches: [][]gmail.Message{{{
+		Mail: &fakeGmailMailbox{batches: [][]gmail.Message{{{
 			ID: "m1",
 			// After the cutoff, so arrival is not the problem — the body is.
 			Received: since.Add(10 * time.Second),
@@ -332,7 +332,7 @@ func TestGmailFetchStillReportsArrivalWhenNothingIsFresh(t *testing.T) {
 
 	var lines []string
 	g := &Gmail{
-		Mail: &fakeMailbox{batches: [][]gmail.Message{{{
+		Mail: &fakeGmailMailbox{batches: [][]gmail.Message{{{
 			ID:       "old",
 			Received: since.Add(-time.Minute),
 			Body:     "認証コード: 112233",

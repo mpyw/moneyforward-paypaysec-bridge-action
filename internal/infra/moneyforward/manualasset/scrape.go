@@ -1,3 +1,6 @@
+// Part of the account/scrape/write core; see account.go.
+//
+//declscope:core
 package manualasset
 
 import (

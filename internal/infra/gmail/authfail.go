@@ -5,11 +5,7 @@ import (
 	"strings"
 )
 
-// invalidGrant is how the token endpoint reports a refresh token that is no
-// longer good. The accompanying text is "Token has been expired or revoked."
-const invalidGrant = "invalid_grant"
-
-// explainDeadCredential says where to look, because the API does not.
+// explainAuthFailure says where to look, because the API does not.
 //
 // Google reports a dead refresh token as `invalid_grant: "Token has been expired
 // or revoked."` — not which of the two, and not why. The causes are a short list
@@ -30,7 +26,12 @@ const invalidGrant = "invalid_grant"
 // account's permissions page while the other causes leave it listed. The app was
 // absent and nobody had revoked anything. Whether a lapsed grant stays listed was
 // never checked — it was asserted because it would have been convenient.
-func explainDeadCredential(err error) error {
+//
+//declscope:package // every API call in gmail.go routes its error through this
+func explainAuthFailure(err error) error {
+	// invalidGrant is how the token endpoint reports a refresh token that is no
+	// longer good. The accompanying text is "Token has been expired or revoked."
+	const invalidGrant = "invalid_grant"
 	if err == nil || !strings.Contains(err.Error(), invalidGrant) {
 		return err
 	}

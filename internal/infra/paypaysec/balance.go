@@ -1,3 +1,8 @@
+// The reading model and its parse are the package's public face —
+// paypaysec.Read, paypaysec.Reading, paypaysec.Holding, paypaysec.Balances —
+// so this file is the core namespace.
+//
+//declscope:core
 package paypaysec
 
 import (
@@ -18,7 +23,7 @@ import (
 //
 // The text fields are what the page said, kept alongside the numbers so a
 // recorded figure can be traced back to the words it came from. The parsed ones
-// are filled by [Reading.parse] and [Reading.fillAcquisition].
+// are filled by [Reading.parse] and [Reading.fillHoldingAcquisition].
 type Holding struct {
 	// Name is the 銘柄 as the site labels it, e.g. "テスト電機".
 	Name string
@@ -143,6 +148,8 @@ func (r *Reading) parse() error {
 }
 
 // parseAmountCell reports the amount and whether there was one at all.
+//
+//declscope:package // the holding and invest routes parse cells the same way
 func parseAmountCell(raw string) (int64, bool, error) {
 	yen, err := money.ParseYen(raw)
 	if errors.Is(err, money.ErrNoValue) {
@@ -318,7 +325,7 @@ func (c *Client) GetBalances(ctx context.Context) (Balances, error) {
 		// this run covered and found nothing in — which is a licence to delete
 		// everything under it. Left out, it is a category the run never saw, and
 		// [portfolio.Plan.CheckCoverage] refuses to delete from those.
-		if errors.Is(err, investapi.ErrNoMiniApp) {
+		if errors.Is(err, investapi.ErrNoMiniAppAccount) {
 			if c.OnSkip != nil {
 				c.OnSkip(t, err)
 			}
@@ -376,7 +383,7 @@ func Read(ctx context.Context, t selector.Target) (Reading, error) {
 	// needs it, and one that forgot would produce assets whose profit shows as
 	// zero — which is what happened when this lived in GetBalances alone and the
 	// debug command drove Read directly.
-	if err := reading.fillAcquisition(ctx); err != nil {
+	if err := reading.fillHoldingAcquisition(ctx); err != nil {
 		return reading, stepErr(StepReadBalance, err)
 	}
 	return reading, nil

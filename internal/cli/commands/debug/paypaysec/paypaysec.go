@@ -2,6 +2,10 @@
 //
 // One file per subcommand, each holding its own definition, its own flags and
 // what it does.
+// The parent command and the wire assembly in providers.go are the package
+// trunk; each subcommand file is a leaf namespace.
+//
+//declscope:core
 package paypaysec
 
 import (

@@ -6,15 +6,17 @@ import (
 	"time"
 )
 
-// defaultTimeout caps how long any source waits for a code.
-const defaultTimeout = 5 * time.Minute
+// defaultPollTimeout caps how long any source waits for a code.
+const defaultPollTimeout = 5 * time.Minute
 
-// errWaitedTooLong ends a poll that ran out of time.
+// errPolledTooLong ends a poll that ran out of time.
 //
 // A sentinel rather than a message, because the useful message differs by
 // source — "no mail matching this query arrived" and "nobody wrote to this
 // file" send a reader to different places — and only the source can write it.
-var errWaitedTooLong = errors.New("otp: waited too long")
+//
+//declscope:package // each source translates this into its own message
+var errPolledTooLong = errors.New("otp: waited too long")
 
 // poller is the wait loop both sources share: try, and if there is nothing yet,
 // try again shortly, until the deadline.
@@ -24,15 +26,19 @@ var errWaitedTooLong = errors.New("otp: waited too long")
 // polled over the network and a file is not — but that is the only difference
 // there should be, and side by side it was not obvious which others were
 // deliberate.
+//
+//declscope:package // the wait loop both sources share, fields included
 type poller struct {
 	timeout  time.Duration
 	interval time.Duration
 }
 
 // newPoller applies the defaults for whatever the caller left unset.
+//
+//declscope:package // how both sources obtain their poller
 func newPoller(timeout, interval, defaultInterval time.Duration) poller {
 	if timeout <= 0 {
-		timeout = defaultTimeout
+		timeout = defaultPollTimeout
 	}
 	if interval <= 0 {
 		interval = defaultInterval
@@ -45,6 +51,8 @@ func newPoller(timeout, interval, defaultInterval time.Duration) poller {
 // attempt returning ("", nil) means "nothing yet" and costs another round;
 // returning an error abandons the wait. The first attempt happens immediately,
 // so a code already waiting is not made to sit out an interval.
+//
+//declscope:package // the loop itself, driven by both sources
 func (p poller) run(ctx context.Context, attempt func() (string, error)) (string, error) {
 	deadline := time.Now().Add(p.timeout)
 	for {
@@ -56,7 +64,7 @@ func (p poller) run(ctx context.Context, attempt func() (string, error)) (string
 			return code, nil
 		}
 		if time.Now().After(deadline) {
-			return "", errWaitedTooLong
+			return "", errPolledTooLong
 		}
 		select {
 		case <-ctx.Done():

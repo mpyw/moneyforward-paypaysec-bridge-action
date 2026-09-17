@@ -4,6 +4,12 @@
 // makes it the one piece of this project that can be reasoned about entirely
 // from its tests, which matters for the part that turns markup into the number
 // recorded against someone's assets.
+
+// The whole package is one unit: decimal.go reuses the scrubbing helpers
+// below, and every exported declaration is read as money.X, so a namespace
+// prefix would only stutter.
+//
+//declscope:core
 package money
 
 import (

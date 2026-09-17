@@ -14,8 +14,8 @@ import (
 	"github.com/chromedp/chromedp"
 )
 
-// HTTPSessionTimeout bounds a request made with a borrowed browser session.
-const HTTPSessionTimeout = 60 * time.Second
+// HTTPClientTimeout bounds a request made with a borrowed browser session.
+const HTTPClientTimeout = 60 * time.Second
 
 // HTTPClientFor builds an http.Client carrying the running browser's session,
 // without going through a file.
@@ -85,5 +85,5 @@ func (s CookieSet) HTTPClient() (*http.Client, error) {
 		jar.SetCookies(u, cs)
 	}
 
-	return &http.Client{Jar: jar, Timeout: HTTPSessionTimeout}, nil
+	return &http.Client{Jar: jar, Timeout: HTTPClientTimeout}, nil
 }

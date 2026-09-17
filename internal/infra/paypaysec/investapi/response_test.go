@@ -12,7 +12,7 @@ import (
 // which it has done twice for other reasons. An expired cookie must not be able
 // to look like a sale.
 func TestReadRefusesASignedOutSession(t *testing.T) {
-	_, err := serve(t, &stub{loginOut: true}).Read(t.Context(), App)
+	_, err := serveStub(t, &stub{loginOut: true}).Read(t.Context(), App)
 	if err == nil {
 		t.Fatal("Read() accepted a signed-out session's empty portfolio")
 	}
@@ -24,7 +24,7 @@ func TestReadRefusesASignedOutSession(t *testing.T) {
 // TestReadRefusesAnErrorStatus keeps a declared field from going unread, which
 // is how the acquisition checks in this project used to go quiet.
 func TestReadRefusesAnErrorStatus(t *testing.T) {
-	_, err := serve(t, &stub{status: 9}).Read(t.Context(), App)
+	_, err := serveStub(t, &stub{status: 9}).Read(t.Context(), App)
 	if err == nil {
 		t.Fatal("Read() ignored a non-zero STATUS")
 	}

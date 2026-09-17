@@ -1,3 +1,7 @@
+// The command definition in sync.go and the wire assembly here are the
+// package trunk; masking and reporting are leaf namespaces.
+//
+//declscope:core
 package sync
 
 import (
@@ -156,7 +160,7 @@ func provideMoneyForwardSession(c config.Config, bctx browserContext, codes mone
 		},
 		Browser: bctx,
 		Codes:   codes,
-		OnLogin: logChallenge("MoneyForward"),
+		OnLogin: reportChallenge("MoneyForward"),
 	}
 }
 
@@ -191,7 +195,7 @@ func provideBridges(
 					},
 					Browser: bctx,
 					Codes:   ppCodes,
-					OnLogin: logChallenge("PayPay 証券"),
+					OnLogin: reportChallenge("PayPay 証券"),
 				},
 				Ledger: ledgerFor(session, source.AssetID, masker),
 			})
@@ -205,7 +209,7 @@ func provideBridges(
 					Browser:        bctx,
 					Codes:          mlCodes,
 					AcquisitionYen: source.AcquisitionYen,
-					OnLogin:        logChallenge("マニュライフ生命"),
+					OnLogin:        reportChallenge("マニュライフ生命"),
 					OnRead:         maskContract(masker),
 					OnSkip:         reportContractSkip,
 				},
@@ -241,4 +245,12 @@ func provideAllowEmptyingCategories(c config.Config) bool {
 
 func provideReporter(masker actionslog.Masker) port.Reporter {
 	return reporter{masker: masker}
+}
+
+// codeSource builds a masked Gmail source for one service.
+func codeSource(mailbox otp.MailSearcher, spec otp.MailSpec, masker actionslog.Masker) otp.Source {
+	return actionslog.CodeSource{
+		Source: &otp.Gmail{Mail: mailbox, Spec: spec, Timeout: otpTimeout, Interval: otpInterval},
+		Masker: masker,
+	}
 }

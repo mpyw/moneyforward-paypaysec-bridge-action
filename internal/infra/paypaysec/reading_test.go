@@ -1,3 +1,6 @@
+// Exercises the reading core.
+//
+//declscope:core
 package paypaysec
 
 import (

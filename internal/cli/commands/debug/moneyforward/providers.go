@@ -1,3 +1,6 @@
+// Part of the core namespace; see moneyforward.go.
+//
+//declscope:core
 package moneyforward
 
 import (

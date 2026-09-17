@@ -1,3 +1,6 @@
+// Exercises the provider assembly in the core.
+//
+//declscope:core
 package sync
 
 import (

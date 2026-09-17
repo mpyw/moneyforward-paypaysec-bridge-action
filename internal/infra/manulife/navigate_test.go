@@ -1,3 +1,6 @@
+// Exercises the reading core against a served fake of the site.
+//
+//declscope:core
 package manulife
 
 import (

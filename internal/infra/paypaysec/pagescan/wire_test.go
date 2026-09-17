@@ -1,3 +1,6 @@
+// Exercises the core's settle logic and script wiring.
+//
+//declscope:core
 package pagescan
 
 import (
@@ -51,7 +54,7 @@ func TestDetailDecodesWhatTheScriptReturns(t *testing.T) {
 	const sample = `{"valuePresent":true,"valueRaw":"45万6789円",
 "acquisitionPresent":true,"acquisitionRaw":"80万0000円","gainRaw":"+3万7952円"}`
 
-	var d Detail
+	var d HoldingDetail
 	if err := json.Unmarshal([]byte(sample), &d); err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
@@ -80,8 +83,8 @@ func TestEveryFieldIsNamedByItsScript(t *testing.T) {
 		build func() (string, error)
 		shape any
 	}{
-		{"extract_holding.js", selector.ExtractHolding, Detail{}},
-		{"page_state.js", func() (string, error) { return selector.PageState(selector.ValueTotal) }, pageState{}},
+		{"extract_holding.js", selector.ExtractHoldingScript, HoldingDetail{}},
+		{"page_state.js", func() (string, error) { return selector.PageStateScript(selector.ValueTotal) }, pageState{}},
 	}
 
 	for _, tt := range tests {
@@ -171,11 +174,11 @@ func TestSettleTimedOut(t *testing.T) {
 // guarantee at the one place a placeholder becomes an acquisition cost equal to
 // the valuation and a 評価損益 of exactly zero.
 func TestPageStateWatchesTheElementItWasGiven(t *testing.T) {
-	list, err := selector.PageState(selector.ValueTotal)
+	list, err := selector.PageStateScript(selector.ValueTotal)
 	if err != nil {
 		t.Fatalf("PageState() error = %v", err)
 	}
-	detail, err := selector.PageState(selector.HoldingValue)
+	detail, err := selector.PageStateScript(selector.HoldingValue)
 	if err != nil {
 		t.Fatalf("PageState() error = %v", err)
 	}

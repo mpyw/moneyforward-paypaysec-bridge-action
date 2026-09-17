@@ -1,3 +1,7 @@
+// The account, its page scrape and its form writer are one HTTP-driving unit;
+// this file is part of the core namespace.
+//
+//declscope:core
 package manualasset
 
 import (

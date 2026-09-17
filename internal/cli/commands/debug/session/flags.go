@@ -5,6 +5,9 @@
 // Its own package because these were the most collision-prone names in the
 // command layer — start, finish, report, navigate, mustEnv — sitting in the same
 // scope as every subcommand's own helpers.
+// Part of the session core; see session.go.
+//
+//declscope:core
 package session
 
 import (
