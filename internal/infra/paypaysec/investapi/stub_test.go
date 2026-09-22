@@ -25,11 +25,9 @@ import (
 //declscope:package // the shared fixture every endpoint test drives
 type stub struct {
 	mu       []string // paths, in order
-	referers map[string]string
 	fields   map[string]map[string]string
 	loginOut bool
 	status   int
-	noName   bool
 
 	// asArray answers INVEST_BRAND_ARRAY as a bare array instead of an object
 	// keyed by brand id. Both are one PHP array on the far side, and the live
@@ -53,6 +51,11 @@ type stub struct {
 	// miniNotUsable is the other half of the page's test: a client number exists
 	// but the bucket is not on offer.
 	miniNotUsable bool
+
+	//declscope:private
+	referers map[string]string
+	//declscope:private
+	noName bool
 }
 
 func (s *stub) handler(t *testing.T) http.Handler {
