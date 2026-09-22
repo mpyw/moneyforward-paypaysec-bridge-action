@@ -29,7 +29,8 @@ var errPolledTooLong = errors.New("otp: waited too long")
 //
 //declscope:package // the wait loop both sources share, fields included
 type poller struct {
-	timeout  time.Duration
+	timeout time.Duration
+	//declscope:private
 	interval time.Duration
 }
 
