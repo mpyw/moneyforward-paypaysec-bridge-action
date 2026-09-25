@@ -199,8 +199,8 @@ func TestHoldingsCoversItsCategory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Holdings() = %v", err)
 	}
-	if len(held.Categories) != 1 || held.Categories[0] != ManulifeCategory {
-		t.Errorf("categories = %v, want %q", held.Categories, ManulifeCategory)
+	if len(held.Categories) != 1 || held.Categories[0] != manulifeCategory {
+		t.Errorf("categories = %v, want %q", held.Categories, manulifeCategory)
 	}
 	if len(held.Assets) != 0 {
 		t.Errorf("assets = %+v, want none", held.Assets)

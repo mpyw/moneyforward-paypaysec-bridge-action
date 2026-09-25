@@ -59,6 +59,8 @@ func (mailboxOpener) OpenMailbox(ctx context.Context, cred credential.Gmail) (st
 	return client.Profile(ctx)
 }
 
-// DefaultClientFile is the OAuth client downloaded from the Google Cloud
+// defaultClientFile is the OAuth client downloaded from the Google Cloud
 // console — the "Desktop app" type, whose redirect is a loopback address.
-const DefaultClientFile = "client_secret.json"
+//
+//declscope:package // authorize.go uses it as the --client default
+const defaultClientFile = "client_secret.json"

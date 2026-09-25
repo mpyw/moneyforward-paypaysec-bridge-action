@@ -27,12 +27,14 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/gmail"
 )
 
-// DefaultCodePattern finds a run of exactly six digits.
+// defaultCodePattern finds a run of exactly six digits.
 //
 // The word boundaries matter: PayPay 証券 mail carries a two-letter prefix, so
 // the body reads "AB-123456", and an unanchored \d{6} against a longer run of
 // digits elsewhere in the mail would happily return the wrong six.
-var DefaultCodePattern = regexp.MustCompile(`\b(\d{6})\b`)
+//
+//declscope:package // file_test.go checks the empty spec falls back to it
+var defaultCodePattern = regexp.MustCompile(`\b(\d{6})\b`)
 
 // MailSpec describes where one service's code arrives and how to read it.
 //
@@ -59,7 +61,7 @@ type MailSpec struct {
 	Query string
 
 	// Pattern extracts the code from the body; the first capture group is used.
-	// Nil falls back to [DefaultCodePattern].
+	// Nil falls back to [defaultCodePattern].
 	//
 	// This is the discriminator, so it has to reject the sender's other mail —
 	// both services send a login notice within seconds of the code, from the
@@ -77,7 +79,7 @@ func (m MailSpec) pattern() *regexp.Regexp {
 	if m.Pattern != nil {
 		return m.Pattern
 	}
-	return DefaultCodePattern
+	return defaultCodePattern
 }
 
 // service names the service, or a placeholder when the spec is bare.

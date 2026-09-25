@@ -21,8 +21,8 @@ func TestTrimLabelHandlesEveryPunctuationThisSiteUses(t *testing.T) {
 		{"half width colon, from the detail page", "種類-証券番号:", LabelPolicyNumber},
 		{"space then half width colon", "契約状況 :", LabelStatus},
 		{"ideographic space", "契約状況　:", LabelStatus},
-		{"already bare", LabelProductName, LabelProductName},
-		{"surrounding whitespace", "  商品名:  ", LabelProductName},
+		{"already bare", labelProductName, labelProductName},
+		{"surrounding whitespace", "  商品名:  ", labelProductName},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

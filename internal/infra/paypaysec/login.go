@@ -71,7 +71,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 		chromedp.Navigate(selector.LoginURL),
 		chromedp.WaitVisible(selector.MemberIDInput, chromedp.ByQuery),
 	); err != nil {
-		return res, stepErr(StepNavigate, err)
+		return res, stepErr(stepNavigate, err)
 	}
 
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
@@ -79,7 +79,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 		chromedp.WaitVisible(selector.PasswordInput, chromedp.ByQuery),
 		chromedp.SendKeys(selector.PasswordInput, c.Password, chromedp.ByQuery),
 	); err != nil {
-		return res, stepErr(StepFillCredentials, err)
+		return res, stepErr(stepFillCredentials, err)
 	}
 
 	// Captured before the click: the OTP email is sent in response to it, so any
@@ -88,7 +88,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
 		chromedp.Click(selector.LoginSubmit, chromedp.ByQuery),
 	); err != nil {
-		return res, stepErr(StepSubmitCredentials, err)
+		return res, stepErr(stepSubmitCredentials, err)
 	}
 
 	// Race the OTP challenge against the dashboard: a recognised device skips
@@ -101,7 +101,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	if err != nil {
 		// Neither appearing usually means the credentials were rejected, which
 		// leaves the browser on the login page and is worth saying.
-		return res, stepErr(StepAwaitChallenge, browser.PageOf(ctx).WithLocation(err))
+		return res, stepErr(stepAwaitChallenge, browser.PageOf(ctx).WithLocation(err))
 	}
 	if hit == loginDashboardCandidateKey {
 		return res, nil
@@ -115,7 +115,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 
 	code, err := src.Fetch(ctx, submittedAt)
 	if err != nil {
-		return res, stepErr(StepFetchOTP, fmt.Errorf("via %s: %w", src.Describe(), err))
+		return res, stepErr(stepFetchOTP, fmt.Errorf("via %s: %w", src.Describe(), err))
 	}
 
 	if err := c.submitLoginOTP(ctx, code); err != nil {
@@ -125,7 +125,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	if err := runWithLoginTimeout(ctx, loginDashboardTimeout,
 		chromedp.WaitVisible(selector.PostLoginAnchor, chromedp.ByQuery),
 	); err != nil {
-		return res, stepErr(StepAwaitDashboard, browser.PageOf(ctx).WithLocation(err))
+		return res, stepErr(stepAwaitDashboard, browser.PageOf(ctx).WithLocation(err))
 	}
 	return res, nil
 }
@@ -138,18 +138,18 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 // untouched and the submit button hidden.
 func (c *Client) submitLoginOTP(ctx context.Context, code string) error {
 	if len(code) != selector.OTPDigits {
-		return stepErr(StepSubmitOTP, fmt.Errorf("expected %d digits, got %d", selector.OTPDigits, len(code)))
+		return stepErr(stepSubmitOTP, fmt.Errorf("expected %d digits, got %d", selector.OTPDigits, len(code)))
 	}
 	for _, r := range code {
 		if r < '0' || r > '9' {
-			return stepErr(StepSubmitOTP, fmt.Errorf("code contains a non-digit: %q", code))
+			return stepErr(stepSubmitOTP, fmt.Errorf("code contains a non-digit: %q", code))
 		}
 	}
 
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
 		chromedp.Click(selector.OTPFirstDigit, chromedp.ByQuery),
 	); err != nil {
-		return stepErr(StepSubmitOTP, fmt.Errorf("focus %s: %w", selector.OTPFirstDigit, err))
+		return stepErr(stepSubmitOTP, fmt.Errorf("focus %s: %w", selector.OTPFirstDigit, err))
 	}
 
 	for i, r := range code {
@@ -159,7 +159,7 @@ func (c *Client) submitLoginOTP(ctx context.Context, code string) error {
 			// keypress; give it a beat before the next one.
 			chromedp.Sleep(loginDigitInterval),
 		); err != nil {
-			return stepErr(StepSubmitOTP, fmt.Errorf("type digit %d of %d: %w", i+1, selector.OTPDigits, err))
+			return stepErr(stepSubmitOTP, fmt.Errorf("type digit %d of %d: %w", i+1, selector.OTPDigits, err))
 		}
 	}
 
@@ -170,7 +170,7 @@ func (c *Client) submitLoginOTP(ctx context.Context, code string) error {
 		chromedp.WaitVisible(selector.OTPSubmit, chromedp.ByQuery),
 		chromedp.Click(selector.OTPSubmit, chromedp.ByQuery),
 	); err != nil {
-		return stepErr(StepSubmitOTP, fmt.Errorf(
+		return stepErr(stepSubmitOTP, fmt.Errorf(
 			"%s never became clickable — the digits may not have registered: %w", selector.OTPSubmit, err))
 	}
 	return nil

@@ -190,7 +190,7 @@ func TestFileDescribe(t *testing.T) {
 }
 
 func TestMailSpecDefaults(t *testing.T) {
-	if got := (MailSpec{}).pattern(); got != DefaultCodePattern {
+	if got := (MailSpec{}).pattern(); got != defaultCodePattern {
 		t.Error("pattern() with none set should fall back to the default")
 	}
 	if got := (MailSpec{}).service(); got == "" {

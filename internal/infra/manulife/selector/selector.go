@@ -12,7 +12,7 @@
 //     tree — `j_id0:j_id2:j_id257:0:j_id260:0:…:j_id486`, where the integers are
 //     iteration indices. Nothing on that page is addressable by id, and no id
 //     from it may be written down here. Its figures are found by label instead;
-//     see [Row].
+//     see [row].
 //   - The login page's ids are generated too, but its own validation addresses
 //     them by suffix — the page runs `$('[id$=theForm]')`. That is the site
 //     saying which half of its ids is stable, so the selectors below match the
@@ -95,8 +95,8 @@ const otpMailQuery = `from:manulife_jp_customer_support@manulife.com in:anywhere
 var otpCodePattern = regexp.MustCompile(`ワンタイムパスワード[：:][\s\x{3000}\x{00A0}]*(\d{6})`)
 
 const (
-	// Origin is the site's own host.
-	Origin = "https://mypage.manulife.co.jp"
+	// origin is the site's own host.
+	origin = "https://mypage.manulife.co.jp"
 
 	// LoginURL is the sign-in form, and the only URL here that is ever fetched.
 	// CONFIRMED 2026-08-29.
@@ -110,7 +110,7 @@ const (
 	// site for /Home from the page it had just put us on returned an error page
 	// instead of the list. A URL that must not be fetched is not worth naming —
 	// it only offers itself to whoever reads this next.
-	LoginURL = Origin + "/auth"
+	LoginURL = origin + "/auth"
 )
 
 // The sign-in form. CONFIRMED 2026-08-29 from the live page markup.
@@ -150,7 +150,7 @@ const (
 //
 // That is the whole argument against a loose selector. A wrong one that matches
 // nothing fails honestly; a wrong one that matches something else does the
-// wrong thing quietly. It is also why [Row] and the labels above are matched on
+// wrong thing quietly. It is also why [row] and the labels above are matched on
 // text rather than on anything that merely looks related.
 const (
 	// OTPInput is the code field. type="tel", one field for all six digits.
@@ -182,18 +182,22 @@ const OTPDigits = 6
 //	    <tr><th>契約日：</th><td class="tdCss">…</td></tr>
 //	    <tr><th>契約状況 :</th><td class="tdCss">契約継続中</td></tr>
 const (
-	ContractCard      = ".c-card"
-	ContractCardTitle = ".c-card__title"
-	ContractCardTable = ".c-desc-table"
+	ContractCard = ".c-card"
+	//declscope:package // script.go passes it to extract_contracts.js
+	contractCardTitle = ".c-card__title"
+	//declscope:package // script.go passes it to mark_contract.js and extract_contracts.js
+	contractCardTable = ".c-desc-table"
 
-	// ContractMarkAttr is put on the card that is about to be opened, and
-	// MarkedContract addresses it.
+	// contractMarkAttr is put on the card that is about to be opened, and
+	// markedContract addresses it.
 	//
 	// The site has no attribute of its own that identifies a card, and the one
 	// thing that does — the 種類-証券番号 in a cell — cannot be written as a CSS
 	// selector. So the page is asked to mark it, and then to open the mark.
-	ContractMarkAttr = "data-mfpp-open"
-	MarkedContract   = "[" + ContractMarkAttr + "]"
+	//
+	//declscope:package // script.go passes it to mark_contract.js
+	contractMarkAttr = "data-mfpp-open"
+	markedContract   = "[" + contractMarkAttr + "]"
 )
 
 // ContractOpenerReady is true once the card's click handler can run.
@@ -235,9 +239,10 @@ const ContractOpenerReady = `typeof RedirectToPageOrFFFModal === 'function'`
 // says so.
 const (
 	LabelPolicyNumber = "種類-証券番号"
-	LabelProductName  = "商品名"
-	LabelStatus       = "契約状況"
-	StatusInForce     = "契約継続中"
+	//declscope:package // label_test.go trims labels against it
+	labelProductName = "商品名"
+	LabelStatus      = "契約状況"
+	StatusInForce    = "契約継続中"
 )
 
 // TrimLabel strips the punctuation a label may or may not carry.
@@ -261,7 +266,6 @@ func TrimLabel(s string) string {
 // are identified by the URL they land on, precisely because a URL does not move
 // while a price does. Here the URL is the thing that moves, and identity has to
 // come from the page: see [DetailPolicyType].
-const PolicyPathPrefix = "/policyinquiry"
 
 // The contract detail page. CONFIRMED 2026-08-29.
 //
@@ -282,12 +286,9 @@ const PolicyPathPrefix = "/policyinquiry"
 // does not hold, including two panels — one for a zero balance, one for a
 // non-zero one — both display:none. Reading text without regard to visibility
 // mixes another product's figures into this one's.
-const (
-	Row       = "tr"
-	RowLabel  = "th"
-	RowValue  = "td"
-	ValueText = "span.customerCareLink"
-)
+//
+//declscope:package // script.go passes it to extract_policy.js
+const valueText = "span.customerCareLink"
 
 // The labels a reading needs. CONFIRMED 2026-08-29.
 //
@@ -304,11 +305,7 @@ const (
 	LabelSurrenderYen = "解約時お支払金額（円支払）"
 	LabelSurrenderFCY = "解約時お支払金額（契約通貨支払）"
 	LabelRate         = "円換算レート"
-	LabelRateDate     = "円換算為替基準日"
-
-	LabelAccountValue     = "積立金額"
-	LabelAccountValueDate = "積立金計算基準日"
-	LabelPremiumPaid      = "払込保険料"
+	labelRateDate     = "円換算為替基準日"
 )
 
 // The summary block at the top of a contract's detail page. CONFIRMED
@@ -324,14 +321,16 @@ const (
 //	    <div class="bold col-md-7 col-xs-8">…</div>
 //
 // This is where a detail page proves which contract it is showing. The URL
-// cannot: see [PolicyPathPrefix]. 種類-証券番号 is the anchor because the list
+// cannot: see the note on the detail page's URL above. 種類-証券番号 is the anchor because the list
 // card carries it too, so the two can be compared — where 商品名 and 保険種類
 // are both true of every contract of the same product, and would not tell two
 // of them apart.
 const (
-	PolicySummary      = ".policySummary"
-	SummaryRow         = ".row-margin"
-	SummaryValueMarker = ".bold"
+	PolicySummary = ".policySummary"
+	//declscope:package // script.go passes it to extract_policy.js
+	summaryRow = ".row-margin"
+	//declscope:package // script.go passes it to extract_policy.js
+	summaryValueMarker = ".bold"
 )
 
 // DetailPolicyType is the label whose value names the kind of insurance, in the

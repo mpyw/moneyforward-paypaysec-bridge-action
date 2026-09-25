@@ -137,7 +137,7 @@ func (c *Client) miniClientSeqNo(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if !account.HasMiniApp() {
+	if !account.hasMiniApp() {
 		return "", ErrNoMiniAppAccount
 	}
 	c.miniSeqNo = account.MiniClientSeqNo

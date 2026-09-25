@@ -11,12 +11,13 @@ import (
 type AssetSubclass int
 
 const (
-	SubclassDomesticStock AssetSubclass = 14 // 国内株
-	SubclassUSStock       AssetSubclass = 15 // 米国株
-	SubclassOtherStock    AssetSubclass = 17 // その他株式
-	SubclassMutualFund    AssetSubclass = 12 // 投資信託
+	subclassDomesticStock AssetSubclass = 14 // 国内株
+	//declscope:package // manualasset_test.go and write_test.go build entries with it
+	subclassUSStock    AssetSubclass = 15 // 米国株
+	subclassOtherStock AssetSubclass = 17 // その他株式
+	subclassMutualFund AssetSubclass = 12 // 投資信託
 
-	// SubclassSavingsInsurance is 積立型保険.
+	// subclassSavingsInsurance is 積立型保険.
 	//
 	// CONFIRMED 2026-08-29 from the create form's own select, which offers
 	// sixty-odd classes; see `mfpp debug mf subclasses`.
@@ -25,7 +26,7 @@ const (
 	// is invested in rather than what is owned. Either files a correct figure;
 	// they differ only in how the portfolio reads, and this one matches the
 	// thing the statement is about.
-	SubclassSavingsInsurance AssetSubclass = 32
+	subclassSavingsInsurance AssetSubclass = 32
 )
 
 // SubclassFor is how MoneyForward files an instrument of this kind.
@@ -36,15 +37,15 @@ const (
 func SubclassFor(kind asset.Kind) (AssetSubclass, error) {
 	switch kind {
 	case asset.DomesticStock:
-		return SubclassDomesticStock, nil
+		return subclassDomesticStock, nil
 	case asset.USStock:
-		return SubclassUSStock, nil
+		return subclassUSStock, nil
 	case asset.OtherStock:
-		return SubclassOtherStock, nil
+		return subclassOtherStock, nil
 	case asset.MutualFund:
-		return SubclassMutualFund, nil
+		return subclassMutualFund, nil
 	case asset.SavingsInsurance:
-		return SubclassSavingsInsurance, nil
+		return subclassSavingsInsurance, nil
 	}
 	// Not a default on the switch: an unrecognised kind must not quietly become
 	// whatever the zero value files as.
@@ -58,15 +59,15 @@ func SubclassFor(kind asset.Kind) (AssetSubclass, error) {
 // write — reading is not the place to refuse.
 func KindOfSubclass(subclass AssetSubclass) asset.Kind {
 	switch subclass {
-	case SubclassDomesticStock:
+	case subclassDomesticStock:
 		return asset.DomesticStock
-	case SubclassUSStock:
+	case subclassUSStock:
 		return asset.USStock
-	case SubclassOtherStock:
+	case subclassOtherStock:
 		return asset.OtherStock
-	case SubclassMutualFund:
+	case subclassMutualFund:
 		return asset.MutualFund
-	case SubclassSavingsInsurance:
+	case subclassSavingsInsurance:
 		return asset.SavingsInsurance
 	}
 	return asset.KindUnknown

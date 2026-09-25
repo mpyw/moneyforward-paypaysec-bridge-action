@@ -6,14 +6,16 @@ import (
 
 // Step names used by StepError. They double as page-dump labels, so keep them
 // filename-safe.
+//
+//declscope:package // login.go marks each failure with the step it reached
 const (
-	StepNavigate          = "navigate"
-	StepFillCredentials   = "fill-credentials"
-	StepSubmitCredentials = "submit-credentials"
+	stepNavigate          = "navigate"
+	stepFillCredentials   = "fill-credentials"
+	stepSubmitCredentials = "submit-credentials"
 	StepAwaitChallenge    = "await-challenge"
-	StepFetchOTP          = "fetch-otp"
-	StepSubmitOTP         = "submit-otp"
-	StepAwaitHome         = "await-home"
+	stepFetchOTP          = "fetch-otp"
+	stepSubmitOTP         = "submit-otp"
+	stepAwaitHome         = "await-home"
 )
 
 // stepErr marks err as having failed at the named step. The error type itself

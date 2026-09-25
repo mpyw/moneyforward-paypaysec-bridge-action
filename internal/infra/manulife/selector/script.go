@@ -29,8 +29,8 @@ var siteScripts = pagescript.Load(scriptFS, "js")
 func MarkContractScript(number string) (string, error) {
 	return siteScripts.Call("mark_contract.js", map[string]string{
 		"card":  ContractCard,
-		"table": ContractCardTable,
-		"mark":  ContractMarkAttr,
+		"table": contractCardTable,
+		"mark":  contractMarkAttr,
 	}, number)
 }
 
@@ -38,8 +38,8 @@ func MarkContractScript(number string) (string, error) {
 func ExtractContractsScript() (string, error) {
 	return siteScripts.Call("extract_contracts.js", map[string]string{
 		"card":  ContractCard,
-		"title": ContractCardTitle,
-		"table": ContractCardTable,
+		"title": contractCardTitle,
+		"table": contractCardTable,
 	})
 }
 
@@ -47,8 +47,8 @@ func ExtractContractsScript() (string, error) {
 func ExtractPolicyScript() (string, error) {
 	return siteScripts.Call("extract_policy.js", map[string]string{
 		"summary":     PolicySummary,
-		"summaryRow":  SummaryRow,
-		"valueMarker": SummaryValueMarker,
-		"valueText":   ValueText,
+		"summaryRow":  summaryRow,
+		"valueMarker": summaryValueMarker,
+		"valueText":   valueText,
 	})
 }

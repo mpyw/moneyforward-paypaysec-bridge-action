@@ -332,12 +332,12 @@ func (c *Client) GetBalances(ctx context.Context) (Balances, error) {
 			continue
 		}
 		if err != nil {
-			return Balances{}, stepErr(StepReadBalance, err)
+			return Balances{}, stepErr(stepReadBalance, err)
 		}
 		out.Readings = append(out.Readings, reading)
 		yen, err := reading.Amount()
 		if err != nil {
-			return Balances{}, stepErr(StepReadBalance, err)
+			return Balances{}, stepErr(stepReadBalance, err)
 		}
 		switch t.Bucket {
 		case selector.BucketMiniApp:
@@ -384,7 +384,7 @@ func Read(ctx context.Context, t selector.Target) (Reading, error) {
 	// zero — which is what happened when this lived in GetBalances alone and the
 	// debug command drove Read directly.
 	if err := reading.fillHoldingAcquisition(ctx); err != nil {
-		return reading, stepErr(StepReadBalance, err)
+		return reading, stepErr(stepReadBalance, err)
 	}
 	return reading, nil
 }

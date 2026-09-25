@@ -86,15 +86,15 @@ const (
 	// trade dashboard renders. CONFIRMED 2026-05-23.
 	PostLoginAnchor = `a[href*="country=pp"]`
 
-	// URLMiniApp is the ミニアプリ trade category. CONFIRMED.
-	URLMiniApp = "https://www.paypay-sec.co.jp/trade?country=pp"
+	// urlMiniApp is the ミニアプリ trade category. CONFIRMED.
+	urlMiniApp = "https://www.paypay-sec.co.jp/trade?country=pp"
 
-	// URLInvestmentTrust is the 投資信託 page. Unlike the /trade views it holds
+	// urlInvestmentTrust is the 投資信託 page. Unlike the /trade views it holds
 	// two totals — PayPay 証券アプリ and ミニアプリ — at one URL, which is why the
 	// two targets on it are read over HTTP rather than off the page. Kept as the
 	// target's URL because it is where a human goes to check the figures by hand.
 	// See [Targets].
-	URLInvestmentTrust = "https://www.paypay-sec.co.jp/investment_trust/"
+	urlInvestmentTrust = "https://www.paypay-sec.co.jp/investment_trust/"
 )
 
 // Bucket says which subtotal a target contributes to. The two are disjoint.
@@ -196,12 +196,12 @@ var Targets = []Target{
 	{Kind: asset.USStock, Key: "usa", Name: "米国株", URL: "https://www.paypay-sec.co.jp/trade?country=usa", Bucket: BucketApp},
 	{Kind: asset.USStock, Key: "usa-etf", Name: "米国株ETF", URL: "https://www.paypay-sec.co.jp/trade?country=usa-etf", Bucket: BucketApp},
 	{Kind: asset.MutualFund, Key: "robo", Name: "ロボ貯蓄", URL: "https://www.paypay-sec.co.jp/trade?reserve_mode=1", Bucket: BucketApp},
-	{Kind: asset.USStock, Key: "miniapp", Name: "ミニアプリ", ShortName: "ミニ", URL: URLMiniApp, Bucket: BucketMiniApp},
+	{Kind: asset.USStock, Key: "miniapp", Name: "ミニアプリ", ShortName: "ミニ", URL: urlMiniApp, Bucket: BucketMiniApp},
 
 	// Same URL, different bucket — so the names have to distinguish them, or the
 	// two would collide into one asset.
-	{Kind: asset.MutualFund, Key: "toushin-app", Name: "投資信託（アプリ）", ShortName: "投信ア", URL: URLInvestmentTrust, Bucket: BucketApp, ViaAPI: true},
-	{Kind: asset.MutualFund, Key: "toushin-miniapp", Name: "投資信託（ミニアプリ）", ShortName: "投信ミ", URL: URLInvestmentTrust, Bucket: BucketMiniApp, ViaAPI: true},
+	{Kind: asset.MutualFund, Key: "toushin-app", Name: "投資信託（アプリ）", ShortName: "投信ア", URL: urlInvestmentTrust, Bucket: BucketApp, ViaAPI: true},
+	{Kind: asset.MutualFund, Key: "toushin-miniapp", Name: "投資信託（ミニアプリ）", ShortName: "投信ミ", URL: urlInvestmentTrust, Bucket: BucketMiniApp, ViaAPI: true},
 }
 
 // The OTP challenge. CONFIRMED 2026-08-01 from the live page markup.
@@ -241,9 +241,11 @@ const (
 // approximate cost basis shows up in MoneyForward as a wrong 評価損益 —
 // a plausible number, which is the worst kind.
 const (
-	HoldingValue       = "#SECURITIES_VALUE"
-	HoldingAcquisition = "#ACQUISITION_AMOUNT_YEN"
-	HoldingGain        = "#SUM_GROSS_PROFIT"
+	HoldingValue = "#SECURITIES_VALUE"
+	//declscope:package // script.go passes it to extract_holding.js
+	holdingAcquisition = "#ACQUISITION_AMOUNT_YEN"
+	//declscope:package // script.go passes it to extract_holding.js
+	holdingGain = "#SUM_GROSS_PROFIT"
 )
 
 // The account summary. CONFIRMED 2026-08-01 from the live 投資信託 page:
@@ -259,15 +261,19 @@ const (
 //
 // 投資元本 + 含み益 = 評価額合計 by definition, which makes those two an
 // arithmetic check rather than a second guess. See [Reading.Amount].
-// LoadingOverlay is the spinner the 投資信託 Vue app shows while it
+// loadingOverlay is the spinner the 投資信託 Vue app shows while it
 // fetches. It exists on the page as display:none and becomes visible during a
 // load, so its visibility — not its presence — is the signal.
-const LoadingOverlay = ".loading_page"
+//
+//declscope:package // script.go passes it to page_state.js
+const loadingOverlay = ".loading_page"
 
 const (
-	ValueTotal  = "#SECURITIES_VALUE_TOTAL"
-	Acquisition = "#TOTAL_ACQUISITION_FEE_TAX_TOTAL"
-	GrossProfit = "#gross_profit_total"
+	ValueTotal = "#SECURITIES_VALUE_TOTAL"
+	//declscope:package // script.go passes it to extract_balance.js
+	acquisition = "#TOTAL_ACQUISITION_FEE_TAX_TOTAL"
+	//declscope:package // script.go passes it to extract_balance.js
+	grossProfit = "#gross_profit_total"
 )
 
 // The 保有銘柄 list. CONFIRMED 2026-08-01 on both templates the site uses:
@@ -288,20 +294,28 @@ const (
 // Note .brand_gain is abbreviated on the 株 template ("+3.7万"). It is captured
 // as text and deliberately never parsed: it is not the figure being recorded,
 // and a lossy rounding has no business anywhere near one that is.
-// HoldingsHeading is the section heading the holdings sit under.
+// holdingsHeading is the section heading the holdings sit under.
 //
 // Scoping to it is essential, not cosmetic: .mypage_brand_icon is also how the
 // site marks up its tradeable-brand catalogue, so an unscoped query returns
 // every brand PayPay offers — 305 of them on the 日本株 page — rather than the
 // handful actually held.
-const HoldingsHeading = "保有銘柄"
+//
+//declscope:package // script.go passes it to extract_balance.js
+const holdingsHeading = "保有銘柄"
 
 const (
-	HoldingsHeadingTag = "h1, h2, h3, h4"
-	HoldingsContainer  = ".icon_lv1"
+	//declscope:package // script.go passes it to extract_balance.js
+	holdingsHeadingTag = "h1, h2, h3, h4"
+	//declscope:package // script.go passes it to extract_balance.js
+	holdingsContainer = ".icon_lv1"
 
-	HoldingRow  = ".mypage_brand_icon"
-	HoldingName = ".brand_text"
-	BrandInvest = ".brand_invest"
-	BrandGain   = ".brand_gain"
+	//declscope:package // script.go passes it to extract_balance.js
+	holdingRow = ".mypage_brand_icon"
+	//declscope:package // script.go passes it to extract_balance.js
+	holdingName = ".brand_text"
+	//declscope:package // script.go passes it to extract_balance.js
+	brandInvest = ".brand_invest"
+	//declscope:package // script.go passes it to extract_balance.js
+	brandGain = ".brand_gain"
 )

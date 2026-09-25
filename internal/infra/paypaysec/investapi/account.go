@@ -26,14 +26,14 @@ type AccountInfo struct {
 	// accounts report it as 0, not as an empty string: the field is numeric.
 	MiniClientSeqNo string
 
-	// InvTrustUsable is the other half of [AccountInfo.HasMiniApp].
+	// InvTrustUsable is the other half of [AccountInfo.hasMiniApp].
 	InvTrustUsable string
 
-	// PPKYC is carried and acted on nowhere; see [AccountInfo.HasMiniApp].
+	// PPKYC is carried and acted on nowhere; see [AccountInfo.hasMiniApp].
 	PPKYC string
 }
 
-// HasMiniApp is the page's own test, kept in its terms.
+// hasMiniApp is the page's own test, kept in its terms.
 //
 // Verbatim from the bundle: `"" != (MINI_CLIENT_SEQ_NO && INV_TRUST_USABLE)`,
 // which in JavaScript is "both are accountTruthy". Spelled out rather than paraphrased,
@@ -46,7 +46,9 @@ type AccountInfo struct {
 // about screens, not about what the endpoints return. Reading a bucket out of that
 // would be a guess, so PPKYC is carried for the debug command to show and nothing
 // here acts on it.
-func (i AccountInfo) HasMiniApp() bool {
+//
+//declscope:package // investapi.go refuses the mini-app read without it
+func (i AccountInfo) hasMiniApp() bool {
 	return accountTruthy(i.MiniClientSeqNo) && accountTruthy(i.InvTrustUsable)
 }
 

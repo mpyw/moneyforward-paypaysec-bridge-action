@@ -90,13 +90,6 @@ const (
 	// HomeAnchor is the post-login marker in the app itself.
 	// CONFIRMED — the global-nav 家計簿 link.
 	HomeAnchor = `a[href="/cf"]`
-
-	// Manual asset rollover (= balance update) endpoint, found by inspecting an
-	// existing manual asset's show_manual page. CONFIRMED.
-	RolloverEndpoint = "https://moneyforward.com/accounts/rollover"
-
-	// CSRF token meta tag, rendered on every authenticated page. CONFIRMED.
-	AuthenticityTokenMeta = `meta[name="csrf-token"]`
 )
 
 // The email OTP challenge. CONFIRMED 2026-08-01 by a live sign-in.

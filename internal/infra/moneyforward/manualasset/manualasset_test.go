@@ -152,8 +152,8 @@ func TestAccountEntries(t *testing.T) {
 	if !a.HasAcquisition || a.AcquisitionYen != 400000 {
 		t.Errorf("acquisition = %d (known=%v), want 400000", a.AcquisitionYen, a.HasAcquisition)
 	}
-	if a.Subclass != SubclassUSStock {
-		t.Errorf("Subclass = %d, want %d", a.Subclass, SubclassUSStock)
+	if a.Subclass != subclassUSStock {
+		t.Errorf("Subclass = %d, want %d", a.Subclass, subclassUSStock)
 	}
 
 	// A blank acquisition is "not recorded", not zero: MoneyForward would then
@@ -226,8 +226,8 @@ func TestAccountURL(t *testing.T) {
 // written down together. The domain cannot import this package to learn it, so
 // the number is duplicated — this is what stops the copies from drifting.
 func TestMaxEntryNameLengthMatchesTheDomain(t *testing.T) {
-	if assetname.Limit != MaxEntryNameLength {
-		t.Errorf("assetname.Limit = %d but MoneyForward enforces %d", assetname.Limit, MaxEntryNameLength)
+	if assetname.Limit != maxEntryNameLength {
+		t.Errorf("assetname.Limit = %d but MoneyForward enforces %d", assetname.Limit, maxEntryNameLength)
 	}
 }
 
