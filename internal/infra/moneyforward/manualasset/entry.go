@@ -16,13 +16,15 @@ import (
 	"strconv"
 )
 
-// MaxEntryNameLength is the limit MoneyForward enforces on an entry's name,
+// maxEntryNameLength is the limit MoneyForward enforces on an entry's name,
 // established by exceeding it: 名称は20文字以内でお願いします.
 //
 // The site announces that as a 200 with the page re-rendered, so a name over
 // the limit is dropped with no error anywhere — which is how two of five
 // holdings went missing from a run that reported success.
-const MaxEntryNameLength = 20
+//
+//declscope:package // manualasset_test.go checks names against it
+const maxEntryNameLength = 20
 
 // Entry is one row in the manual portfolio.
 //

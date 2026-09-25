@@ -6,15 +6,17 @@ import (
 
 // Step names used with [steperr.Error]. They double as page-dump labels, so
 // keep them filename-safe.
+//
+//declscope:package // login.go and balance.go mark each failure with the step it reached
 const (
-	StepNavigate          = "navigate"
-	StepFillCredentials   = "fill-credentials"
-	StepSubmitCredentials = "submit-credentials"
-	StepAwaitChallenge    = "await-challenge"
-	StepFetchOTP          = "fetch-otp"
-	StepSubmitOTP         = "submit-otp"
-	StepAwaitDashboard    = "await-dashboard"
-	StepReadBalance       = "read-balance"
+	stepNavigate          = "navigate"
+	stepFillCredentials   = "fill-credentials"
+	stepSubmitCredentials = "submit-credentials"
+	stepAwaitChallenge    = "await-challenge"
+	stepFetchOTP          = "fetch-otp"
+	stepSubmitOTP         = "submit-otp"
+	stepAwaitDashboard    = "await-dashboard"
+	stepReadBalance       = "read-balance"
 )
 
 // stepErr marks err as having failed at the named step.

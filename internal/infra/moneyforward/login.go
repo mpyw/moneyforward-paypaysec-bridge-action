@@ -74,7 +74,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	}
 
 	if err := runWithLoginTimeout(ctx, loginFormTimeout, chromedp.Navigate(selector.SignInURL)); err != nil {
-		return res, stepErr(StepNavigate, err)
+		return res, stepErr(stepNavigate, err)
 	}
 
 	// The sign-in page is not necessarily what comes back. An existing session
@@ -87,7 +87,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 		loginIDPortalCandidateKey:   selector.IDPortalMarker,
 	})
 	if err != nil {
-		return res, stepErr(StepNavigate, browser.PageOf(ctx).WithLocation(err))
+		return res, stepErr(stepNavigate, browser.PageOf(ctx).WithLocation(err))
 	}
 	if landing != loginSignInFormCandidateKey {
 		res.AlreadyAuthenticated = true
@@ -102,7 +102,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 		chromedp.WaitVisible(selector.PasswordInput, chromedp.ByQuery),
 		chromedp.SendKeys(selector.PasswordInput, c.Password, chromedp.ByQuery),
 	); err != nil {
-		return res, stepErr(StepFillCredentials, err)
+		return res, stepErr(stepFillCredentials, err)
 	}
 
 	// Capture the instant before the click: MF sends the OTP email in response
@@ -111,7 +111,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
 		chromedp.Click(selector.SignInSubmit, chromedp.ByQuery),
 	); err != nil {
-		return res, stepErr(StepSubmitCredentials, err)
+		return res, stepErr(stepSubmitCredentials, err)
 	}
 
 	var hit string
@@ -138,7 +138,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 
 		code, err := src.Fetch(ctx, submittedAt)
 		if err != nil {
-			return res, stepErr(StepFetchOTP, fmt.Errorf("via %s: %w", src.Describe(), err))
+			return res, stepErr(stepFetchOTP, fmt.Errorf("via %s: %w", src.Describe(), err))
 		}
 		if err := c.submitLoginOTP(ctx, selector.OTPInputCandidates[hit], code, &res); err != nil {
 			return res, err
@@ -173,7 +173,7 @@ func (c *Client) enterAppAfterLogin(ctx context.Context) error {
 		chromedp.Navigate(selector.HomeURL),
 		chromedp.WaitVisible(selector.HomeAnchor, chromedp.ByQuery),
 	); err != nil {
-		return stepErr(StepAwaitHome, browser.PageOf(ctx).WithLocation(
+		return stepErr(stepAwaitHome, browser.PageOf(ctx).WithLocation(
 			fmt.Errorf("opening %s after authentication: %w", selector.HomeURL, err)))
 	}
 	return nil
@@ -195,13 +195,13 @@ func (c *Client) submitLoginOTP(ctx context.Context, otpSelector, code string, r
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
 		chromedp.SendKeys(otpSelector, code, chromedp.ByQuery),
 	); err != nil {
-		return stepErr(StepSubmitOTP, fmt.Errorf("type code into %s: %w", otpSelector, err))
+		return stepErr(stepSubmitOTP, fmt.Errorf("type code into %s: %w", otpSelector, err))
 	}
 
 	buttonKey, err := browser.PageOf(ctx).WaitForAny(loginSubmitProbeTimeout, selector.OTPSubmitCandidates)
 	if err != nil {
 		if err := runWithLoginTimeout(ctx, loginFormTimeout, chromedp.KeyEvent(kb.Enter)); err != nil {
-			return stepErr(StepSubmitOTP, fmt.Errorf("no submit button matched and Enter failed: %w", err))
+			return stepErr(stepSubmitOTP, fmt.Errorf("no submit button matched and Enter failed: %w", err))
 		}
 		return nil
 	}
@@ -210,7 +210,7 @@ func (c *Client) submitLoginOTP(ctx context.Context, otpSelector, code string, r
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
 		chromedp.Click(selector.OTPSubmitCandidates[buttonKey], chromedp.ByQuery),
 	); err != nil {
-		return stepErr(StepSubmitOTP, fmt.Errorf("click %s: %w", selector.OTPSubmitCandidates[buttonKey], err))
+		return stepErr(stepSubmitOTP, fmt.Errorf("click %s: %w", selector.OTPSubmitCandidates[buttonKey], err))
 	}
 	return nil
 }

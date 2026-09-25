@@ -18,13 +18,13 @@ const ManulifeID = "manulife"
 // here only so a refusal can tell somebody which one to look at.
 const manulifeAcquisitionVariable = "MANULIFE_ACQUISITION_YEN"
 
-// ManulifeCategory is what マニュライフ生命's holdings are recorded under.
+// manulifeCategory is what マニュライフ生命's holdings are recorded under.
 //
 // Short because MoneyForward caps an entry's name at twenty characters and the
 // prefix is kept whole; see [assetname.Scheme]. It is also the string a recorded
 // entry is traced back through, so changing it orphans every row already
 // written under the old one — which reconciliation then deletes.
-const ManulifeCategory = "保険"
+const manulifeCategory = "保険"
 
 // ManulifeSource reads a contract's surrender value from マニュライフ生命.
 //
@@ -140,9 +140,9 @@ func (m ManulifeSource) Holdings(context.Context) (asset.Holdings, error) {
 	// produces no holdings at all, and the empty-read guard upstream stops
 	// before anything is deleted: it fails every weekday until somebody removes
 	// the row or the source. Safe, and not self-correcting.
-	holdings := asset.Holdings{Categories: []string{ManulifeCategory}}
+	holdings := asset.Holdings{Categories: []string{manulifeCategory}}
 
-	scheme := assetname.Scheme{Category: ManulifeCategory}
+	scheme := assetname.Scheme{Category: manulifeCategory}
 	var names assetname.Set
 
 	// onDetailPage says the browser was navigated away from the list, which is

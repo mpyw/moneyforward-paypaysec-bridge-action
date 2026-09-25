@@ -17,8 +17,8 @@ import (
 // CONFIRMED 2026-08-01 by exceeding it: 名称は20文字以内でお願いします.
 const Limit = 20
 
-// Ellipsis marks a name that had to be shortened.
-const Ellipsis = "…"
+// ellipsis marks a name that had to be shortened.
+const ellipsis = "…"
 
 // Scheme renders names of the form "[category] holding".
 //
@@ -50,9 +50,9 @@ func truncateRunes(s string, n int) string {
 		return s
 	}
 	if n == 1 {
-		return Ellipsis
+		return ellipsis
 	}
-	return string(r[:n-1]) + Ellipsis
+	return string(r[:n-1]) + ellipsis
 }
 
 // Set collects names and refuses a duplicate.
@@ -78,6 +78,8 @@ func (s *Set) Add(name, holding string) error {
 }
 
 // Len is how many distinct names have been added.
+//
+//declscope:ignore overexported // Len is the conventional name for a size method; unexported it would be len, which is predeclared
 func (s *Set) Len() int { return len(s.seen) }
 
 // Validate reports why a category is unusable, or nil.

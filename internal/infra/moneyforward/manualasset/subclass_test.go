@@ -65,8 +65,8 @@ func TestSavingsInsuranceIsFiledAsInsurance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SubclassFor(SavingsInsurance) = %v", err)
 	}
-	if got != SubclassSavingsInsurance {
+	if got != subclassSavingsInsurance {
 		t.Errorf("SubclassFor(SavingsInsurance) = %d, want %d (積立型保険)",
-			got, SubclassSavingsInsurance)
+			got, subclassSavingsInsurance)
 	}
 }

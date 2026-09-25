@@ -158,8 +158,8 @@ func TestReadCardSaysWhatItWasWaitingFor(t *testing.T) {
 	if err == nil {
 		t.Fatal("ReadCard() succeeded with a card that opens nothing")
 	}
-	if step := StepOf(err); step != StepOpenContract {
-		t.Errorf("step = %q, want %q", step, StepOpenContract)
+	if step := StepOf(err); step != stepOpenContract {
+		t.Errorf("step = %q, want %q", step, stepOpenContract)
 	}
 	if !strings.Contains(err.Error(), "waiting for the contract page") {
 		t.Errorf("error = %v, want it to name the wait that expired", err)
@@ -194,8 +194,8 @@ func TestReadCardSaysWhereTheBrowserWas(t *testing.T) {
 	if err == nil {
 		t.Fatal("ReadCard() succeeded against a list the contract had left")
 	}
-	if step := StepOf(err); step != StepOpenContract {
-		t.Errorf("step = %q, want %q", step, StepOpenContract)
+	if step := StepOf(err); step != stepOpenContract {
+		t.Errorf("step = %q, want %q", step, stepOpenContract)
 	}
 	for _, want := range []string{"no longer in the list", "the browser was on"} {
 		if !strings.Contains(err.Error(), want) {

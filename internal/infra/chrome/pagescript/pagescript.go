@@ -56,6 +56,8 @@ func Load(fsys fs.FS, dir string) *Set {
 }
 
 // Names lists the scripts in the set.
+//
+//declscope:ignore overexported // pagescript_test.go, an external test package, walks every script with it
 func (s *Set) Names() []string {
 	out := make([]string, 0, len(s.scripts))
 	for name := range s.scripts {
@@ -65,6 +67,8 @@ func (s *Set) Names() []string {
 }
 
 // Source returns a script's text, panicking if the name is unknown.
+//
+//declscope:ignore overexported // pagescript_test.go, an external test package, reads each script with it
 func (s *Set) Source(name string) string {
 	body, ok := s.scripts[name]
 	if !ok {

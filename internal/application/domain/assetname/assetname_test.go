@@ -61,7 +61,7 @@ func TestSchemeForKeepsTheCategoryWhole(t *testing.T) {
 
 func TestSchemeForMarksTruncation(t *testing.T) {
 	got := Scheme{Category: "投信ミ"}.For("テスト・グローバル・ファンドインデックス")
-	if !strings.HasSuffix(got, Ellipsis) {
+	if !strings.HasSuffix(got, ellipsis) {
 		t.Errorf("For() = %q, want a shortened name to say so", got)
 	}
 }

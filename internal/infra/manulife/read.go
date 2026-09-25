@@ -110,7 +110,7 @@ type policyPage struct {
 func Cards(ctx context.Context) ([]Card, error) {
 	js, err := selector.ExtractContractsScript()
 	if err != nil {
-		return nil, stepErr(StepReadList, err)
+		return nil, stepErr(stepReadList, err)
 	}
 
 	tctx, cancel := context.WithTimeout(ctx, listTimeout)
@@ -118,18 +118,18 @@ func Cards(ctx context.Context) ([]Card, error) {
 	if err := chromedp.Run(tctx,
 		chromedp.WaitVisible(selector.ContractCard, chromedp.ByQuery),
 	); err != nil {
-		return nil, stepErr(StepReadList, browser.PageOf(tctx).WithLocation(
+		return nil, stepErr(stepReadList, browser.PageOf(tctx).WithLocation(
 			fmt.Errorf("waiting for the contract list: %w", err)))
 	}
 
 	var list contractList
 	if err := chromedp.Run(tctx, chromedp.Evaluate(js, &list)); err != nil {
-		return nil, stepErr(StepReadList, err)
+		return nil, stepErr(stepReadList, err)
 	}
 	if len(list.Cards) == 0 {
 		// Not "no contracts": the wait above found a card, so an empty result
 		// means the extraction and the page disagree about what a card is.
-		return nil, stepErr(StepReadList, errors.New(
+		return nil, stepErr(stepReadList, errors.New(
 			"the contract list rendered but no card could be read — the page's markup "+
 				"has moved away from the selectors"))
 	}
@@ -153,7 +153,7 @@ func BackToList(ctx context.Context) error {
 		chromedp.NavigateBack(),
 		chromedp.WaitVisible(selector.ContractCard, chromedp.ByQuery),
 	); err != nil {
-		return stepErr(StepReadList, browser.PageOf(tctx).WithLocation(
+		return stepErr(stepReadList, browser.PageOf(tctx).WithLocation(
 			fmt.Errorf("going back to the contract list: %w", err)))
 	}
 	return nil
@@ -257,12 +257,12 @@ func ReadCard(ctx context.Context, card Card) (Reading, error) {
 
 	wanted, err := card.Number()
 	if err != nil {
-		return reading, stepErr(StepOpenContract, fmt.Errorf("the list card for %q: %w", card.Title, err))
+		return reading, stepErr(stepOpenContract, fmt.Errorf("the list card for %q: %w", card.Title, err))
 	}
 
 	js, err := selector.ExtractPolicyScript()
 	if err != nil {
-		return reading, stepErr(StepReadContract, err)
+		return reading, stepErr(stepReadContract, err)
 	}
 
 	// The handler first, on its own budget. A card is server-rendered and its
@@ -276,7 +276,7 @@ func ReadCard(ctx context.Context, card Card) (Reading, error) {
 	if err := withTimeout(ctx, readyTimeout, func(ctx context.Context) error {
 		return chromedp.Run(ctx, chromedp.Poll(selector.ContractOpenerReady, nil))
 	}); err != nil {
-		return reading, stepErr(StepOpenContract, browser.PageOf(ctx).WithLocation(
+		return reading, stepErr(stepOpenContract, browser.PageOf(ctx).WithLocation(
 			fmt.Errorf("waiting for the list's own click handler to be defined: %w", err)))
 	}
 
@@ -287,7 +287,7 @@ func ReadCard(ctx context.Context, card Card) (Reading, error) {
 	if err := withTimeout(ctx, clickTimeout, func(ctx context.Context) error {
 		return clickCardFor(ctx, wanted)
 	}); err != nil {
-		return reading, stepErr(StepOpenContract, browser.PageOf(ctx).WithLocation(
+		return reading, stepErr(stepOpenContract, browser.PageOf(ctx).WithLocation(
 			fmt.Errorf("clicking the contract's card: %w", err)))
 	}
 
@@ -297,7 +297,7 @@ func ReadCard(ctx context.Context, card Card) (Reading, error) {
 	if err := withTimeout(ctx, navigateTimeout, func(ctx context.Context) error {
 		return chromedp.Run(ctx, chromedp.WaitVisible(selector.PolicySummary, chromedp.ByQuery))
 	}); err != nil {
-		return reading, stepErr(StepOpenContract, browser.PageOf(ctx).WithLocation(
+		return reading, stepErr(stepOpenContract, browser.PageOf(ctx).WithLocation(
 			fmt.Errorf("waiting for the contract page after clicking its card: %w", err)))
 	}
 
@@ -305,28 +305,28 @@ func ReadCard(ctx context.Context, card Card) (Reading, error) {
 	if err := withTimeout(ctx, extractTimeout, func(ctx context.Context) error {
 		return chromedp.Run(ctx, chromedp.Evaluate(js, &page))
 	}); err != nil {
-		return reading, stepErr(StepReadContract, browser.PageOf(ctx).WithLocation(
+		return reading, stepErr(stepReadContract, browser.PageOf(ctx).WithLocation(
 			fmt.Errorf("reading the contract page: %w", err)))
 	}
 
 	got, err := field(page.Summary, selector.LabelPolicyNumber)
 	if err != nil {
-		return reading, stepErr(StepReadContract, fmt.Errorf("the contract page: %w", err))
+		return reading, stepErr(stepReadContract, fmt.Errorf("the contract page: %w", err))
 	}
 	if got != wanted {
 		// Not a mismatch to report and carry on from: every figure below would
 		// be recorded against the wrong contract.
-		return reading, stepErr(StepReadContract, errors.New(
+		return reading, stepErr(stepReadContract, errors.New(
 			"the contract page that opened is not the one that was clicked — its "+
 				"種類-証券番号 differs from the card's"))
 	}
 	reading.Number = got
 
 	if reading.PolicyType, err = field(page.Rows, selector.DetailPolicyType); err != nil {
-		return reading, stepErr(StepReadContract, fmt.Errorf("the contract page: %w", err))
+		return reading, stepErr(stepReadContract, fmt.Errorf("the contract page: %w", err))
 	}
 	if err := reading.readFigures(page.Rows); err != nil {
-		return reading, stepErr(StepReadContract, err)
+		return reading, stepErr(stepReadContract, err)
 	}
 	return reading, nil
 }

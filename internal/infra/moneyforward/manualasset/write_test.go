@@ -293,7 +293,7 @@ func TestWriterCreateAndReadBack(t *testing.T) {
 	}
 	if _, err := writer.Create(t.Context(), Entry{
 		Name: "[米国株] テスト電機", Yen: 456789,
-		AcquisitionYen: 400000, HasAcquisition: true, Subclass: SubclassUSStock,
+		AcquisitionYen: 400000, HasAcquisition: true, Subclass: subclassUSStock,
 	}); err != nil {
 		t.Fatalf("Create() error = %v", err)
 	}
@@ -314,7 +314,7 @@ func TestWriterCreateAndReadBack(t *testing.T) {
 	if !got.HasAcquisition || got.AcquisitionYen != 400000 {
 		t.Errorf("cost read back as %d (known=%v)", got.AcquisitionYen, got.HasAcquisition)
 	}
-	if got.Subclass != SubclassUSStock {
+	if got.Subclass != subclassUSStock {
 		t.Errorf("subclass = %d", got.Subclass)
 	}
 	if len(fake.malformed) > 0 || len(fake.badToken) > 0 {
@@ -353,7 +353,7 @@ func TestWriterUpdateAndDelete(t *testing.T) {
 		nextID: 1,
 		rows: []Entry{{
 			ID: "1001", Hash: "HASH-1", Name: "[米国株] テスト電機",
-			Yen: 100, Subclass: SubclassUSStock,
+			Yen: 100, Subclass: subclassUSStock,
 		}},
 	}
 	account := accountBackedBy(t, fake)

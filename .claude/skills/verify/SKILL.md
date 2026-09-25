@@ -10,6 +10,7 @@ CI と同じ検査。**1 つでも赤ければ push しない。**
 ```bash
 gofmt -l .                                              # 出力が空であること
 go vet ./... && go vet -tags live ./... && go vet -tags wireinject ./...
+mise exec -- declscope shrink ./... && mise exec -- declscope ./...   # shrink が先
 go run github.com/google/wire/cmd/wire ./internal/cli/commands/...
 git diff --quiet -- '*wire_gen.go' || echo "★ wire_gen.go が古い"
 mise exec -- golangci-lint run ./... && mise exec -- golangci-lint run --build-tags wireinject ./...
@@ -23,6 +24,9 @@ go run github.com/rhysd/actionlint/cmd/actionlint@latest
   通して push し，CI で落ちたことがある
 - **wire の再生成** — `wire.go` の **doc コメントを直すだけ**でも `wire_gen.go` が古くなる
   （生成物がコメントを写す）。ビルドもテストも通るので，これだけは差分で見るしかない
+- **declscope は shrink が先** — shrink が unexport した宣言はそのファイルの namespace
+  に閉じるので，別ファイルからの利用は analyzer の boundary 違反になる。shrink を
+  先に片付けてから analyzer を回す
 - **golangci を 2 タグぶん** — 既定ビルドは `wire.go` を見ないので `wire.NewSet` が
   `unused` に見え，`wireinject` ビルドは `wire_gen.go` を見ない。**どちらか片方では
   パッケージ全体を覆えない**

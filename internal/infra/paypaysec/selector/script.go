@@ -32,7 +32,7 @@ var siteScripts = pagescript.Load(scriptFS, "js")
 // and 評価損益 of exactly zero.
 func PageStateScript(value string) (string, error) {
 	return siteScripts.Call("page_state.js", map[string]string{
-		"loading": LoadingOverlay,
+		"loading": loadingOverlay,
 		"total":   value,
 	})
 }
@@ -41,8 +41,8 @@ func PageStateScript(value string) (string, error) {
 func ExtractHoldingScript() (string, error) {
 	return siteScripts.Call("extract_holding.js", map[string]string{
 		"value":       HoldingValue,
-		"acquisition": HoldingAcquisition,
-		"gain":        HoldingGain,
+		"acquisition": holdingAcquisition,
+		"gain":        holdingGain,
 	})
 }
 
@@ -51,14 +51,14 @@ func ExtractHoldingScript() (string, error) {
 func ExtractBalanceScript() (string, error) {
 	return siteScripts.Call("extract_balance.js", map[string]string{
 		"total":       ValueTotal,
-		"acquisition": Acquisition,
-		"gain":        GrossProfit,
-		"heading":     HoldingsHeadingTag,
-		"headingText": HoldingsHeading,
-		"container":   HoldingsContainer,
-		"row":         HoldingRow,
-		"name":        HoldingName,
-		"invest":      BrandInvest,
-		"gain_cell":   BrandGain,
+		"acquisition": acquisition,
+		"gain":        grossProfit,
+		"heading":     holdingsHeadingTag,
+		"headingText": holdingsHeading,
+		"container":   holdingsContainer,
+		"row":         holdingRow,
+		"name":        holdingName,
+		"invest":      brandInvest,
+		"gain_cell":   brandGain,
 	})
 }

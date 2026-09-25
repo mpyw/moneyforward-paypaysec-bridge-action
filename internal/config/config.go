@@ -33,9 +33,11 @@ const (
 	// and unsandboxed. Read rather than guessed: dropping the sandbox is a real
 	// reduction in isolation for a browser pointed at brokerage sites, and a
 	// local run should not do it.
+	//
+	//declscope:ignore overexported // config_test.go is an external test package and sets it
 	CI = "CI"
 
-	// AllowEmptyingCategories lifts the refusal to delete every entry in a
+	// allowEmptyingCategories lifts the refusal to delete every entry in a
 	// category, for one run.
 	//
 	// The refusal exists because every mis-read this scraper has had took that
@@ -46,7 +48,7 @@ const (
 	//
 	// So this exists, it is off by default, and it is meant to be passed once
 	// from a manual run rather than left on.
-	AllowEmptyingCategories = "ALLOW_EMPTYING_CATEGORIES"
+	allowEmptyingCategories = "ALLOW_EMPTYING_CATEGORIES"
 )
 
 // Inputs is every environment variable action.yml is expected to supply.
@@ -54,6 +56,8 @@ const (
 // One list, because there are two statements of this contract — this package and
 // action.yml — and a test compares them. Without somewhere authoritative to
 // compare against, the comparison becomes a third list to keep in step.
+//
+//declscope:ignore overexported // actionyml_test.go and config_test.go, external test packages, compare it with action.yml
 func Inputs() []string {
 	out := secret.RequiredNames()
 	// The retired names too. They are still read, so a caller still has to be
@@ -75,18 +79,18 @@ func Inputs() []string {
 			out = append(out, string(provider.AcquisitionYen))
 		}
 	}
-	return append(out, GmailCredentials, AllowEmptyingCategories)
+	return append(out, GmailCredentials, allowEmptyingCategories)
 }
 
 // Resolution is one credential's value and which name supplied it.
 type Resolution struct {
 	Value string
 
-	// Deprecated names the retired variable the value came from, and is empty
+	// deprecated names the retired variable the value came from, and is empty
 	// when the current name supplied it. Reported rather than logged here: this
 	// package is read by the scheduled job and by a person at a terminal, and
 	// what to say about it differs.
-	Deprecated secret.Name
+	deprecated secret.Name
 }
 
 // Resolve reads a credential, accepting the name it used to have.
@@ -109,7 +113,7 @@ func Resolve(name secret.Name) (Resolution, error) {
 		switch {
 		case legacy == "":
 		case current == "":
-			return Resolution{Value: legacy, Deprecated: old}, nil
+			return Resolution{Value: legacy, deprecated: old}, nil
 		case legacy != current:
 			return Resolution{}, fmt.Errorf(
 				"%s and %s are both set and hold different values; %s is the current "+
@@ -209,10 +213,10 @@ func Load() (Config, error) {
 	// Refused rather than defaulted. Someone who wrote "yes" meant to lift the
 	// guard, and treating that as off would fail the run for the reason they were
 	// trying to get past, saying nothing about the typo.
-	if v := os.Getenv(AllowEmptyingCategories); v != "" {
+	if v := os.Getenv(allowEmptyingCategories); v != "" {
 		allow, err := strconv.ParseBool(v)
 		if err != nil {
-			return Config{}, fmt.Errorf("%s is %q; it takes true or false", AllowEmptyingCategories, v)
+			return Config{}, fmt.Errorf("%s is %q; it takes true or false", allowEmptyingCategories, v)
 		}
 		c.AllowEmptyingCategories = allow
 	}
@@ -271,8 +275,8 @@ func (c *Config) loadSources() error {
 		}
 
 		for _, res := range values {
-			if res.Deprecated != "" {
-				c.Deprecated = append(c.Deprecated, res.Deprecated)
+			if res.deprecated != "" {
+				c.Deprecated = append(c.Deprecated, res.deprecated)
 			}
 		}
 		source := Source{

@@ -74,11 +74,19 @@ jobs:
       - name: go vet
         run: go vet ./...
 
+      - name: declscope shrink
+        # Exported declarations of internal/ packages that nothing outside
+        # their package uses. Before the analyzer, because unexporting one makes
+        # it private to its file, and a use from another file is then a boundary
+        # crossing the analyzer reports. Pinned with go run for the same reason
+        # as the step below.
+        run: go run github.com/mpyw/declscope/cmd/declscope@v0.13.1 shrink ./...
+
       - name: declscope
         # File-level scopes. The version is pinned here rather than through mise
         # because this job installs its tools with go run, and mise.toml is read
         # as a declaration only.
-        run: go run github.com/mpyw/declscope/cmd/declscope@v0.12.1 ./...
+        run: go run github.com/mpyw/declscope/cmd/declscope@v0.13.1 ./...
 
       - name: wire is up to date
         # After the type checks, deliberately: wire reads a package through

@@ -27,7 +27,7 @@ func authorizeCommand() *cli.Command {
 			&cli.StringFlag{
 				Name:        "client",
 				Usage:       "OAuth client JSON from the Google Cloud console (Desktop app)",
-				Value:       DefaultClientFile,
+				Value:       defaultClientFile,
 				Destination: &clientFile,
 			},
 			&cli.StringFlag{
