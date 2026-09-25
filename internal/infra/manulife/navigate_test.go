@@ -6,6 +6,7 @@ package manulife
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -242,9 +243,7 @@ func servingSite(t *testing.T, overrides map[string]string) (context.Context, st
 	}
 
 	pages := map[string]string{"/": listPage, "/policyinquiry": detailPage}
-	for path, body := range overrides {
-		pages[path] = body
-	}
+	maps.Copy(pages, overrides)
 
 	srv := httptest.NewTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, ok := pages[r.URL.Path]

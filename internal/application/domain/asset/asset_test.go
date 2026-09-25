@@ -23,7 +23,7 @@ func TestKindsCoversEveryValidKind(t *testing.T) {
 	// Every kind the type can hold, walked from the zero value up: a constant
 	// added to the iota block is caught here rather than by whoever notices its
 	// absence downstream.
-	for k := KindUnknown; k < KindUnknown+64; k++ {
+	for k := range KindUnknown + 64 {
 		if k.Valid() && !listed[k] {
 			t.Errorf("%v is valid but Kinds() does not list it", k)
 		}

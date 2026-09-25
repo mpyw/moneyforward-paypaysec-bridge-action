@@ -3,6 +3,7 @@ package manulife
 import (
 	"context"
 	"fmt"
+	"maps"
 	"time"
 
 	"github.com/chromedp/chromedp"
@@ -84,9 +85,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	// straight through. Waiting on only one hangs for the whole timeout in the
 	// other case, which reads as a broken selector when nothing is broken.
 	candidates := map[string]string{loginOTPCandidateKey: selector.OTPInput}
-	for name, sel := range selector.HomeCandidates {
-		candidates[name] = sel
-	}
+	maps.Copy(candidates, selector.HomeCandidates)
 	hit, err := browser.PageOf(ctx).WaitForAny(loginChallengeTimeout, candidates)
 	if err != nil {
 		// Neither appearing usually means the credentials were rejected, which
