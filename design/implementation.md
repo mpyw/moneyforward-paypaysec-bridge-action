@@ -1,4 +1,6 @@
-# moneyforward-paypaysec-bridge-action
+# Implementation notes: moneyforward-paypaysec-bridge-action
+
+The short, always-loaded instructions are in [AGENTS.md](../AGENTS.md).
 
 MoneyForward が対応していない口座の残高を毎営業日スクレイピングして、
 MoneyForward の「手入力資産」に反映する GitHub Action。
@@ -507,7 +509,7 @@ SHA が要るときは `git rev-parse --verify vX.Y.Z^{commit}` を使い、40 �
 
 ### 開発の進め方
 
-`.claude/skills/` に手順を置いてある。
+`.agents/skills/` に手順を置いてある。
 
 | skill | いつ |
 |---|---|

@@ -10,7 +10,7 @@ import "testing"
 // A budget nested inside a shorter one never applies: the handler wait was 30
 // seconds inside a 20-second click, so it was 20, and the reason it was 30 —
 // room for a slow day — was discarded without a word. The PayPay 証券 reader
-// made the same mistake once, and CLAUDE.md carries the rule that came out of
+// made the same mistake once, and design/implementation.md carries the rule that came out of
 // it: the inner waits have to fit inside the outer one, or the outer expires
 // first and reports a deadline that names nothing.
 //

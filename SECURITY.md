@@ -242,9 +242,9 @@ force push や `git filter-repo` では到達不能コミットが API から読
       ```
 - [ ] 個人メールアドレスが残っていないか
       (`git grep -nE '@gmail\.com|@[a-z-]*\.co\.jp'`)
-- [ ] secret を含む log 行が CLAUDE.md / README / コメントに残っていないか
+- [ ] secret を含む log 行が AGENTS.md / design/implementation.md / README / コメントに残っていないか
 - [ ] `.gitignore` に `.envrc`, `.env`, `*.pem`, `*.key`, `cookies.json`,
-      `localStorage.json`, `chrome-data/`, `/.debug/`, `/.claude/` が入っているか
+      `localStorage.json`, `chrome-data/`, `/.debug/`, `/.agents/` が入っているか
 - [ ] マスク登録がログ出力と**同じストリーム**に出ているか
       (別ストリームだと順序が保証されず、登録が間に合わない。`actionslog` の
       `defaultOut` と `log.Writer()` が一致していることをテストが見ている)
