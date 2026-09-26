@@ -262,7 +262,7 @@ mise exec -- golangci-lint run ./...
 > cookie は単体でログインできる。gitignore 済みだが、作業が終わったら
 > `rm -rf .debug` すること。
 
-設計と、その理由になった実地の落とし穴は [CLAUDE.md](./CLAUDE.md) に。
+設計と、その理由になった実地の落とし穴は [実装ノート](./design/implementation.md) に。
 脅威モデルと secret の扱いは [SECURITY.md](./SECURITY.md) に。
 
 ## License
