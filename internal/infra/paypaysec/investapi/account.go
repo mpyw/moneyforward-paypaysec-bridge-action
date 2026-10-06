@@ -47,7 +47,7 @@ type AccountInfo struct {
 // would be a guess, so PPKYC is carried for the debug command to show and nothing
 // here acts on it.
 //
-//declscope:package // investapi.go refuses the mini-app read without it
+//declscope:shared // investapi.go refuses the mini-app read without it
 func (i AccountInfo) hasMiniApp() bool {
 	return accountTruthy(i.MiniClientSeqNo) && accountTruthy(i.InvTrustUsable)
 }

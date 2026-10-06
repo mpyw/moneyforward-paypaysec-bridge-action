@@ -24,7 +24,7 @@ import (
 // three-route reconciliation, the masker, the per-target log line — is unchanged.
 // What changes is where the numbers came from.
 //
-//declscope:package // Read routes 投資信託 targets here instead of the page
+//declscope:shared // Read routes 投資信託 targets here instead of the page
 func readInvestmentTrust(ctx context.Context, t selector.Target) (Reading, error) {
 	bucket := investapi.App
 	if t.Bucket == selector.BucketMiniApp {

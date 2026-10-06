@@ -33,7 +33,7 @@ import (
 // the body reads "AB-123456", and an unanchored \d{6} against a longer run of
 // digits elsewhere in the mail would happily return the wrong six.
 //
-//declscope:package // file_test.go checks the empty spec falls back to it
+//declscope:shared // file_test.go checks the empty spec falls back to it
 var defaultCodePattern = regexp.MustCompile(`\b(\d{6})\b`)
 
 // MailSpec describes where one service's code arrives and how to read it.
@@ -74,7 +74,7 @@ type MailSpec struct {
 
 // pattern returns the spec's pattern, or the default.
 //
-//declscope:package // every source reads its spec through this
+//declscope:shared // every source reads its spec through this
 func (m MailSpec) pattern() *regexp.Regexp {
 	if m.Pattern != nil {
 		return m.Pattern
@@ -84,7 +84,7 @@ func (m MailSpec) pattern() *regexp.Regexp {
 
 // service names the service, or a placeholder when the spec is bare.
 //
-//declscope:package // every source names itself through this
+//declscope:shared // every source names itself through this
 func (m MailSpec) service() string {
 	if m.Label != "" {
 		return m.Label
@@ -120,7 +120,7 @@ type Source interface {
 // Shared by every hand-supplied source so a typo is rejected the same way
 // wherever it was typed.
 //
-//declscope:package // shared by every source, as the comment above says
+//declscope:shared // shared by every source, as the comment above says
 func validateDigits(code string, digits int) error {
 	if code == "" {
 		return errors.New("empty input")

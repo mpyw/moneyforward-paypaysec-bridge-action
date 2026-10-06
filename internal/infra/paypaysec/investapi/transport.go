@@ -20,7 +20,7 @@ import (
 // matching the client the server already serves is one fewer thing to be wrong
 // about, and this endpoint has been wrong about enough.
 //
-//declscope:package // the account facet posts through the same transport
+//declscope:shared // the account facet posts through the same transport
 func (c *Client) post(ctx context.Context, path string, fields map[string]string, out checkedResponse) error {
 	body, contentType, err := multipartBody(fields)
 	if err != nil {

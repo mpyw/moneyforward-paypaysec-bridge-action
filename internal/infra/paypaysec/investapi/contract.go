@@ -40,9 +40,9 @@ const (
 
 	appTop  = "/v2/invest/brand/pc_invest_top"
 	appInit = "/v2/invest/brand/pc_invest_init"
-	//declscope:package // account.go asks the info endpoint directly
+	//declscope:shared // account.go asks the info endpoint directly
 	appInfo = "/v2/invest/brand/pc_invest_info"
-	//declscope:package // account_test drives the gate against this endpoint
+	//declscope:shared // account_test drives the gate against this endpoint
 	miniTop  = "/v3/invest/brand/pc_invest_top"
 	miniInit = "/v3/invest/brand/pc_invest_init"
 
@@ -118,7 +118,7 @@ func (c *Client) fieldsFor(ctx context.Context, bucket Bucket) (map[string]strin
 //
 // account.go asks the info endpoint directly with this body.
 //
-//declscope:package
+//declscope:shared
 func miniInfoFields() map[string]string {
 	return lo.Assign(commonFields, map[string]string{
 		"APP_ID":             strconv.Itoa(appIDMiniApp),

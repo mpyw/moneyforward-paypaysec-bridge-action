@@ -23,7 +23,7 @@ import (
 // the limit is dropped with no error anywhere — which is how two of five
 // holdings went missing from a run that reported success.
 //
-//declscope:package // manualasset_test.go checks names against it
+//declscope:shared // manualasset_test.go checks names against it
 const maxEntryNameLength = 20
 
 // Entry is one row in the manual portfolio.
@@ -73,7 +73,7 @@ func (e Entry) Amounts() []int64 {
 
 // entriedPrice renders the acquisition cost for the form, empty when unknown.
 //
-//declscope:package // the writer serialises the entry through this
+//declscope:shared // the writer serialises the entry through this
 func (e Entry) entriedPrice() string {
 	if !e.HasAcquisition {
 		return ""

@@ -56,7 +56,7 @@ func provideClient(c credentials) *ppsite.Client {
 // A pair because Login takes the source as an argument rather than holding it —
 // the client is reusable across attempts and the source is not.
 //
-//declscope:package // the login subcommand reads the injector's product
+//declscope:shared // the login subcommand reads the injector's product
 type signIn struct {
 	client *ppsite.Client
 	codes  otp.Source

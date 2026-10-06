@@ -149,7 +149,7 @@ func (r *Reading) parse() error {
 
 // parseAmountCell reports the amount and whether there was one at all.
 //
-//declscope:package // the holding and invest routes parse cells the same way
+//declscope:shared // the holding and invest routes parse cells the same way
 func parseAmountCell(raw string) (int64, bool, error) {
 	yen, err := money.ParseYen(raw)
 	if errors.Is(err, money.ErrNoValue) {

@@ -21,7 +21,7 @@ import (
 // What counts as a figure is [paypaysec.Reading]'s own business — including the
 // sums it computes only to report a disagreement, which exist nowhere else.
 //
-//declscope:package // the providers register every reading through this
+//declscope:shared // the providers register every reading through this
 func maskFigures(masker actionslog.Masker) func(paypaysec.Reading) {
 	return func(r paypaysec.Reading) {
 		for _, yen := range r.Amounts() {
@@ -40,7 +40,7 @@ func maskFigures(masker actionslog.Masker) func(paypaysec.Reading) {
 // figure, the contract-currency amount and the range they were checked against,
 // and it fires before any reporting happens.
 //
-//declscope:package // the providers register every contract reading through this
+//declscope:shared // the providers register every contract reading through this
 func maskContract(masker actionslog.Masker) func(manulife.Reading) {
 	return func(r manulife.Reading) {
 		for _, yen := range r.Amounts() {
@@ -58,7 +58,7 @@ func maskContract(masker actionslog.Masker) func(manulife.Reading) {
 // nothing has masked them, and the verification failure names one of them
 // exactly when it differs from the figure that was sent.
 //
-//declscope:package // the providers register the recorded entries through this
+//declscope:shared // the providers register the recorded entries through this
 func maskEntries(masker actionslog.Masker) func([]manualasset.Entry) {
 	return func(entries []manualasset.Entry) {
 		for _, e := range entries {

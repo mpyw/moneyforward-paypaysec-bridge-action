@@ -17,7 +17,7 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/paypaysec/investapi"
 )
 
-//declscope:package // registered by the parent command
+//declscope:shared // registered by the parent command
 func investCommand() *cli.Command {
 	var trace, viaPage bool
 	return &cli.Command{

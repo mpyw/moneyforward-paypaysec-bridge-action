@@ -20,6 +20,6 @@ type Exchange struct {
 
 	// fetchPostData asks for the request body over CDP because the event did
 	// not carry it. Not serialised; it is a note to this package.
-	//declscope:package // the recorder's own bookkeeping rides on the exchange
+	//declscope:shared // the recorder's own bookkeeping rides on the exchange
 	fetchPostData bool `json:"-"`
 }

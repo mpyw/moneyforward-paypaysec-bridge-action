@@ -12,7 +12,7 @@ import (
 	gmailapi "github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/gmail"
 )
 
-//declscope:package // registered by the parent command
+//declscope:shared // registered by the parent command
 func authorizeCommand() *cli.Command {
 	var clientFile, out string
 	return &cli.Command{

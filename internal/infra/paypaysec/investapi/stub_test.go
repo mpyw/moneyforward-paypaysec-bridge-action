@@ -22,7 +22,7 @@ import (
 
 // stub answers the three endpoints and records what it was asked.
 //
-//declscope:package // the shared fixture every endpoint test drives
+//declscope:shared // the shared fixture every endpoint test drives
 type stub struct {
 	mu       []string // paths, in order
 	fields   map[string]map[string]string
@@ -159,7 +159,7 @@ func readStubFields(t *testing.T, r *http.Request) map[string]string {
 	}
 }
 
-//declscope:package // how every test hands its stub to a Client
+//declscope:shared // how every test hands its stub to a Client
 func serveStub(t *testing.T, s *stub) *Client {
 	t.Helper()
 	// The package addresses the real host and keeps addressing it: on the

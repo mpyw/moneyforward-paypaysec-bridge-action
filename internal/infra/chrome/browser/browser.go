@@ -113,7 +113,7 @@ const probeInterval = 300 * time.Millisecond
 // context through argument lists said nothing while letting any of them be
 // called with the wrong one.
 type Page struct {
-	//declscope:package // element.go's discovery method drives the same page
+	//declscope:shared // element.go's discovery method drives the same page
 	ctx context.Context
 }
 
