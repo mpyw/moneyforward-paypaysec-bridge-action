@@ -155,7 +155,7 @@ func (p targetPage) settle() error { return settle(p.ctx, selector.ValueTotal) }
 
 // settle is the wait itself, told which element carries the figure to wait for.
 //
-//declscope:package // the holding page settles with the same wait
+//declscope:shared // the holding page settles with the same wait
 func settle(ctx context.Context, value string) error {
 	expr, err := selector.PageStateScript(value)
 	if err != nil {

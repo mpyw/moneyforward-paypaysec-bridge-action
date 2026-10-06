@@ -64,7 +64,7 @@ type CookieSet []SessionCookie
 
 // cookieSetFromChrome converts what the browser reported into what is stored.
 //
-//declscope:package // the HTTP-client facet borrows the browser's cookies too
+//declscope:shared // the HTTP-client facet borrows the browser's cookies too
 func cookieSetFromChrome(cookies []*network.Cookie) CookieSet {
 	out := make(CookieSet, 0, len(cookies))
 	for _, c := range cookies {
@@ -141,7 +141,7 @@ func (st Store) Save(ctx context.Context) (int, error) {
 
 // decodeCookieSet reads the stored form.
 //
-//declscope:package // the HTTP-client facet reads the same stored form
+//declscope:shared // the HTTP-client facet reads the same stored form
 func decodeCookieSet(blob []byte, source string) (CookieSet, error) {
 	var cookies CookieSet
 	if err := json.Unmarshal(blob, &cookies); err != nil {

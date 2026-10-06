@@ -18,7 +18,7 @@ import (
 // be derived from a rounded profit figure. A 投資信託 row has no such link, but
 // its profit is not rounded, so the subtraction is exact there.
 //
-//declscope:package // Read completes every reading with the costs found here
+//declscope:shared // Read completes every reading with the costs found here
 func (r *Reading) fillHoldingAcquisition(ctx context.Context) error {
 	for i := range r.Holdings {
 		h := &r.Holdings[i]

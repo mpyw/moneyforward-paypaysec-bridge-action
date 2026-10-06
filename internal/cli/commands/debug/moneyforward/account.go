@@ -16,7 +16,7 @@ import (
 // Shared by every subcommand that reads or writes entries, which is why it is
 // here rather than in any one of them.
 //
-//declscope:package // as above: every subcommand addresses the account through this
+//declscope:shared // as above: every subcommand addresses the account through this
 func account(opts *session.Options) (manualasset.Account, error) {
 	if missing := config.MissingCredentials(secret.PayPaySecAssetID); len(missing) > 0 {
 		return manualasset.Account{}, opts.Missing(missing)
@@ -30,7 +30,7 @@ func account(opts *session.Options) (manualasset.Account, error) {
 
 // accountURL is the page a subcommand defaults to when given no --url.
 //
-//declscope:package // fetch and probe default their --url to this
+//declscope:shared // fetch and probe default their --url to this
 func accountURL(opts *session.Options) (string, error) {
 	if missing := config.MissingCredentials(secret.PayPaySecAssetID); len(missing) > 0 {
 		return "", opts.Missing(missing)

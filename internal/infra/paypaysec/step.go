@@ -7,7 +7,7 @@ import (
 // Step names used with [steperr.Error]. They double as page-dump labels, so
 // keep them filename-safe.
 //
-//declscope:package // login.go and balance.go mark each failure with the step it reached
+//declscope:shared // login.go and balance.go mark each failure with the step it reached
 const (
 	stepNavigate          = "navigate"
 	stepFillCredentials   = "fill-credentials"
@@ -21,7 +21,7 @@ const (
 
 // stepErr marks err as having failed at the named step.
 //
-//declscope:package // every phase of the flow marks its failures with this
+//declscope:shared // every phase of the flow marks its failures with this
 func stepErr(step string, err error) error { return steperr.Wrap(step, err) }
 
 // StepOf returns the failing step name, or "" if err carries no step marker.

@@ -19,5 +19,5 @@ var scriptFS embed.FS
 // pageScripts are the generic probes this package runs. Site-specific
 // extraction lives in its own set, under the package that owns those selectors.
 //
-//declscope:package // the probes are run by the core and by element discovery
+//declscope:shared // the probes are run by the core and by element discovery
 var pageScripts = pagescript.Load(scriptFS, "scripts")

@@ -27,11 +27,11 @@ var providerSet = wire.NewSet(
 // by the console, the other is the credential this run produces.
 type (
 	// clientFile is the OAuth client downloaded from the Google Cloud console.
-	//declscope:package // the authorize subcommand hands the flag value to the injector
+	//declscope:shared // the authorize subcommand hands the flag value to the injector
 	clientFile string
 
 	// credentialFile is where the resulting credential is written.
-	//declscope:package // the authorize subcommand hands the flag value to the injector
+	//declscope:shared // the authorize subcommand hands the flag value to the injector
 	credentialFile string
 )
 
@@ -62,5 +62,5 @@ func (mailboxOpener) OpenMailbox(ctx context.Context, cred credential.Gmail) (st
 // defaultClientFile is the OAuth client downloaded from the Google Cloud
 // console — the "Desktop app" type, whose redirect is a loopback address.
 //
-//declscope:package // authorize.go uses it as the --client default
+//declscope:shared // authorize.go uses it as the --client default
 const defaultClientFile = "client_secret.json"

@@ -242,9 +242,9 @@ const (
 // a plausible number, which is the worst kind.
 const (
 	HoldingValue = "#SECURITIES_VALUE"
-	//declscope:package // script.go passes it to extract_holding.js
+	//declscope:shared // script.go passes it to extract_holding.js
 	holdingAcquisition = "#ACQUISITION_AMOUNT_YEN"
-	//declscope:package // script.go passes it to extract_holding.js
+	//declscope:shared // script.go passes it to extract_holding.js
 	holdingGain = "#SUM_GROSS_PROFIT"
 )
 
@@ -265,14 +265,14 @@ const (
 // fetches. It exists on the page as display:none and becomes visible during a
 // load, so its visibility — not its presence — is the signal.
 //
-//declscope:package // script.go passes it to page_state.js
+//declscope:shared // script.go passes it to page_state.js
 const loadingOverlay = ".loading_page"
 
 const (
 	ValueTotal = "#SECURITIES_VALUE_TOTAL"
-	//declscope:package // script.go passes it to extract_balance.js
+	//declscope:shared // script.go passes it to extract_balance.js
 	acquisition = "#TOTAL_ACQUISITION_FEE_TAX_TOTAL"
-	//declscope:package // script.go passes it to extract_balance.js
+	//declscope:shared // script.go passes it to extract_balance.js
 	grossProfit = "#gross_profit_total"
 )
 
@@ -301,21 +301,21 @@ const (
 // every brand PayPay offers — 305 of them on the 日本株 page — rather than the
 // handful actually held.
 //
-//declscope:package // script.go passes it to extract_balance.js
+//declscope:shared // script.go passes it to extract_balance.js
 const holdingsHeading = "保有銘柄"
 
 const (
-	//declscope:package // script.go passes it to extract_balance.js
+	//declscope:shared // script.go passes it to extract_balance.js
 	holdingsHeadingTag = "h1, h2, h3, h4"
-	//declscope:package // script.go passes it to extract_balance.js
+	//declscope:shared // script.go passes it to extract_balance.js
 	holdingsContainer = ".icon_lv1"
 
-	//declscope:package // script.go passes it to extract_balance.js
+	//declscope:shared // script.go passes it to extract_balance.js
 	holdingRow = ".mypage_brand_icon"
-	//declscope:package // script.go passes it to extract_balance.js
+	//declscope:shared // script.go passes it to extract_balance.js
 	holdingName = ".brand_text"
-	//declscope:package // script.go passes it to extract_balance.js
+	//declscope:shared // script.go passes it to extract_balance.js
 	brandInvest = ".brand_invest"
-	//declscope:package // script.go passes it to extract_balance.js
+	//declscope:shared // script.go passes it to extract_balance.js
 	brandGain = ".brand_gain"
 )

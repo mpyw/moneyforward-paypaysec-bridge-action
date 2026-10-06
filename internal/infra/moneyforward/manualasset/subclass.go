@@ -12,7 +12,7 @@ type AssetSubclass int
 
 const (
 	subclassDomesticStock AssetSubclass = 14 // 国内株
-	//declscope:package // manualasset_test.go and write_test.go build entries with it
+	//declscope:shared // manualasset_test.go and write_test.go build entries with it
 	subclassUSStock    AssetSubclass = 15 // 米国株
 	subclassOtherStock AssetSubclass = 17 // その他株式
 	subclassMutualFund AssetSubclass = 12 // 投資信託

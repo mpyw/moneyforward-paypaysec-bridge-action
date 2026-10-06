@@ -183,9 +183,9 @@ const OTPDigits = 6
 //	    <tr><th>契約状況 :</th><td class="tdCss">契約継続中</td></tr>
 const (
 	ContractCard = ".c-card"
-	//declscope:package // script.go passes it to extract_contracts.js
+	//declscope:shared // script.go passes it to extract_contracts.js
 	contractCardTitle = ".c-card__title"
-	//declscope:package // script.go passes it to mark_contract.js and extract_contracts.js
+	//declscope:shared // script.go passes it to mark_contract.js and extract_contracts.js
 	contractCardTable = ".c-desc-table"
 
 	// contractMarkAttr is put on the card that is about to be opened, and
@@ -195,7 +195,7 @@ const (
 	// thing that does — the 種類-証券番号 in a cell — cannot be written as a CSS
 	// selector. So the page is asked to mark it, and then to open the mark.
 	//
-	//declscope:package // script.go passes it to mark_contract.js
+	//declscope:shared // script.go passes it to mark_contract.js
 	contractMarkAttr = "data-mfpp-open"
 	markedContract   = "[" + contractMarkAttr + "]"
 )
@@ -239,7 +239,7 @@ const ContractOpenerReady = `typeof RedirectToPageOrFFFModal === 'function'`
 // says so.
 const (
 	LabelPolicyNumber = "種類-証券番号"
-	//declscope:package // label_test.go trims labels against it
+	//declscope:shared // label_test.go trims labels against it
 	labelProductName = "商品名"
 	LabelStatus      = "契約状況"
 	StatusInForce    = "契約継続中"
@@ -287,7 +287,7 @@ func TrimLabel(s string) string {
 // non-zero one — both display:none. Reading text without regard to visibility
 // mixes another product's figures into this one's.
 //
-//declscope:package // script.go passes it to extract_policy.js
+//declscope:shared // script.go passes it to extract_policy.js
 const valueText = "span.customerCareLink"
 
 // The labels a reading needs. CONFIRMED 2026-08-29.
@@ -327,9 +327,9 @@ const (
 // of them apart.
 const (
 	PolicySummary = ".policySummary"
-	//declscope:package // script.go passes it to extract_policy.js
+	//declscope:shared // script.go passes it to extract_policy.js
 	summaryRow = ".row-margin"
-	//declscope:package // script.go passes it to extract_policy.js
+	//declscope:shared // script.go passes it to extract_policy.js
 	summaryValueMarker = ".bold"
 )
 

@@ -27,7 +27,7 @@ type Holding struct {
 // blank. The ledger keys on the name, so an entry written without one cannot be
 // matched again and the next run creates another.
 //
-//declscope:package // Read hands the two replies here to become holdings
+//declscope:shared // Read hands the two replies here to become holdings
 func nameHoldings(top topResponse, catalogue initResponse, initPath string) ([]Holding, error) {
 	names := holdingNameIndex(catalogue)
 

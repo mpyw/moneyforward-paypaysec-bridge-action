@@ -14,7 +14,7 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/chrome/cookiestore"
 )
 
-//declscope:package // registered by the parent command
+//declscope:shared // registered by the parent command
 func fetchCommand() *cli.Command {
 	var url string
 	return &cli.Command{

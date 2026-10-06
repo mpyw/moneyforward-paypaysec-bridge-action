@@ -17,7 +17,7 @@ import (
 
 // reporter prints progress, masking every figure before it can appear.
 //
-//declscope:package // built by provideReporter, fields included
+//declscope:shared // built by provideReporter, fields included
 type reporter struct {
 	masker actionslog.Masker
 }
@@ -82,7 +82,7 @@ func (r reporter) Failed(source string, err error) {
 // looking entirely healthy: a zero total and no rows agree with each other, and
 // with every cross-check there is.
 //
-//declscope:package // maskFigures reports each page as it masks it
+//declscope:shared // maskFigures reports each page as it masks it
 func reportTarget(r paypaysec.Reading) {
 	log.Printf("   %-16s %d 銘柄  section=%v total=%v cost=%v gain=%v",
 		r.Target.Key, r.HoldingCount(), r.Figures.HoldingsSection,
@@ -99,7 +99,7 @@ func reportTarget(r paypaysec.Reading) {
 // The contract's own name, not its number: the number identifies a person's
 // policy and the name is what the recorded entry is called.
 //
-//declscope:package // wired as a callback by the providers
+//declscope:shared // wired as a callback by the providers
 func reportContractSkip(card manulife.Card) {
 	log.Printf("   %s is in the list but not in force; its entry will be removed",
 		card.Title)
@@ -107,7 +107,7 @@ func reportContractSkip(card manulife.Card) {
 
 // reportChallenge reports whether a service asked for a one-time code.
 //
-//declscope:package // wired as a callback by the providers
+//declscope:shared // wired as a callback by the providers
 func reportChallenge(service string) func(bool) {
 	return func(challenged bool) {
 		if !challenged {
@@ -123,7 +123,7 @@ func reportChallenge(service string) func(bool) {
 // A stale figure that nobody is told about is worse than a failure, because a
 // failure sends mail.
 //
-//declscope:package // wired as a callback by the providers
+//declscope:shared // wired as a callback by the providers
 func reportSkip(t ppsel.Target, why error) {
 	log.Printf("   %-16s skipped — %v; entries under %s are left as they are",
 		t.Key, why, t.Category())

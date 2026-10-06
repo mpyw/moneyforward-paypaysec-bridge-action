@@ -27,7 +27,7 @@ import (
 // absent and nobody had revoked anything. Whether a lapsed grant stays listed was
 // never checked — it was asserted because it would have been convenient.
 //
-//declscope:package // every API call in gmail.go routes its error through this
+//declscope:shared // every API call in gmail.go routes its error through this
 func explainAuthFailure(err error) error {
 	// invalidGrant is how the token endpoint reports a refresh token that is no
 	// longer good. The accompanying text is "Token has been expired or revoked."

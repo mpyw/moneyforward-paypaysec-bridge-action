@@ -27,7 +27,7 @@ import (
 //
 // A missing field stays zero, as it would without this.
 //
-//declscope:package // the response shapes opt into lax decoding
+//declscope:shared // the response shapes opt into lax decoding
 type laxInt64 int64
 
 func (n *laxInt64) UnmarshalJSON(data []byte) error {
@@ -56,7 +56,7 @@ func (n *laxInt64) UnmarshalJSON(data []byte) error {
 // this is a name for something, not a quantity, and a round trip through an
 // integer is a chance to lose a leading zero or overflow a width nobody promised.
 //
-//declscope:package // the response shapes opt into lax decoding
+//declscope:shared // the response shapes opt into lax decoding
 type laxString string
 
 func (l *laxString) UnmarshalJSON(data []byte) error {
@@ -95,7 +95,7 @@ type laxKeyed[T any] struct {
 // An empty bucket is `[]` — the array shape again — so refusing to decode it would
 // turn every genuinely empty category into a failed run.
 //
-//declscope:package // the response shapes opt into lax decoding
+//declscope:shared // the response shapes opt into lax decoding
 type laxBrandList[T any] struct {
 	Entries []laxKeyed[T]
 }

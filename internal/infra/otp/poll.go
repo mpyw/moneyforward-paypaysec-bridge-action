@@ -15,7 +15,7 @@ const defaultPollTimeout = 5 * time.Minute
 // source — "no mail matching this query arrived" and "nobody wrote to this
 // file" send a reader to different places — and only the source can write it.
 //
-//declscope:package // each source translates this into its own message
+//declscope:shared // each source translates this into its own message
 var errPolledTooLong = errors.New("otp: waited too long")
 
 // poller is the wait loop both sources share: try, and if there is nothing yet,
@@ -27,7 +27,7 @@ var errPolledTooLong = errors.New("otp: waited too long")
 // there should be, and side by side it was not obvious which others were
 // deliberate.
 //
-//declscope:package // the wait loop both sources share, fields included
+//declscope:shared // the wait loop both sources share, fields included
 type poller struct {
 	timeout time.Duration
 	//declscope:private
@@ -36,7 +36,7 @@ type poller struct {
 
 // newPoller applies the defaults for whatever the caller left unset.
 //
-//declscope:package // how both sources obtain their poller
+//declscope:shared // how both sources obtain their poller
 func newPoller(timeout, interval, defaultInterval time.Duration) poller {
 	if timeout <= 0 {
 		timeout = defaultPollTimeout
@@ -53,7 +53,7 @@ func newPoller(timeout, interval, defaultInterval time.Duration) poller {
 // returning an error abandons the wait. The first attempt happens immediately,
 // so a code already waiting is not made to sit out an interval.
 //
-//declscope:package // the loop itself, driven by both sources
+//declscope:shared // the loop itself, driven by both sources
 func (p poller) run(ctx context.Context, attempt func() (string, error)) (string, error) {
 	deadline := time.Now().Add(p.timeout)
 	for {

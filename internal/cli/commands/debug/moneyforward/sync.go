@@ -13,7 +13,7 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/moneyforward/manualasset"
 )
 
-//declscope:package // registered by the parent command
+//declscope:shared // registered by the parent command
 func syncCommand() *cli.Command {
 	var entries []string
 	var empty bool

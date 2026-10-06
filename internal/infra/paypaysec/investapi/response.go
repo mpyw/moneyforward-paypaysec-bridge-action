@@ -9,7 +9,7 @@ import (
 // checkedResponse is anything this package decodes: every reply carries the responseEnvelope, and
 // no reply is read for its numbers before the responseEnvelope has been believed.
 //
-//declscope:package // the transport believes every reply through this
+//declscope:shared // the transport believes every reply through this
 type checkedResponse interface{ check(path string) error }
 
 // responseEnvelope is what every one of these replies carries, and what has to be true
@@ -33,7 +33,7 @@ type responseEnvelope struct {
 
 // check reports whatever is wrong with the reply, before its numbers are used.
 //
-//declscope:package // called by the transport on every reply
+//declscope:shared // called by the transport on every reply
 func (e responseEnvelope) check(path string) error {
 	if e.LoginStatus == 1 {
 		return fmt.Errorf("%s reports the session is signed out; its empty holdings "+
@@ -56,7 +56,7 @@ func (e responseEnvelope) check(path string) error {
 
 // topResponse is pc_invest_top: the holdings and the totals over them.
 //
-//declscope:package // holding.go joins the two replies it decodes
+//declscope:shared // holding.go joins the two replies it decodes
 type topResponse struct {
 	responseEnvelope
 	SecuritiesValueTotal        laxInt64 `json:"SECURITIES_VALUE_TOTAL"`
@@ -74,7 +74,7 @@ type topResponse struct {
 // initResponse is pc_invest_init: the catalogue of every 銘柄 the bucket offers,
 // which is where names come from and which is not a portfolio.
 //
-//declscope:package // holding.go joins the two replies it decodes
+//declscope:shared // holding.go joins the two replies it decodes
 type initResponse struct {
 	responseEnvelope
 	InvestBrandArray laxBrandList[struct {
@@ -85,7 +85,7 @@ type initResponse struct {
 
 // infoResponse is pc_invest_info: what the account is. See [Info].
 //
-//declscope:package // account.go decodes the info reply
+//declscope:shared // account.go decodes the info reply
 type infoResponse struct {
 	responseEnvelope
 	MiniClientSeqNo laxString `json:"MINI_CLIENT_SEQ_NO"`
