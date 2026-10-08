@@ -164,17 +164,6 @@ func (s Sync) fail(into *BridgeResult, err error) {
 	}
 }
 
-// err collects what went wrong, naming each source.
-func (r Result) err() error {
-	var errs []error
-	for _, b := range r.Bridges {
-		if b.Err != nil {
-			errs = append(errs, fmt.Errorf("%s: %w", b.Source, b.Err))
-		}
-	}
-	return errors.Join(errs...)
-}
-
 // Failed lists the sources that did not complete.
 func (r Result) Failed() []string {
 	var out []string
@@ -184,6 +173,17 @@ func (r Result) Failed() []string {
 		}
 	}
 	return out
+}
+
+// err collects what went wrong, naming each source.
+func (r Result) err() error {
+	var errs []error
+	for _, b := range r.Bridges {
+		if b.Err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", b.Source, b.Err))
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // reconcile plans against what the account holds, then applies the plan.

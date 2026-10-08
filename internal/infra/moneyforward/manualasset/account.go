@@ -95,27 +95,6 @@ func (a Account) Writer(ctx context.Context) (Writer, error) {
 	return page.writerFor(a)
 }
 
-// load GETs the account page.
-func (a Account) load(ctx context.Context) (accountPage, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, a.URL(), nil)
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Accept", "text/html,application/xhtml+xml")
-
-	resp, err := a.HTTP.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("load %s: %w", a.URL(), err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("read %s: %w", a.URL(), err)
-	}
-	return accountPage(body), nil
-}
-
 // Subclasses reports the 資産クラス options the create form offers.
 //
 // A read, for finding out what an instrument kind has to be mapped to. The
@@ -144,4 +123,25 @@ func (a Account) EntryNamed(ctx context.Context, name string) (Entry, bool) {
 		}
 	}
 	return Entry{}, false
+}
+
+// load GETs the account page.
+func (a Account) load(ctx context.Context) (accountPage, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, a.URL(), nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Accept", "text/html,application/xhtml+xml")
+
+	resp, err := a.HTTP.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("load %s: %w", a.URL(), err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read %s: %w", a.URL(), err)
+	}
+	return accountPage(body), nil
 }

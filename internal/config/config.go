@@ -377,9 +377,6 @@ func providerSummary() []string {
 // one.
 func Value(name secret.Name) string { return os.Getenv(string(name)) }
 
-// get is Value, for use inside this package.
-func get(name secret.Name) string { return Value(name) }
-
 // GmailBlob is the authorized_user JSON, or "" when the run is expected to fall
 // back to the local file.
 func GmailBlob() string { return os.Getenv(GmailCredentials) }
@@ -403,3 +400,6 @@ func Missing(names ...string) []string {
 // before a full [Load] — the browser, which is started by commands that do not
 // all need credentials.
 func IsCI() bool { return os.Getenv(CI) != "" }
+
+// get is Value, for use inside this package.
+func get(name secret.Name) string { return Value(name) }

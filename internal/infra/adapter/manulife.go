@@ -64,16 +64,16 @@ type ManulifeSource struct {
 	// that contract is about to be deleted and nothing else would mention it.
 	OnSkip func(card manulife.Card)
 
-	// testPages replaces the page operations. Unexported: this is how the loop
-	// below is tested, and not a way to configure a run.
-	testPages *manulifePages
-
 	// OnRead, if set, is handed each contract's reading as soon as it is taken.
 	//
 	// It exists so the scheduled job can register the figures with the Actions
 	// log masker before anything can print them. Masking after the fact does not
 	// work: ::add-mask:: only affects output that comes after it.
 	OnRead func(manulife.Reading)
+
+	// testPages replaces the page operations. Unexported: this is how the loop
+	// below is tested, and not a way to configure a run.
+	testPages *manulifePages
 }
 
 // The three page operations, as fields, so the loop over contracts can be
@@ -90,18 +90,6 @@ type manulifePages struct {
 	cards      func(context.Context) ([]manulife.Card, error)
 	readCard   func(context.Context, manulife.Card) (manulife.Reading, error)
 	backToList func(context.Context) error
-}
-
-// pages returns the operations this source drives, real unless overridden.
-func (m ManulifeSource) pages() manulifePages {
-	if m.testPages != nil {
-		return *m.testPages
-	}
-	return manulifePages{
-		cards:      manulife.Cards,
-		readCard:   manulife.ReadCard,
-		backToList: manulife.BackToList,
-	}
 }
 
 // ID names this source.
@@ -222,4 +210,16 @@ func (m ManulifeSource) Holdings(context.Context) (asset.Holdings, error) {
 		holdings.Assets = append(holdings.Assets, a)
 	}
 	return holdings, nil
+}
+
+// pages returns the operations this source drives, real unless overridden.
+func (m ManulifeSource) pages() manulifePages {
+	if m.testPages != nil {
+		return *m.testPages
+	}
+	return manulifePages{
+		cards:      manulife.Cards,
+		readCard:   manulife.ReadCard,
+		backToList: manulife.BackToList,
+	}
 }

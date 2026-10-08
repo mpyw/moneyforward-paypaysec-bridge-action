@@ -6,6 +6,12 @@ import (
 	"github.com/mpyw/moneyforward-paypaysec-bridge-action/v3/internal/infra/chrome/pagescript"
 )
 
+// pageScripts are the generic probes this package runs. Site-specific
+// extraction lives in its own set, under the package that owns those selectors.
+//
+//declscope:shared // the probes are run by the core and by element discovery
+var pageScripts = pagescript.Load(scriptFS, "scripts")
+
 // scriptFS holds this package's page-side JavaScript.
 //
 // These live as .js files rather than Go string constants so they get editor
@@ -15,9 +21,3 @@ import (
 //
 //go:embed scripts/*.js
 var scriptFS embed.FS
-
-// pageScripts are the generic probes this package runs. Site-specific
-// extraction lives in its own set, under the package that owns those selectors.
-//
-//declscope:shared // the probes are run by the core and by element discovery
-var pageScripts = pagescript.Load(scriptFS, "scripts")

@@ -108,6 +108,20 @@ func Record(ctx context.Context, dir, label string) (*Recorder, error) {
 // Path is where the recording is being written.
 func (r *Recorder) Path() string { return r.path }
 
+// Stop waits for the bodies still in flight and closes the file, reporting how
+// many exchanges were recorded.
+func (r *Recorder) Stop() (int, error) {
+	r.wg.Wait()
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.closed {
+		return r.written, nil
+	}
+	r.closed = true
+	return r.written, r.file.Close()
+}
+
 // handle runs on chromedp's event goroutine, so it must not block. Fetching a
 // body is a round trip, so that happens elsewhere.
 func (r *Recorder) handle(ev any) {
@@ -221,20 +235,6 @@ func (r *Recorder) write(x *Exchange) {
 		return
 	}
 	r.written++
-}
-
-// Stop waits for the bodies still in flight and closes the file, reporting how
-// many exchanges were recorded.
-func (r *Recorder) Stop() (int, error) {
-	r.wg.Wait()
-
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if r.closed {
-		return r.written, nil
-	}
-	r.closed = true
-	return r.written, r.file.Close()
 }
 
 // recordable reports whether this is traffic worth keeping.
