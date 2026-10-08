@@ -40,23 +40,6 @@ type Flow struct {
 	Announce func(string)
 }
 
-// desktopClient is the shape of the console's download.
-type desktopClient struct {
-	Installed struct {
-		ClientID     string `json:"client_id"`
-		ClientSecret string `json:"client_secret"`
-	} `json:"installed"`
-}
-
-// authorizedUser is the credential format Google's libraries accept, and what
-// `gcloud auth application-default login` writes.
-type authorizedUser struct {
-	Type         string `json:"type"`
-	ClientID     string `json:"client_id"`
-	ClientSecret string `json:"client_secret"`
-	RefreshToken string `json:"refresh_token"`
-}
-
 // Obtain runs the flow and returns what Google granted.
 func (f Flow) Obtain(ctx context.Context) (credential.Gmail, error) {
 	var none credential.Gmail
@@ -145,6 +128,23 @@ func (f File) Store(_ context.Context, cred credential.Gmail) error {
 		return fmt.Errorf("write %s: %w", f.Path, err)
 	}
 	return nil
+}
+
+// desktopClient is the shape of the console's download.
+type desktopClient struct {
+	Installed struct {
+		ClientID     string `json:"client_id"`
+		ClientSecret string `json:"client_secret"`
+	} `json:"installed"`
+}
+
+// authorizedUser is the credential format Google's libraries accept, and what
+// `gcloud auth application-default login` writes.
+type authorizedUser struct {
+	Type         string `json:"type"`
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 func (f Flow) awaitCode(ctx context.Context, listener net.Listener, state, authURL string) (string, error) {

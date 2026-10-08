@@ -17,11 +17,6 @@ import (
 // is what makes them separable at all: as views of one page they were not.
 
 const (
-	//declscope:shared // account.go asks the info endpoint directly
-	appInfo = "/v2/invest/brand/pc_invest_info"
-	//declscope:shared // account_test drives the gate against this endpoint
-	miniTop = "/v3/invest/brand/pc_invest_top"
-
 	// pagePath is the screen these endpoints belong to. Sent as the Referer, and
 	// the ミニアプリ bucket will not answer without it: the same body that is
 	// accepted from inside the document is refused from a client that does not say
@@ -35,8 +30,12 @@ const (
 	// borrowing its session.
 	pagePath = "/investment_trust/"
 
-	appTop   = "/v2/invest/brand/pc_invest_top"
-	appInit  = "/v2/invest/brand/pc_invest_init"
+	appTop  = "/v2/invest/brand/pc_invest_top"
+	appInit = "/v2/invest/brand/pc_invest_init"
+	//declscope:shared // account.go asks the info endpoint directly
+	appInfo = "/v2/invest/brand/pc_invest_info"
+	//declscope:shared // account_test drives the gate against this endpoint
+	miniTop  = "/v3/invest/brand/pc_invest_top"
 	miniInit = "/v3/invest/brand/pc_invest_init"
 
 	// appIDApp and appIDMiniApp select the bucket. The path already implies it;

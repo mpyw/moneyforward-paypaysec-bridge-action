@@ -9,10 +9,10 @@ import (
 //
 //declscope:shared // login.go marks each failure with the step it reached
 const (
-	StepAwaitChallenge    = "await-challenge"
 	stepNavigate          = "navigate"
 	stepFillCredentials   = "fill-credentials"
 	stepSubmitCredentials = "submit-credentials"
+	StepAwaitChallenge    = "await-challenge"
 	stepFetchOTP          = "fetch-otp"
 	stepSubmitOTP         = "submit-otp"
 	stepAwaitHome         = "await-home"
