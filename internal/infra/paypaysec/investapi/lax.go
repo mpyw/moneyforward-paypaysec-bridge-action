@@ -91,15 +91,6 @@ type laxBrandList[T any] struct {
 	Entries []laxKeyed[T]
 }
 
-// laxKeyed is one entry of a [laxBrandList], with the key it arrived under.
-//
-// Key is empty for the array form, which carries none. Nothing here decides what a
-// key means; see [nameHoldings] for how one is joined to a name.
-type laxKeyed[T any] struct {
-	Key  string
-	Item T
-}
-
 func (b *laxBrandList[T]) UnmarshalJSON(data []byte) error {
 	text := strings.TrimSpace(string(data))
 	if text == "" || text == "null" {
@@ -129,4 +120,13 @@ func (b *laxBrandList[T]) UnmarshalJSON(data []byte) error {
 		return laxKeyed[T]{Key: key, Item: byKey[key]}
 	})
 	return nil
+}
+
+// laxKeyed is one entry of a [laxBrandList], with the key it arrived under.
+//
+// Key is empty for the array form, which carries none. Nothing here decides what a
+// key means; see [nameHoldings] for how one is joined to a name.
+type laxKeyed[T any] struct {
+	Key  string
+	Item T
 }
