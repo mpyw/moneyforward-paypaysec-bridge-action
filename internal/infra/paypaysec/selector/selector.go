@@ -261,13 +261,6 @@ const (
 //
 // 投資元本 + 含み益 = 評価額合計 by definition, which makes those two an
 // arithmetic check rather than a second guess. See [Reading.Amount].
-// loadingOverlay is the spinner the 投資信託 Vue app shows while it
-// fetches. It exists on the page as display:none and becomes visible during a
-// load, so its visibility — not its presence — is the signal.
-//
-//declscope:shared // script.go passes it to page_state.js
-const loadingOverlay = ".loading_page"
-
 const (
 	ValueTotal = "#SECURITIES_VALUE_TOTAL"
 	//declscope:shared // script.go passes it to extract_balance.js
@@ -275,6 +268,13 @@ const (
 	//declscope:shared // script.go passes it to extract_balance.js
 	grossProfit = "#gross_profit_total"
 )
+
+// loadingOverlay is the spinner the 投資信託 Vue app shows while it
+// fetches. It exists on the page as display:none and becomes visible during a
+// load, so its visibility — not its presence — is the signal.
+//
+//declscope:shared // script.go passes it to page_state.js
+const loadingOverlay = ".loading_page"
 
 // The 保有銘柄 list. CONFIRMED 2026-08-01 on both templates the site uses:
 //

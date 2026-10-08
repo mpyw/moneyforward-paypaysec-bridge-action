@@ -25,6 +25,21 @@ const (
 	consentTimeout = 5 * time.Minute
 )
 
+// Flow is the OAuth consent flow for a desktop client.
+//
+// Deliberately not `gcloud auth application-default login`: gcloud issues its
+// credentials with cloud-platform, so one leaked out of CI would authorize
+// operating the whole Google Cloud project rather than reading mail. This asks for
+// [gmail.Scope] and nothing else.
+type Flow struct {
+	// ClientFile is the OAuth client downloaded from the Google Cloud console —
+	// the "Desktop app" type, whose redirect is a loopback address.
+	ClientFile string
+
+	// Announce, if set, is shown the URL to visit. Defaults to stderr.
+	Announce func(string)
+}
+
 // desktopClient is the shape of the console's download.
 type desktopClient struct {
 	Installed struct {
@@ -40,21 +55,6 @@ type authorizedUser struct {
 	ClientID     string `json:"client_id"`
 	ClientSecret string `json:"client_secret"`
 	RefreshToken string `json:"refresh_token"`
-}
-
-// Flow is the OAuth consent flow for a desktop client.
-//
-// Deliberately not `gcloud auth application-default login`: gcloud issues its
-// credentials with cloud-platform, so one leaked out of CI would authorize
-// operating the whole Google Cloud project rather than reading mail. This asks for
-// [gmail.Scope] and nothing else.
-type Flow struct {
-	// ClientFile is the OAuth client downloaded from the Google Cloud console —
-	// the "Desktop app" type, whose redirect is a loopback address.
-	ClientFile string
-
-	// Announce, if set, is shown the URL to visit. Defaults to stderr.
-	Announce func(string)
 }
 
 // Obtain runs the flow and returns what Google granted.

@@ -153,6 +153,25 @@ func (f Figures) Reconciled() (int64, error) {
 	return f.Total.Yen, nil
 }
 
+// Amounts is every yen figure these could name in a message, including the sums
+// computed only to report a disagreement.
+//
+// Here, beside the messages that use them: a figure added to a refusal without
+// being added here reaches a log in the clear.
+func (f Figures) Amounts() []int64 {
+	amounts := []int64{
+		f.Total.Yen, f.Acquisition.Yen, f.Gain.Yen,
+		f.valueSum(),
+		f.Acquisition.Yen + f.Gain.Yen,
+	}
+	var costs int64
+	for _, p := range f.Positions {
+		amounts = append(amounts, p.Value.Yen, p.Cost.Yen)
+		costs += p.Cost.Yen
+	}
+	return append(amounts, costs)
+}
+
 // checkCosts holds the positions' costs against the reported cost basis.
 //
 // This one matters especially: a cost is gathered per position, often from a
@@ -202,23 +221,4 @@ func (f Figures) valueSum() int64 {
 		}
 	}
 	return sum
-}
-
-// Amounts is every yen figure these could name in a message, including the sums
-// computed only to report a disagreement.
-//
-// Here, beside the messages that use them: a figure added to a refusal without
-// being added here reaches a log in the clear.
-func (f Figures) Amounts() []int64 {
-	amounts := []int64{
-		f.Total.Yen, f.Acquisition.Yen, f.Gain.Yen,
-		f.valueSum(),
-		f.Acquisition.Yen + f.Gain.Yen,
-	}
-	var costs int64
-	for _, p := range f.Positions {
-		amounts = append(amounts, p.Value.Yen, p.Cost.Yen)
-		costs += p.Cost.Yen
-	}
-	return append(amounts, costs)
 }

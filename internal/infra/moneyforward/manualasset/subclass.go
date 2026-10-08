@@ -11,11 +11,11 @@ import (
 type AssetSubclass int
 
 const (
-	subclassDomesticStock AssetSubclass = 14 // 国内株
 	//declscope:shared // manualasset_test.go and write_test.go build entries with it
-	subclassUSStock    AssetSubclass = 15 // 米国株
-	subclassOtherStock AssetSubclass = 17 // その他株式
-	subclassMutualFund AssetSubclass = 12 // 投資信託
+	subclassUSStock       AssetSubclass = 15 // 米国株
+	subclassDomesticStock AssetSubclass = 14 // 国内株
+	subclassOtherStock    AssetSubclass = 17 // その他株式
+	subclassMutualFund    AssetSubclass = 12 // 投資信託
 
 	// subclassSavingsInsurance is 積立型保険.
 	//

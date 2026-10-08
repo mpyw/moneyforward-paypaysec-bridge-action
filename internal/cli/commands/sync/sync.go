@@ -41,22 +41,6 @@ const (
 // can read the process list.
 var requiredEnv = secret.RequiredNames()
 
-// sourceEnv describes each source, for the help text.
-//
-// Listed because "optional" on its own is not usable: a reader needs to know
-// that a source is all of its variables or none, and which those are.
-func sourceEnv() string {
-	var parts []string
-	for _, provider := range secret.Providers {
-		names := make([]string, 0, 3)
-		for _, n := range provider.Names() {
-			names = append(names, string(n))
-		}
-		parts = append(parts, provider.ID+" ("+strings.Join(names, ", ")+")")
-	}
-	return strings.Join(parts, "; ")
-}
-
 // Command builds the sync subcommand.
 func Command() *cli.Command {
 	return &cli.Command{
@@ -73,6 +57,22 @@ func Command() *cli.Command {
 			return run(ctx)
 		},
 	}
+}
+
+// sourceEnv describes each source, for the help text.
+//
+// Listed because "optional" on its own is not usable: a reader needs to know
+// that a source is all of its variables or none, and which those are.
+func sourceEnv() string {
+	var parts []string
+	for _, provider := range secret.Providers {
+		names := make([]string, 0, 3)
+		for _, n := range provider.Names() {
+			names = append(names, string(n))
+		}
+		parts = append(parts, provider.ID+" ("+strings.Join(names, ", ")+")")
+	}
+	return strings.Join(parts, "; ")
 }
 
 func run(ctx context.Context) error {

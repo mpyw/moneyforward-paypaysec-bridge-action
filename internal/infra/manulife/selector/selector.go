@@ -95,9 +95,6 @@ const otpMailQuery = `from:manulife_jp_customer_support@manulife.com in:anywhere
 var otpCodePattern = regexp.MustCompile(`ワンタイムパスワード[：:][\s\x{3000}\x{00A0}]*(\d{6})`)
 
 const (
-	// origin is the site's own host.
-	origin = "https://mypage.manulife.co.jp"
-
 	// LoginURL is the sign-in form, and the only URL here that is ever fetched.
 	// CONFIRMED 2026-08-29.
 	//
@@ -111,6 +108,9 @@ const (
 	// instead of the list. A URL that must not be fetched is not worth naming —
 	// it only offers itself to whoever reads this next.
 	LoginURL = origin + "/auth"
+
+	// origin is the site's own host.
+	origin = "https://mypage.manulife.co.jp"
 )
 
 // The sign-in form. CONFIRMED 2026-08-29 from the live page markup.
@@ -239,10 +239,10 @@ const ContractOpenerReady = `typeof RedirectToPageOrFFFModal === 'function'`
 // says so.
 const (
 	LabelPolicyNumber = "種類-証券番号"
+	LabelStatus       = "契約状況"
+	StatusInForce     = "契約継続中"
 	//declscope:shared // label_test.go trims labels against it
 	labelProductName = "商品名"
-	LabelStatus      = "契約状況"
-	StatusInForce    = "契約継続中"
 )
 
 // TrimLabel strips the punctuation a label may or may not carry.
@@ -266,29 +266,6 @@ func TrimLabel(s string) string {
 // are identified by the URL they land on, precisely because a URL does not move
 // while a price does. Here the URL is the thing that moves, and identity has to
 // come from the page: see [DetailPolicyType].
-
-// The contract detail page. CONFIRMED 2026-08-29.
-//
-// Every figure sits in a row of this shape, and none of it is addressable by
-// id:
-//
-//	<tr class="row">
-//	  <th class="col-md-3 col-xs-5"><span><span><p>解約時お支払金額（円支払）</p></span></span></th>
-//	  <td class="col-md-9 col-xs-7"><span><p><span class="customerCareLink">1,234,567 円</span></p></span></td>
-//	</tr>
-//
-// So a figure is found by matching the label cell's text and reading the value
-// cell — which is why the labels below are constants and the ids are not
-// mentioned.
-//
-// Every value must be read from a *visible* element. CONFIRMED 2026-08-29: the
-// detail page for a single contract also carried a 変額保険 section the customer
-// does not hold, including two panels — one for a zero balance, one for a
-// non-zero one — both display:none. Reading text without regard to visibility
-// mixes another product's figures into this one's.
-//
-//declscope:shared // script.go passes it to extract_policy.js
-const valueText = "span.customerCareLink"
 
 // The labels a reading needs. CONFIRMED 2026-08-29.
 //
@@ -341,6 +318,29 @@ const (
 // read. The card in the list gives the product's brand name instead, which is a
 // different string for the same contract.
 const DetailPolicyType = "保険種類"
+
+// The contract detail page. CONFIRMED 2026-08-29.
+//
+// Every figure sits in a row of this shape, and none of it is addressable by
+// id:
+//
+//	<tr class="row">
+//	  <th class="col-md-3 col-xs-5"><span><span><p>解約時お支払金額（円支払）</p></span></span></th>
+//	  <td class="col-md-9 col-xs-7"><span><p><span class="customerCareLink">1,234,567 円</span></p></span></td>
+//	</tr>
+//
+// So a figure is found by matching the label cell's text and reading the value
+// cell — which is why the labels above are constants and the ids are not
+// mentioned.
+//
+// Every value must be read from a *visible* element. CONFIRMED 2026-08-29: the
+// detail page for a single contract also carried a 変額保険 section the customer
+// does not hold, including two panels — one for a zero balance, one for a
+// non-zero one — both display:none. Reading text without regard to visibility
+// mixes another product's figures into this one's.
+//
+//declscope:shared // script.go passes it to extract_policy.js
+const valueText = "span.customerCareLink"
 
 // HomeCandidates are ways to tell a sign-in completed and the contract list
 // rendered. CONFIRMED 2026-08-29: both are present on /Home.

@@ -33,12 +33,6 @@ type SessionCookie struct {
 	SameSite string `json:"sameSite,omitempty"`
 }
 
-// hostOnly reports whether the cookie belongs to exactly one host.
-//
-// Chrome marks a domain cookie with a leading dot and a host-only one without.
-// The distinction decides how a restore has to address it.
-func (c SessionCookie) hostOnly() bool { return !strings.HasPrefix(c.Domain, ".") }
-
 // Host is the cookie's domain without the domain-cookie marker.
 func (c SessionCookie) Host() string { return strings.TrimPrefix(c.Domain, ".") }
 
@@ -54,6 +48,12 @@ func (c SessionCookie) Origin() string {
 	}
 	return scheme + c.Host() + path
 }
+
+// hostOnly reports whether the cookie belongs to exactly one host.
+//
+// Chrome marks a domain cookie with a leading dot and a host-only one without.
+// The distinction decides how a restore has to address it.
+func (c SessionCookie) hostOnly() bool { return !strings.HasPrefix(c.Domain, ".") }
 
 // CookieSet is a captured session.
 //

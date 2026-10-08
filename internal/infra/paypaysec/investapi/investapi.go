@@ -61,9 +61,6 @@ type Client struct {
 	// [cookiestore.HTTPClientFor].
 	HTTP *http.Client
 
-	// miniSeqNo is the ミニアプリ bucket's client number, fetched once on demand.
-	miniSeqNo string
-
 	// Trace, when set, is handed every reply before it is judged: the path, the
 	// fields sent, and the body verbatim.
 	//
@@ -74,6 +71,9 @@ type Client struct {
 	//
 	// Never set in the scheduled job: a body here holds the account's balances.
 	Trace func(path string, fields map[string]string, body []byte)
+
+	// miniSeqNo is the ミニアプリ bucket's client number, fetched once on demand.
+	miniSeqNo string
 }
 
 // Figures is one bucket's holdings and the totals it reports for them.
