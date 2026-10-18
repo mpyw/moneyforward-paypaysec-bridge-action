@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/chromedp/cdproto/network"
-	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
 	"github.com/urfave/cli/v3"
 
@@ -151,25 +150,27 @@ func investFetchFromPage(ctx context.Context, seq string) error {
 
 	// The headers the browser puts on it, captured rather than guessed. Guessing
 	// is what the last three releases were.
+	listenCtx, stopListening := context.WithCancel(ctx)
+	defer stopListening()
+	sent := chromedp.Events(listenCtx, network.RequestWillBeSent)
 	headers := make(chan map[string]any, 1)
-	chromedp.ListenTarget(ctx, func(ev any) {
-		sent, ok := ev.(*network.EventRequestWillBeSent)
-		if !ok || !strings.Contains(sent.Request.URL, miniInitPath) {
-			return
+	go func() {
+		for ev, err := range sent {
+			if err != nil {
+				return
+			}
+			if strings.Contains(ev.Request.URL, miniInitPath) {
+				headers <- ev.Request.Headers
+				return
+			}
 		}
-		select {
-		case headers <- sent.Request.Headers:
-		default:
-		}
-	})
+	}()
 
-	var out string
-	err := chromedp.Run(ctx,
-		network.Enable(),
-		chromedp.Evaluate(fmt.Sprintf(script, seq), &out,
-			func(p *runtime.EvaluateParams) *runtime.EvaluateParams {
-				return p.WithAwaitPromise(true)
-			}))
+	if _, err := chromedp.Call(ctx, network.Enable, network.EnableParams{}); err != nil {
+		return fmt.Errorf("fetch from the page: %w", err)
+	}
+	out, err := chromedp.Run(ctx, chromedp.Evaluate[string](fmt.Sprintf(script, seq),
+		chromedp.EvalAwaitPromise))
 	if err != nil {
 		return fmt.Errorf("fetch from the page: %w", err)
 	}

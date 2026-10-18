@@ -36,8 +36,8 @@ func (p Page) FindInteractiveElements() ([]Element, error) {
 	if err != nil {
 		return nil, err
 	}
-	var els []Element
-	if err := chromedp.Run(ctx, chromedp.Evaluate(js, &els)); err != nil {
+	els, err := chromedp.Run(ctx, chromedp.Evaluate[[]Element](js))
+	if err != nil {
 		return nil, fmt.Errorf("enumerate interactive elements: %w", err)
 	}
 	return els, nil

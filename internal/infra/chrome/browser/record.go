@@ -2,9 +2,9 @@ package browser
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"iter"
 	"os"
 	"path/filepath"
 	"sync"
@@ -38,21 +38,15 @@ const maxRecordedBody = 512 << 10
 
 // recordedPostData reassembles a request body from the event.
 //
-// The entries are base64, and there can be more than one — Chrome splits a body
-// it received in pieces. An entry that will not decode is left out rather than
-// guessed at, the same rule the rest of this project applies to a figure it
-// cannot read.
+// There can be more than one entry — Chrome splits a body it received in
+// pieces. The protocol sends each as base64, and cdproto has already decoded it.
 func recordedPostData(req *network.Request) string {
 	var out []byte
 	for _, entry := range req.PostDataEntries {
-		if entry == nil || entry.Bytes == "" {
+		if entry == nil {
 			continue
 		}
-		decoded, err := base64.StdEncoding.DecodeString(entry.Bytes)
-		if err != nil {
-			continue
-		}
-		out = append(out, decoded...)
+		out = append(out, entry.Bytes...)
 	}
 	return string(out)
 }
@@ -87,10 +81,17 @@ func Record(ctx context.Context, dir, label string) (*Recorder, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create network log: %w", err)
 	}
+	// Subscribed before the domain is enabled, so that nothing sent in between
+	// is missed. Each subscription lasts as long as ctx.
+	sent := chromedp.Events(ctx, network.RequestWillBeSent)
+	received := chromedp.Events(ctx, network.ResponseReceived)
+	finished := chromedp.Events(ctx, network.LoadingFinished)
+	failed := chromedp.Events(ctx, network.LoadingFailed)
+
 	// Network events are off until the domain is enabled. Without this the
-	// listener below is attached correctly and simply never hears anything,
-	// which reads as "the page made no calls".
-	if err := chromedp.Run(ctx, network.Enable()); err != nil {
+	// subscriptions above are correct and simply never hear anything, which
+	// reads as "the page made no calls".
+	if _, err := chromedp.Call(ctx, network.Enable, network.EnableParams{}); err != nil {
 		_ = f.Close()
 		return nil, fmt.Errorf("enable network events: %w", err)
 	}
@@ -101,8 +102,21 @@ func Record(ctx context.Context, dir, label string) (*Recorder, error) {
 		ctx:     ctx,
 		path:    path,
 	}
-	chromedp.ListenTarget(ctx, r.handle)
+	go recordEvents(sent, r.sent)
+	go recordEvents(received, r.received)
+	go recordEvents(finished, r.finished)
+	go recordEvents(failed, r.failed)
 	return r, nil
+}
+
+// recordEvents hands each event to handle until the subscription ends.
+func recordEvents[E any](events iter.Seq2[E, error], handle func(*E)) {
+	for ev, err := range events {
+		if err != nil {
+			return
+		}
+		handle(&ev)
+	}
 }
 
 // Path is where the recording is being written.
@@ -122,65 +136,72 @@ func (r *Recorder) Stop() (int, error) {
 	return r.written, r.file.Close()
 }
 
-// handle runs on chromedp's event goroutine, so it must not block. Fetching a
-// body is a round trip, so that happens elsewhere.
-func (r *Recorder) handle(ev any) {
-	switch e := ev.(type) {
-	case *network.EventRequestWillBeSent:
-		if !recordable(e.Type) {
-			return
-		}
-		x := &Exchange{
-			Time:   time.Now().Format(time.RFC3339),
-			Method: e.Request.Method,
-			URL:    e.Request.URL,
-			Type:   e.Type.String(),
-		}
-		// The request body matters as much as the reply: an endpoint that takes
-		// a token or a sequence number cannot be called again without knowing
-		// what it was given.
-		x.RequestBody = truncateRecorded(recordedPostData(e.Request))
-		if x.RequestBody == "" && e.Request.HasPostData {
-			// Chrome omits the entries when the body is large. Asked for
-			// separately in [Recorder.finish], where a round trip is allowed.
-			x.fetchPostData = true
-		}
-		r.mu.Lock()
-		r.pending[e.RequestID] = x
-		r.mu.Unlock()
+// The four handlers below each run on the goroutine of their own subscription,
+// so they are not ordered with one another. The order on the wire is still
+// sent, received, finished — a request has a round trip between the first and
+// the last — and [Recorder.finish] keeps the exchange findable until it has
+// its body, so a response that is handled late still lands on it.
 
-	case *network.EventResponseReceived:
-		r.mu.Lock()
-		if x, ok := r.pending[e.RequestID]; ok {
-			x.Status = e.Response.Status
-			x.MIME = e.Response.MimeType
-			x.Type = e.Type.String()
-		}
-		r.mu.Unlock()
-
-	case *network.EventLoadingFinished:
-		r.mu.Lock()
-		x, ok := r.pending[e.RequestID]
-		delete(r.pending, e.RequestID)
-		closed := r.closed
-		r.mu.Unlock()
-		if !ok || closed {
-			return
-		}
-		r.wg.Add(1)
-		go r.finish(e.RequestID, x)
-
-	case *network.EventLoadingFailed:
-		r.mu.Lock()
-		x, ok := r.pending[e.RequestID]
-		delete(r.pending, e.RequestID)
-		r.mu.Unlock()
-		if !ok {
-			return
-		}
-		x.Note = "loading failed: " + e.ErrorText
-		r.write(x)
+func (r *Recorder) sent(e *network.EventRequestWillBeSent) {
+	if !recordable(e.Type) {
+		return
 	}
+	x := &Exchange{
+		Time:   time.Now().Format(time.RFC3339),
+		Method: e.Request.Method,
+		URL:    e.Request.URL,
+		Type:   e.Type.String(),
+	}
+	// The request body matters as much as the reply: an endpoint that takes
+	// a token or a sequence number cannot be called again without knowing
+	// what it was given.
+	x.RequestBody = truncateRecorded(recordedPostData(e.Request))
+	if x.RequestBody == "" && e.Request.HasPostData {
+		// Chrome omits the entries when the body is large. Asked for
+		// separately in [Recorder.finish], where a round trip is allowed.
+		x.fetchPostData = true
+	}
+	r.mu.Lock()
+	r.pending[e.RequestID] = x
+	r.mu.Unlock()
+}
+
+func (r *Recorder) received(e *network.EventResponseReceived) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if x, ok := r.pending[e.RequestID]; ok {
+		x.Status = e.Response.Status
+		x.MIME = e.Response.MimeType
+		x.Type = e.Type.String()
+	}
+}
+
+// finished must not block: fetching a body is a round trip, so that happens
+// elsewhere.
+func (r *Recorder) finished(e *network.EventLoadingFinished) {
+	r.mu.Lock()
+	x, ok := r.pending[e.RequestID]
+	closed := r.closed
+	if ok && !closed {
+		r.wg.Add(1)
+	}
+	r.mu.Unlock()
+	if !ok || closed {
+		return
+	}
+	go r.finish(e.RequestID, x)
+}
+
+func (r *Recorder) failed(e *network.EventLoadingFailed) {
+	r.mu.Lock()
+	x, ok := r.pending[e.RequestID]
+	delete(r.pending, e.RequestID)
+	r.mu.Unlock()
+	if !ok {
+		return
+	}
+	x.Note = "loading failed: " + e.ErrorText
+	r.write(x)
 }
 
 // finish asks for the body and writes the exchange out.
@@ -191,32 +212,34 @@ func (r *Recorder) handle(ev any) {
 func (r *Recorder) finish(id network.RequestID, x *Exchange) {
 	defer r.wg.Done()
 
+	var requestBody, body, note string
 	if x.fetchPostData {
-		var post []byte
-		if err := chromedp.Run(r.ctx, chromedp.ActionFunc(func(ctx context.Context) error {
-			p, e := network.GetRequestPostData(id).Do(ctx)
-			post = p
-			return e
-		})); err == nil {
-			x.RequestBody = truncateRecorded(string(post))
+		post, err := chromedp.Call(r.ctx, network.GetRequestPostData,
+			network.GetRequestPostDataParams{RequestID: id})
+		if err == nil {
+			requestBody = truncateRecorded(string(post.PostData))
 		}
 	}
 
-	var body []byte
-	err := chromedp.Run(r.ctx, chromedp.ActionFunc(func(ctx context.Context) error {
-		b, e := network.GetResponseBody(id).Do(ctx)
-		body = b
-		return e
-	}))
+	res, err := chromedp.Call(r.ctx, network.GetResponseBody,
+		network.GetResponseBodyParams{RequestID: id})
 	switch {
 	case err != nil:
 		// Normal rather than exceptional: a body already evicted, or a target
 		// gone. The exchange is still worth having — the URL and the request
 		// body are most of the answer.
-		x.Note = "body unavailable: " + err.Error()
+		note = "body unavailable: " + err.Error()
 	default:
-		x.Body = truncateRecorded(string(body))
+		body = truncateRecorded(string(res.Body))
 	}
+
+	r.mu.Lock()
+	delete(r.pending, id)
+	if requestBody != "" {
+		x.RequestBody = requestBody
+	}
+	x.Body, x.Note = body, note
+	r.mu.Unlock()
 	r.write(x)
 }
 

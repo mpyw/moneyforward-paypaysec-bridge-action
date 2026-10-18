@@ -107,9 +107,9 @@ func Load(ctx context.Context, t selector.Target) (Figures, error) {
 	page := targetPage{ctx: tctx, target: t}
 
 	var figures Figures
-	if err := chromedp.Run(tctx,
+	if err := chromedp.Do(tctx,
 		chromedp.Navigate(t.URL),
-		chromedp.WaitReady("body", chromedp.ByQuery),
+		chromedp.WaitReady(chromedp.CSS("body")),
 	); err != nil {
 		return figures, fmt.Errorf("%s: load %s: %w", t.Key, t.URL, err)
 	}
@@ -122,7 +122,8 @@ func Load(ctx context.Context, t selector.Target) (Figures, error) {
 	if err != nil {
 		return figures, fmt.Errorf("%s: build extraction script: %w", t.Key, err)
 	}
-	if err := chromedp.Run(tctx, chromedp.Evaluate(expr, &figures)); err != nil {
+	figures, err = chromedp.Run(tctx, chromedp.Evaluate[Figures](expr))
+	if err != nil {
 		return figures, fmt.Errorf("%s: extract: %w", t.Key, err)
 	}
 	return figures, nil
@@ -167,8 +168,8 @@ func settle(ctx context.Context, value string) error {
 	var stable int
 	var latest pageState
 	for {
-		var st pageState
-		if err := chromedp.Run(ctx, chromedp.Evaluate(expr, &st)); err != nil {
+		st, err := chromedp.Run(ctx, chromedp.Evaluate[pageState](expr))
+		if err != nil {
 			return fmt.Errorf("probe page state: %w", err)
 		}
 		latest = st

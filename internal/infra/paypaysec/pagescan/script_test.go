@@ -171,14 +171,16 @@ func runExtraction(t *testing.T, html string) Figures {
 		t.Fatalf("build extraction script: %v", err)
 	}
 
-	var figures Figures
-	if err := chromedp.Run(bctx,
+	if err := chromedp.Do(bctx,
 		chromedp.Navigate("data:text/html;charset=utf-8,"+strings.NewReplacer(
 			"#", "%23", "%", "%25",
 		).Replace(html)),
-		chromedp.WaitReady("body", chromedp.ByQuery),
-		chromedp.Evaluate(expr, &figures),
+		chromedp.WaitReady(chromedp.CSS("body")),
 	); err != nil {
+		t.Fatalf("run the extraction: %v", err)
+	}
+	figures, err := chromedp.Run(bctx, chromedp.Evaluate[Figures](expr))
+	if err != nil {
 		t.Fatalf("run the extraction: %v", err)
 	}
 	return figures

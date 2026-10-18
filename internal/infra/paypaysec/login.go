@@ -69,15 +69,15 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
 		chromedp.Navigate(selector.LoginURL),
-		chromedp.WaitVisible(selector.MemberIDInput, chromedp.ByQuery),
+		chromedp.WaitVisible(chromedp.CSS(selector.MemberIDInput)),
 	); err != nil {
 		return res, stepErr(stepNavigate, err)
 	}
 
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
-		chromedp.SendKeys(selector.MemberIDInput, c.Username, chromedp.ByQuery),
-		chromedp.WaitVisible(selector.PasswordInput, chromedp.ByQuery),
-		chromedp.SendKeys(selector.PasswordInput, c.Password, chromedp.ByQuery),
+		chromedp.SendKeys(chromedp.CSS(selector.MemberIDInput), c.Username),
+		chromedp.WaitVisible(chromedp.CSS(selector.PasswordInput)),
+		chromedp.SendKeys(chromedp.CSS(selector.PasswordInput), c.Password),
 	); err != nil {
 		return res, stepErr(stepFillCredentials, err)
 	}
@@ -86,7 +86,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	// code stamped earlier belongs to a previous attempt.
 	submittedAt := time.Now()
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
-		chromedp.Click(selector.LoginSubmit, chromedp.ByQuery),
+		chromedp.Click(chromedp.CSS(selector.LoginSubmit)),
 	); err != nil {
 		return res, stepErr(stepSubmitCredentials, err)
 	}
@@ -110,8 +110,8 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	res.OTPRequired = true
 	// Best-effort: the prefix is informational, so a missing one must not fail
 	// a login that is otherwise fine.
-	_ = chromedp.Run(ctx, chromedp.Text(selector.OTPPrefix, &res.OTPPrefix,
-		chromedp.ByQuery, chromedp.AtLeast(0)))
+	res.OTPPrefix, _ = chromedp.Run(ctx, chromedp.Text(chromedp.CSS(selector.OTPPrefix),
+		chromedp.AtLeast(0)))
 
 	code, err := src.Fetch(ctx, submittedAt)
 	if err != nil {
@@ -123,7 +123,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	}
 
 	if err := runWithLoginTimeout(ctx, loginDashboardTimeout,
-		chromedp.WaitVisible(selector.PostLoginAnchor, chromedp.ByQuery),
+		chromedp.WaitVisible(chromedp.CSS(selector.PostLoginAnchor)),
 	); err != nil {
 		return res, stepErr(stepAwaitDashboard, browser.PageOf(ctx).WithLocation(err))
 	}
@@ -147,7 +147,7 @@ func (c *Client) submitLoginOTP(ctx context.Context, code string) error {
 	}
 
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
-		chromedp.Click(selector.OTPFirstDigit, chromedp.ByQuery),
+		chromedp.Click(chromedp.CSS(selector.OTPFirstDigit)),
 	); err != nil {
 		return stepErr(stepSubmitOTP, fmt.Errorf("focus %s: %w", selector.OTPFirstDigit, err))
 	}
@@ -167,8 +167,8 @@ func (c *Client) submitLoginOTP(ctx context.Context, code string) error {
 	// look-alike carries no handler. Waiting for this one to appear doubles as
 	// confirmation that the digits registered.
 	if err := runWithLoginTimeout(ctx, loginOTPSubmitTimeout,
-		chromedp.WaitVisible(selector.OTPSubmit, chromedp.ByQuery),
-		chromedp.Click(selector.OTPSubmit, chromedp.ByQuery),
+		chromedp.WaitVisible(chromedp.CSS(selector.OTPSubmit)),
+		chromedp.Click(chromedp.CSS(selector.OTPSubmit)),
 	); err != nil {
 		return stepErr(stepSubmitOTP, fmt.Errorf(
 			"%s never became clickable — the digits may not have registered: %w", selector.OTPSubmit, err))
@@ -179,8 +179,8 @@ func (c *Client) submitLoginOTP(ctx context.Context, code string) error {
 // runWithLoginTimeout bounds a chromedp action group. Deriving a sub-context cancels
 // the actions, not the browser, so the caller's Chrome stays alive for a page
 // dump afterwards.
-func runWithLoginTimeout(ctx context.Context, d time.Duration, actions ...chromedp.Action) error {
+func runWithLoginTimeout(ctx context.Context, d time.Duration, actions ...chromedp.Action[chromedp.Void]) error {
 	tctx, cancel := context.WithTimeout(ctx, d)
 	defer cancel()
-	return chromedp.Run(tctx, actions...)
+	return chromedp.Do(tctx, actions...)
 }

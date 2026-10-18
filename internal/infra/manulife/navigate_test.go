@@ -272,7 +272,7 @@ func servingSite(t *testing.T, overrides map[string]string) (context.Context, st
 // openList puts the browser where a completed sign-in leaves it.
 func openList(t *testing.T, ctx context.Context, url string) {
 	t.Helper()
-	if err := chromedp.Run(ctx, chromedp.Navigate(url)); err != nil {
+	if err := chromedp.Do(ctx, chromedp.Navigate(url)); err != nil {
 		t.Fatalf("navigate: %v", err)
 	}
 }

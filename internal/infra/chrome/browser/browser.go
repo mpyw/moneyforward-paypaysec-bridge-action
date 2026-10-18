@@ -70,14 +70,10 @@ func New(parent context.Context, opts Options) (context.Context, context.CancelF
 		chromedp.Flag("disable-blink-features", "AutomationControlled"),
 		chromedp.Flag("disable-features", "AutomationControlled"),
 		chromedp.WindowSize(1280, 900),
-		// How long to wait for Chrome to announce its DevTools socket.
-		//
-		// chromedp allows 20s, which a shared CI runner under -race does not
-		// always manage — it cost one red build here, and the scheduled job runs
-		// on the same kind of machine and gets one attempt a day. Waiting longer
-		// costs nothing when the browser starts promptly, and the job's own
-		// deadline is the real bound.
-		chromedp.WSURLReadTimeout(90*time.Second),
+		// No start-up timeout of its own. chromedp talks to Chrome over a pipe,
+		// so nothing waits for a DevTools socket to be announced — the 20s wait
+		// for that once cost a red build on a shared runner under -race. The
+		// caller's deadline is the only bound, which is the one that matters.
 		chromedp.UserAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"),
 	)
 	if opts.NoSandbox {
@@ -97,7 +93,7 @@ func New(parent context.Context, opts Options) (context.Context, context.CancelF
 		ctxCancel()
 		allocCancel()
 	}
-	if err := chromedp.Run(ctx); err != nil {
+	if err := chromedp.Do(ctx); err != nil {
 		cancel()
 		return nil, nil, fmt.Errorf("start chrome: %w", err)
 	}
@@ -139,8 +135,8 @@ func (p Page) WaitForAny(timeout time.Duration, candidates map[string]string) (s
 
 	deadline := time.Now().Add(timeout)
 	for {
-		var hit string
-		if err := chromedp.Run(ctx, chromedp.Evaluate(js, &hit)); err != nil {
+		hit, err := chromedp.Run(ctx, chromedp.Evaluate[string](js))
+		if err != nil {
 			return "", fmt.Errorf("WaitForAny: probe: %w", err)
 		}
 		if hit != "" {
@@ -172,13 +168,10 @@ func (p Page) WaitForAny(timeout time.Duration, candidates map[string]string) (s
 // document — which is the thing callers actually need.
 func (p Page) Open(url string) error {
 	ctx := p.ctx
-	if err := chromedp.Run(ctx, chromedp.ActionFunc(func(ctx context.Context) error {
-		_, _, _, _, err := page.Navigate(url).Do(ctx)
-		return err
-	})); err != nil {
+	if _, err := chromedp.Call(ctx, page.Navigate, page.NavigateParams{URL: url}); err != nil {
 		return fmt.Errorf("navigate to %s: %w", url, err)
 	}
-	if err := chromedp.Run(ctx, chromedp.WaitReady("body", chromedp.ByQuery)); err != nil {
+	if err := chromedp.Do(ctx, chromedp.WaitReady(chromedp.CSS("body"))); err != nil {
 		return fmt.Errorf("waiting for %s to render: %w", url, err)
 	}
 	return nil
@@ -192,15 +185,15 @@ type PageInfo struct {
 
 // Info reads the current URL and title.
 func (p Page) Info() (PageInfo, error) {
-	var info PageInfo
-	err := chromedp.Run(p.ctx,
-		chromedp.Location(&info.URL),
-		chromedp.Title(&info.Title),
-	)
+	url, err := chromedp.Run(p.ctx, chromedp.Location())
 	if err != nil {
 		return PageInfo{}, fmt.Errorf("read page info: %w", err)
 	}
-	return info, nil
+	title, err := chromedp.Run(p.ctx, chromedp.Title())
+	if err != nil {
+		return PageInfo{}, fmt.Errorf("read page info: %w", err)
+	}
+	return PageInfo{URL: url, Title: title}, nil
 }
 
 // WithLocation annotates err with the page the browser is actually on.
@@ -249,8 +242,8 @@ func (p Page) Dump(dir, label string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var html string
-	if err := chromedp.Run(ctx, chromedp.OuterHTML("html", &html, chromedp.ByQuery)); err != nil {
+	html, err := chromedp.Run(ctx, chromedp.OuterHTML(chromedp.CSS("html")))
+	if err != nil {
 		return "", fmt.Errorf("read outer HTML: %w", err)
 	}
 	if err := os.MkdirAll(dir, 0o700); err != nil {
