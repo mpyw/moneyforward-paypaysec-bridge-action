@@ -16,4 +16,4 @@
 
 [tools]
 "github:mpyw/declscope" = "0.20.4"
-golangci-lint = "2.13.1"
+golangci-lint = "2.15.0"
