@@ -56,15 +56,15 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	// that are not there.
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
 		chromedp.Navigate(selector.LoginURL),
-		chromedp.WaitVisible(selector.UsernameInput, chromedp.ByQuery),
+		chromedp.WaitVisible(chromedp.CSS(selector.UsernameInput)),
 	); err != nil {
 		return res, stepErr(stepNavigate, err)
 	}
 
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
-		chromedp.SendKeys(selector.UsernameInput, c.Username, chromedp.ByQuery),
-		chromedp.WaitVisible(selector.PasswordInput, chromedp.ByQuery),
-		chromedp.SendKeys(selector.PasswordInput, c.Password, chromedp.ByQuery),
+		chromedp.SendKeys(chromedp.CSS(selector.UsernameInput), c.Username),
+		chromedp.WaitVisible(chromedp.CSS(selector.PasswordInput)),
+		chromedp.SendKeys(chromedp.CSS(selector.PasswordInput), c.Password),
 	); err != nil {
 		return res, stepErr(stepFillCredentials, err)
 	}
@@ -75,7 +75,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	// spec discriminates on the body rather than on time alone.
 	submittedAt := time.Now()
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
-		chromedp.Click(selector.LoginSubmit, chromedp.ByQuery),
+		chromedp.Click(chromedp.CSS(selector.LoginSubmit)),
 	); err != nil {
 		return res, stepErr(stepSubmitCredentials, err)
 	}
@@ -106,7 +106,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	}
 
 	if err := runWithLoginTimeout(ctx, loginHomeTimeout,
-		chromedp.WaitVisible(selector.ContractCard, chromedp.ByQuery),
+		chromedp.WaitVisible(chromedp.CSS(selector.ContractCard)),
 	); err != nil {
 		return res, stepErr(stepAwaitHome, browser.PageOf(ctx).WithLocation(err))
 	}
@@ -132,7 +132,7 @@ func (c *Client) submitLoginOTP(ctx context.Context, code string) error {
 	}
 
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
-		chromedp.Click(selector.OTPInput, chromedp.ByQuery),
+		chromedp.Click(chromedp.CSS(selector.OTPInput)),
 	); err != nil {
 		return stepErr(stepSubmitOTP, fmt.Errorf("focus %s: %w", selector.OTPInput, err))
 	}
@@ -157,10 +157,10 @@ func (c *Client) submitLoginOTP(ctx context.Context, code string) error {
 	// as trusting a write that was never read back, which the ledger side of
 	// this program refuses to make. It costs one round trip on a path that is
 	// about to spend a credential.
-	var got string
-	if err := runWithLoginTimeout(ctx, loginFormTimeout,
-		chromedp.Value(selector.OTPInput, &got, chromedp.ByQuery),
-	); err != nil {
+	vctx, cancel := context.WithTimeout(ctx, loginFormTimeout)
+	got, err := chromedp.Run(vctx, chromedp.Value(chromedp.CSS(selector.OTPInput)))
+	cancel()
+	if err != nil {
 		return stepErr(stepSubmitOTP, fmt.Errorf("read %s back: %w", selector.OTPInput, err))
 	}
 	if got != code {
@@ -173,7 +173,7 @@ func (c *Client) submitLoginOTP(ctx context.Context, code string) error {
 	}
 
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
-		chromedp.Click(selector.OTPSubmit, chromedp.ByQuery),
+		chromedp.Click(chromedp.CSS(selector.OTPSubmit)),
 	); err != nil {
 		return stepErr(stepSubmitOTP, fmt.Errorf("click %s: %w", selector.OTPSubmit, err))
 	}
@@ -183,8 +183,8 @@ func (c *Client) submitLoginOTP(ctx context.Context, code string) error {
 // runWithLoginTimeout bounds a chromedp action group. Deriving a sub-context cancels
 // the actions, not the browser, so the caller's Chrome stays alive for a page
 // dump afterwards.
-func runWithLoginTimeout(ctx context.Context, d time.Duration, actions ...chromedp.Action) error {
+func runWithLoginTimeout(ctx context.Context, d time.Duration, actions ...chromedp.Action[chromedp.Void]) error {
 	tctx, cancel := context.WithTimeout(ctx, d)
 	defer cancel()
-	return chromedp.Run(tctx, actions...)
+	return chromedp.Do(tctx, actions...)
 }

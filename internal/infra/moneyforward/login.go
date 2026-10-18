@@ -98,9 +98,9 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	// email field: if MF has since split this into two steps, the failure names
 	// the password field instead of silently typing into nothing.
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
-		chromedp.SendKeys(selector.EmailInput, c.Email, chromedp.ByQuery),
-		chromedp.WaitVisible(selector.PasswordInput, chromedp.ByQuery),
-		chromedp.SendKeys(selector.PasswordInput, c.Password, chromedp.ByQuery),
+		chromedp.SendKeys(chromedp.CSS(selector.EmailInput), c.Email),
+		chromedp.WaitVisible(chromedp.CSS(selector.PasswordInput)),
+		chromedp.SendKeys(chromedp.CSS(selector.PasswordInput), c.Password),
 	); err != nil {
 		return res, stepErr(stepFillCredentials, err)
 	}
@@ -109,7 +109,7 @@ func (c *Client) Login(ctx context.Context, src otp.Source) (LoginResult, error)
 	// to it, so any code stamped earlier belongs to a previous attempt.
 	submittedAt := time.Now()
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
-		chromedp.Click(selector.SignInSubmit, chromedp.ByQuery),
+		chromedp.Click(chromedp.CSS(selector.SignInSubmit)),
 	); err != nil {
 		return res, stepErr(stepSubmitCredentials, err)
 	}
@@ -164,14 +164,14 @@ func (c *Client) enterAppAfterLogin(ctx context.Context) error {
 	// cancels it — ERR_ABORTED — so wait for the marker first and only steer if
 	// it never arrives.
 	if err := runWithLoginTimeout(ctx, loginSettleTimeout,
-		chromedp.WaitVisible(selector.HomeAnchor, chromedp.ByQuery),
+		chromedp.WaitVisible(chromedp.CSS(selector.HomeAnchor)),
 	); err == nil {
 		return nil
 	}
 
 	if err := runWithLoginTimeout(ctx, loginHomeTimeout,
 		chromedp.Navigate(selector.HomeURL),
-		chromedp.WaitVisible(selector.HomeAnchor, chromedp.ByQuery),
+		chromedp.WaitVisible(chromedp.CSS(selector.HomeAnchor)),
 	); err != nil {
 		return stepErr(stepAwaitHome, browser.PageOf(ctx).WithLocation(
 			fmt.Errorf("opening %s after authentication: %w", selector.HomeURL, err)))
@@ -182,10 +182,10 @@ func (c *Client) enterAppAfterLogin(ctx context.Context) error {
 // runWithLoginTimeout bounds a chromedp action group. Deriving a sub-context is the
 // supported way to time-box actions: it cancels the actions, not the browser, so
 // the caller's Chrome stays alive for a page dump afterwards.
-func runWithLoginTimeout(ctx context.Context, d time.Duration, actions ...chromedp.Action) error {
+func runWithLoginTimeout(ctx context.Context, d time.Duration, actions ...chromedp.Action[chromedp.Void]) error {
 	tctx, cancel := context.WithTimeout(ctx, d)
 	defer cancel()
-	return chromedp.Run(tctx, actions...)
+	return chromedp.Do(tctx, actions...)
 }
 
 // submitLoginOTP types the code and confirms it, preferring a real button and
@@ -193,7 +193,7 @@ func runWithLoginTimeout(ctx context.Context, d time.Duration, actions ...chrome
 // frequently auto-submit and may render no button at all.
 func (c *Client) submitLoginOTP(ctx context.Context, otpSelector, code string, res *LoginResult) error {
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
-		chromedp.SendKeys(otpSelector, code, chromedp.ByQuery),
+		chromedp.SendKeys(chromedp.CSS(otpSelector), code),
 	); err != nil {
 		return stepErr(stepSubmitOTP, fmt.Errorf("type code into %s: %w", otpSelector, err))
 	}
@@ -208,7 +208,7 @@ func (c *Client) submitLoginOTP(ctx context.Context, otpSelector, code string, r
 
 	res.OTPSubmitKey = buttonKey
 	if err := runWithLoginTimeout(ctx, loginFormTimeout,
-		chromedp.Click(selector.OTPSubmitCandidates[buttonKey], chromedp.ByQuery),
+		chromedp.Click(chromedp.CSS(selector.OTPSubmitCandidates[buttonKey])),
 	); err != nil {
 		return stepErr(stepSubmitOTP, fmt.Errorf("click %s: %w", selector.OTPSubmitCandidates[buttonKey], err))
 	}

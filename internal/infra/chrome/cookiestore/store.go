@@ -113,19 +113,12 @@ func (st Store) Save(ctx context.Context) (int, error) {
 	// whichever page happens to be open silently leaves half the session behind
 	// — and the restore then looks successful while the site renders
 	// signed-out.
-	var cookies []*network.Cookie
-	if err := chromedp.Run(ctx, chromedp.ActionFunc(func(ctx context.Context) error {
-		c, err := storage.GetCookies().Do(ctx)
-		if err != nil {
-			return err
-		}
-		cookies = c
-		return nil
-	})); err != nil {
+	res, err := chromedp.Call(ctx, storage.GetCookies, storage.GetCookiesParams{})
+	if err != nil {
 		return 0, fmt.Errorf("read cookies: %w", err)
 	}
 
-	stored := cookieSetFromChrome(cookies)
+	stored := cookieSetFromChrome(res.Cookies)
 	blob, err := json.MarshalIndent(stored, "", "  ")
 	if err != nil {
 		return 0, fmt.Errorf("encode cookies: %w", err)
@@ -136,7 +129,7 @@ func (st Store) Save(ctx context.Context) (int, error) {
 	if err := os.WriteFile(st.Path, blob, 0o600); err != nil {
 		return 0, fmt.Errorf("write cookies: %w", err)
 	}
-	return len(cookies), nil
+	return len(res.Cookies), nil
 }
 
 // decodeCookieSet reads the stored form.
@@ -203,9 +196,8 @@ func (st Store) Load(ctx context.Context) (int, error) {
 		return 0, nil
 	}
 
-	if err := chromedp.Run(ctx, chromedp.ActionFunc(func(ctx context.Context) error {
-		return storage.SetCookies(cookies.Params()).Do(ctx)
-	})); err != nil {
+	if _, err := chromedp.Call(ctx, storage.SetCookies,
+		storage.SetCookiesParams{Cookies: cookies.Params()}); err != nil {
 		return 0, fmt.Errorf("restore cookies: %w", err)
 	}
 	return len(cookies), nil

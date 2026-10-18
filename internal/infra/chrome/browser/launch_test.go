@@ -41,13 +41,18 @@ func TestNewLaunchesChrome(t *testing.T) {
 
 	const page = `data:text/html,<title>launch check</title><body><p id=marker>ok</p>`
 
-	var title, marker string
-	if err := chromedp.Run(bctx,
+	if err := chromedp.Do(bctx,
 		chromedp.Navigate(page),
-		chromedp.WaitReady("#marker", chromedp.ByQuery),
-		chromedp.Title(&title),
-		chromedp.TextContent("#marker", &marker, chromedp.ByQuery),
+		chromedp.WaitReady(chromedp.CSS("#marker")),
 	); err != nil {
+		t.Fatalf("driving the browser failed: %v", err)
+	}
+	title, err := chromedp.Run(bctx, chromedp.Title())
+	if err != nil {
+		t.Fatalf("driving the browser failed: %v", err)
+	}
+	marker, err := chromedp.Run(bctx, chromedp.TextContent(chromedp.CSS("#marker")))
+	if err != nil {
 		t.Fatalf("driving the browser failed: %v", err)
 	}
 

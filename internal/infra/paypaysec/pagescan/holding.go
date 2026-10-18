@@ -78,13 +78,15 @@ func LoadHolding(ctx context.Context, ref string) (HoldingDetail, error) {
 	if err := settle(tctx, selector.HoldingValue); err != nil {
 		return detail, err
 	}
-	var landed string
-	if err := chromedp.Run(tctx,
-		chromedp.Evaluate(expr, &detail),
-		chromedp.Location(&landed),
-	); err != nil {
+	detail, err = chromedp.Run(tctx, chromedp.Evaluate[HoldingDetail](expr))
+	if err != nil {
 		return detail, fmt.Errorf("extract from %s: %w", url, err)
 	}
+	landed, err := chromedp.Run(tctx, chromedp.Location())
+	if err != nil {
+		return detail, fmt.Errorf("extract from %s: %w", url, err)
+	}
+
 	detail.RequestedURL, detail.LandedURL = url, landed
 	return detail, nil
 }

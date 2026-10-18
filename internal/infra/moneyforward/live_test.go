@@ -54,7 +54,7 @@ func TestSignInPageSelectors(t *testing.T) {
 	}
 	defer closeBrowser()
 
-	if err := chromedp.Run(bctx, chromedp.Navigate(selector.SignInURL)); err != nil {
+	if err := chromedp.Do(bctx, chromedp.Navigate(selector.SignInURL)); err != nil {
 		t.Fatalf("navigate to %s: %v", selector.SignInURL, err)
 	}
 
@@ -101,7 +101,7 @@ func TestDumpWritesPage(t *testing.T) {
 	}
 	defer closeBrowser()
 
-	if err := chromedp.Run(bctx, chromedp.Navigate(selector.SignInURL)); err != nil {
+	if err := chromedp.Do(bctx, chromedp.Navigate(selector.SignInURL)); err != nil {
 		t.Fatalf("navigate: %v", err)
 	}
 

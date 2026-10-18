@@ -115,15 +115,15 @@ func Cards(ctx context.Context) ([]Card, error) {
 
 	tctx, cancel := context.WithTimeout(ctx, listTimeout)
 	defer cancel()
-	if err := chromedp.Run(tctx,
-		chromedp.WaitVisible(selector.ContractCard, chromedp.ByQuery),
+	if err := chromedp.Do(tctx,
+		chromedp.WaitVisible(chromedp.CSS(selector.ContractCard)),
 	); err != nil {
 		return nil, stepErr(stepReadList, browser.PageOf(tctx).WithLocation(
 			fmt.Errorf("waiting for the contract list: %w", err)))
 	}
 
-	var list contractList
-	if err := chromedp.Run(tctx, chromedp.Evaluate(js, &list)); err != nil {
+	list, err := chromedp.Run(tctx, chromedp.Evaluate[contractList](js))
+	if err != nil {
 		return nil, stepErr(stepReadList, err)
 	}
 	if len(list.Cards) == 0 {
@@ -149,9 +149,9 @@ func Cards(ctx context.Context) ([]Card, error) {
 func BackToList(ctx context.Context) error {
 	tctx, cancel := context.WithTimeout(ctx, navigateTimeout)
 	defer cancel()
-	if err := chromedp.Run(tctx,
+	if err := chromedp.Do(tctx,
 		chromedp.NavigateBack(),
-		chromedp.WaitVisible(selector.ContractCard, chromedp.ByQuery),
+		chromedp.WaitVisible(chromedp.CSS(selector.ContractCard)),
 	); err != nil {
 		return stepErr(stepReadList, browser.PageOf(tctx).WithLocation(
 			fmt.Errorf("going back to the contract list: %w", err)))
@@ -274,7 +274,7 @@ func ReadCard(ctx context.Context, card Card) (Reading, error) {
 	// seconds inside a 20-second click, so it was 20, and its own reason for
 	// being 30 was silently discarded.
 	if err := withTimeout(ctx, readyTimeout, func(ctx context.Context) error {
-		return chromedp.Run(ctx, chromedp.Poll(selector.ContractOpenerReady, nil))
+		return chromedp.Do(ctx, chromedp.Poll[chromedp.Void](selector.ContractOpenerReady))
 	}); err != nil {
 		return reading, stepErr(stepOpenContract, browser.PageOf(ctx).WithLocation(
 			fmt.Errorf("waiting for the list's own click handler to be defined: %w", err)))
@@ -295,7 +295,7 @@ func ReadCard(ctx context.Context, card Card) (Reading, error) {
 	// slow navigation. The click posts back, redirects and renders through an
 	// edge that sometimes has opinions.
 	if err := withTimeout(ctx, navigateTimeout, func(ctx context.Context) error {
-		return chromedp.Run(ctx, chromedp.WaitVisible(selector.PolicySummary, chromedp.ByQuery))
+		return chromedp.Do(ctx, chromedp.WaitVisible(chromedp.CSS(selector.PolicySummary)))
 	}); err != nil {
 		return reading, stepErr(stepOpenContract, browser.PageOf(ctx).WithLocation(
 			fmt.Errorf("waiting for the contract page after clicking its card: %w", err)))
@@ -303,7 +303,9 @@ func ReadCard(ctx context.Context, card Card) (Reading, error) {
 
 	var page policyPage
 	if err := withTimeout(ctx, extractTimeout, func(ctx context.Context) error {
-		return chromedp.Run(ctx, chromedp.Evaluate(js, &page))
+		var err error
+		page, err = chromedp.Run(ctx, chromedp.Evaluate[policyPage](js))
+		return err
 	}); err != nil {
 		return reading, stepErr(stepReadContract, browser.PageOf(ctx).WithLocation(
 			fmt.Errorf("reading the contract page: %w", err)))
@@ -444,10 +446,10 @@ func clickCardFor(ctx context.Context, number string) error {
 	if err != nil {
 		return err
 	}
-	var res struct {
+	res, err := chromedp.Run(ctx, chromedp.Evaluate[struct {
 		Matched int `json:"matched"`
-	}
-	if err := chromedp.Run(ctx, chromedp.Evaluate(js, &res)); err != nil {
+	}](js))
+	if err != nil {
 		return fmt.Errorf("looking for the contract in the list: %w", err)
 	}
 	switch {

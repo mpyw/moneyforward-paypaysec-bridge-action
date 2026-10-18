@@ -35,7 +35,7 @@ func TestLoginPageSelectors(t *testing.T) {
 	bctx, done := newLiveBrowser(t)
 	defer done()
 
-	if err := chromedp.Run(bctx, chromedp.Navigate(selector.LoginURL)); err != nil {
+	if err := chromedp.Do(bctx, chromedp.Navigate(selector.LoginURL)); err != nil {
 		t.Fatalf("navigate to %s: %v", selector.LoginURL, err)
 	}
 	logCurrentPage(t, bctx)
@@ -72,9 +72,9 @@ func TestTargetsRequireAuth(t *testing.T) {
 		seen[target.URL] = true
 
 		t.Run(target.Key, func(t *testing.T) {
-			if err := chromedp.Run(bctx,
+			if err := chromedp.Do(bctx,
 				chromedp.Navigate(target.URL),
-				chromedp.WaitReady("body", chromedp.ByQuery),
+				chromedp.WaitReady(chromedp.CSS("body")),
 				chromedp.Sleep(2*time.Second),
 			); err != nil {
 				t.Fatalf("load %s: %v", target.URL, err)
@@ -110,11 +110,7 @@ func valueTotalPresent(ctx context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	var found bool
-	if err := chromedp.Run(ctx, chromedp.Evaluate(js, &found)); err != nil {
-		return false, err
-	}
-	return found, nil
+	return chromedp.Run(ctx, chromedp.Evaluate[bool](js))
 }
 
 func newLiveBrowser(t *testing.T) (context.Context, func()) {

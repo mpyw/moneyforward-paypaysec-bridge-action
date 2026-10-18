@@ -9,7 +9,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/storage"
 	"github.com/chromedp/chromedp"
 )
@@ -20,18 +19,11 @@ const httpClientTimeout = 60 * time.Second
 // HTTPClientFor builds an http.Client carrying the running browser's session,
 // without going through a file.
 func HTTPClientFor(ctx context.Context) (*http.Client, error) {
-	var cookies []*network.Cookie
-	if err := chromedp.Run(ctx, chromedp.ActionFunc(func(ctx context.Context) error {
-		c, err := storage.GetCookies().Do(ctx)
-		if err != nil {
-			return err
-		}
-		cookies = c
-		return nil
-	})); err != nil {
+	res, err := chromedp.Call(ctx, storage.GetCookies, storage.GetCookiesParams{})
+	if err != nil {
 		return nil, fmt.Errorf("read cookies: %w", err)
 	}
-	return cookieSetFromChrome(cookies).HTTPClient()
+	return cookieSetFromChrome(res.Cookies).HTTPClient()
 }
 
 // HTTPClient builds an http.Client carrying the session in the store.

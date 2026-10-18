@@ -237,7 +237,7 @@ func (s *Session) Open(url string) error {
 		return err
 	}
 	// These pages render client-side; give the content a moment to appear.
-	return chromedp.Run(tctx, chromedp.Sleep(2*time.Second))
+	return chromedp.Do(tctx, chromedp.Sleep(2*time.Second))
 }
 
 // Report prints where the browser currently is.

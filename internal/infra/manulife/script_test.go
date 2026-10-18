@@ -5,6 +5,7 @@ package manulife
 
 import (
 	"context"
+	"encoding/json"
 	"os/exec"
 	"strings"
 	"testing"
@@ -271,14 +272,20 @@ func runScript(t *testing.T, html, expr string, into any) {
 	}
 	defer closeBrowser()
 
-	if err := chromedp.Run(bctx,
+	if err := chromedp.Do(bctx,
 		chromedp.Navigate("data:text/html;charset=utf-8,"+strings.NewReplacer(
 			"#", "%23", "%", "%25",
 		).Replace(html)),
-		chromedp.WaitReady("body", chromedp.ByQuery),
-		chromedp.Evaluate(expr, into),
+		chromedp.WaitReady(chromedp.CSS("body")),
 	); err != nil {
 		t.Fatalf("run the script: %v", err)
+	}
+	raw, err := chromedp.Run(bctx, chromedp.Evaluate[[]byte](expr))
+	if err != nil {
+		t.Fatalf("run the script: %v", err)
+	}
+	if err := json.Unmarshal(raw, into); err != nil {
+		t.Fatalf("decode the script's result: %v", err)
 	}
 }
 
