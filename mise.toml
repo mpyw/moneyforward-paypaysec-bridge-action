@@ -15,5 +15,5 @@
 # is one more thing that can disagree.
 
 [tools]
-"github:mpyw/declscope" = "0.24.5"
+"github:mpyw/declscope" = "0.25.0"
 golangci-lint = "2.15.0"
