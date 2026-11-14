@@ -4,8 +4,8 @@ go 1.27
 
 require (
 	cloud.google.com/go/auth v0.24.1
-	github.com/chromedp/cdproto v0.158.3
-	github.com/chromedp/chromedp v0.21.0
+	github.com/chromedp/cdproto v0.159.0
+	github.com/chromedp/chromedp v0.23.0
 	github.com/google/wire v0.7.0
 	github.com/samber/lo v1.53.0
 	github.com/urfave/cli/v3 v3.14.0
