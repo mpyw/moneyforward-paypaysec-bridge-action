@@ -122,7 +122,7 @@ runs:
       # leave a hop in the chain that the person taking the risk cannot see.
       #
       # Dependabot keeps it current — see .github/dependabot.yml.
-      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
       with:
         go-version-file: ${{ inputs.go-version-file || format('{0}/go.mod', github.action_path) }}
         cache-dependency-path: ${{ github.action_path }}/go.sum
