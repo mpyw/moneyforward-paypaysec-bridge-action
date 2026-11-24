@@ -12,10 +12,11 @@ const (
 	stepNavigate          = "navigate"
 	stepFillCredentials   = "fill-credentials"
 	stepSubmitCredentials = "submit-credentials"
-	StepAwaitChallenge    = "await-challenge"
-	stepFetchOTP          = "fetch-otp"
-	stepSubmitOTP         = "submit-otp"
-	stepAwaitHome         = "await-home"
+	//declscope:ignore overexported // live_test.go, an external test package, dumps the page under this label
+	StepAwaitChallenge = "await-challenge"
+	stepFetchOTP       = "fetch-otp"
+	stepSubmitOTP      = "submit-otp"
+	stepAwaitHome      = "await-home"
 )
 
 // StepOf returns the failing step name, or "" if err carries no step marker.
